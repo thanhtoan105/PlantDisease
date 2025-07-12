@@ -414,9 +414,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/plant-ai-disease-app/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/plant-ai-disease-app/discussions)
-- **Email**: your-email@domain.com
+- **Issues**: [GitHub Issues](https://github.com/thanhtoan105/PlantDisease/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/thanhtoan105/PlantDisease/discussions)
+- **Email**: duongthanhtoan105@gmail.com
 
 ## 🗺️ Roadmap
 
@@ -433,4 +433,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **🎉 Ready to contribute to making agriculture smarter? Clone, setup, and start coding!**
 
-Made with ❤️ by [Your Team Name] 
+Made with ❤️ by Thanh Toan and Phi Hung
