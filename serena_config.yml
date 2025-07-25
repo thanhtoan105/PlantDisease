@@ -1,0 +1,3 @@
+language: dart # Ngôn ngữ chính cho Flutter project
+log_level: info # Mức log chi tiết
+enable_gui: true # Bật dashboard web local để debug (truy cập tại http://localhost:8080 sau khi chạy server)
