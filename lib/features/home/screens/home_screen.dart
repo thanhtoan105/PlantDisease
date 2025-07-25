@@ -147,6 +147,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _handleFunctionCardTap(String title) {
+    switch (title) {
+      case 'Plant Details':
+        context.push(RouteNames.cropLibrary);
+        break;
+      case 'Weather':
+        // Navigate to weather details or show weather widget
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Weather details coming soon')),
+        );
+        break;
+      case 'Disease Library':
+        // Navigate to crop library (which contains disease information)
+        context.push(RouteNames.cropLibrary);
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$title coming soon')),
+        );
+    }
+  }
+
   Widget _buildFunctionCards() {
     final functionCards = [
       {
@@ -172,11 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: CustomCard(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${card['title']} coming soon')),
-                );
-              },
+              onTap: () => _handleFunctionCardTap(card['title'] as String),
               child: Column(
                 children: [
                   Container(

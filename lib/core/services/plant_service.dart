@@ -14,11 +14,11 @@ class PlantService {
       };
     } catch (error) {
       debugPrint('PlantService - Error fetching crops: $error');
-      // Return empty list instead of fallback data to force database usage
+      // Return fallback data when database is unavailable
       return {
         'success': false,
         'error': error.toString(),
-        'data': <Map<String, dynamic>>[],
+        'data': getFallbackCrops(),
       };
     }
   }
@@ -47,7 +47,7 @@ class PlantService {
       return {
         'success': false,
         'error': error.toString(),
-        'data': null,
+        'data': getFallbackCropDetails(cropId),
       };
     }
   }
@@ -63,6 +63,55 @@ class PlantService {
     } catch (error) {
       debugPrint('PlantService - Error searching crops: $error');
       // Return empty list to force database usage
+      return {
+        'success': false,
+        'error': error.toString(),
+        'data': <Map<String, dynamic>>[],
+      };
+    }
+  }
+
+  /// Search diseases by term
+  static Future<Map<String, dynamic>> searchDiseases(String searchTerm) async {
+    try {
+      final diseases = await SupabaseService.searchDiseases(searchTerm);
+      return {
+        'success': true,
+        'data': diseases,
+      };
+    } catch (error) {
+      debugPrint('PlantService - Error searching diseases: $error');
+      return {
+        'success': false,
+        'error': error.toString(),
+        'data': <Map<String, dynamic>>[],
+      };
+    }
+  }
+
+  /// Search all content (crops and diseases)
+  static Future<Map<String, dynamic>> searchAll(String searchTerm) async {
+    try {
+      final cropsResult = await searchCrops(searchTerm);
+      final diseasesResult = await searchDiseases(searchTerm);
+
+      final allResults = <Map<String, dynamic>>[];
+
+      if (cropsResult['success']) {
+        allResults.addAll(List<Map<String, dynamic>>.from(cropsResult['data']));
+      }
+
+      if (diseasesResult['success']) {
+        allResults
+            .addAll(List<Map<String, dynamic>>.from(diseasesResult['data']));
+      }
+
+      return {
+        'success': true,
+        'data': allResults,
+      };
+    } catch (error) {
+      debugPrint('PlantService - Error searching all: $error');
       return {
         'success': false,
         'error': error.toString(),
@@ -170,5 +219,119 @@ class PlantService {
   /// Test database connection
   static Future<Map<String, dynamic>> testConnection() async {
     return await SupabaseService.testConnection();
+  }
+
+  /// Get fallback crop details when database is unavailable
+  static Map<String, dynamic> getFallbackCropDetails(String cropId) {
+    final fallbackDetails = {
+      '1': {
+        'id': '1',
+        'name': 'Apple Tree',
+        'scientificName': 'Malus domestica',
+        'description':
+            'Apple trees are deciduous trees in the rose family best known for their sweet, pomaceous fruit, the apple. They are widely cultivated worldwide and are susceptible to various fungal diseases.',
+        'emoji': '🍎',
+        'diseases': [
+          {
+            'id': '101',
+            'className': 'Apple___Apple_scab',
+            'name': 'Apple Scab',
+            'description':
+                'Caused by the fungus Venturia inaequalis. Symptoms include olive-green or brown spots on leaves and fruit, which later become black and scabby.',
+            'treatment':
+                'Apply fungicides like captan, myclobutanil, or propiconazole. Remove fallen leaves and improve air circulation.',
+            'severity': 'High',
+            'symptoms': [
+              'Dark spots on leaves',
+              'Scabby fruit lesions',
+              'Premature leaf drop',
+            ],
+          },
+          {
+            'id': '102',
+            'className': 'Apple___Black_rot',
+            'name': 'Apple Black Rot',
+            'description':
+                'Caused by the fungus Botryosphaeria obtusa. On leaves, it creates "frogeye" spots with a tan center. On fruit, it causes a black, firm rot that spreads rapidly.',
+            'treatment':
+                'Remove infected plant parts, apply copper-based fungicides, and ensure proper pruning for air circulation.',
+            'severity': 'Medium',
+            'symptoms': [
+              'Frogeye spots on leaves',
+              'Black rot on fruit',
+              'Rapid spread of infection',
+            ],
+          },
+          {
+            'id': '103',
+            'className': 'Apple___Cedar_apple_rust',
+            'name': 'Cedar Apple Rust',
+            'description':
+                'Caused by the fungus Gymnosporangium juniperi-virginianae. On apple leaves, it creates small, yellow spots that enlarge and turn bright orange with black spots in the center.',
+            'treatment':
+                'Remove nearby cedar trees if possible, apply preventive fungicides in spring, and choose resistant apple varieties.',
+            'severity': 'Medium',
+            'symptoms': [
+              'Yellow spots on leaves',
+              'Orange discoloration',
+              'Black spots in center',
+            ],
+          },
+          {
+            'id': '104',
+            'className': 'Apple___healthy',
+            'name': 'Healthy',
+            'description':
+                'The leaf shows no visible signs of common diseases. The surface is green, with no spots, distortions, or unusual discoloration.',
+            'treatment':
+                'Continue regular care: proper watering, fertilization, and monitoring for early disease detection.',
+            'severity': 'None',
+            'symptoms': [
+              'Green, healthy appearance',
+              'No visible spots or discoloration',
+              'Normal leaf structure',
+            ],
+          },
+        ],
+        'diseaseCount': 4,
+        'growingConditions': getGrowingConditions('Apple Tree'),
+        'seasons': getGrowingSeasons('Apple Tree'),
+        'tips': getGrowingTips('Apple Tree'),
+        'image_url':
+            'https://images.pexels.com/photos/347926/pexels-photo-347926.jpeg?auto=compress&cs=tinysrgb&w=400',
+      },
+    };
+
+    return fallbackDetails[cropId] ??
+        {
+          'id': cropId,
+          'name': 'Unknown Crop',
+          'scientificName': 'Not available',
+          'description': 'Detailed information not available for this crop.',
+          'emoji': '🌱',
+          'diseases': <Map<String, dynamic>>[],
+          'diseaseCount': 0,
+          'growingConditions': getGrowingConditions('Unknown'),
+          'seasons': getGrowingSeasons('Unknown'),
+          'tips': getGrowingTips('Unknown'),
+          'image_url': '',
+        };
+  }
+
+  /// Get fallback crops list when database is unavailable
+  static List<Map<String, dynamic>> getFallbackCrops() {
+    return [
+      {
+        'id': '1',
+        'name': 'Apple Tree',
+        'scientificName': 'Malus domestica',
+        'description':
+            'A popular fruit tree susceptible to various fungal diseases.',
+        'emoji': '🍎',
+        'diseaseCount': 4,
+        'image_url':
+            'https://images.pexels.com/photos/347926/pexels-photo-347926.jpeg?auto=compress&cs=tinysrgb&w=400',
+      },
+    ];
   }
 }

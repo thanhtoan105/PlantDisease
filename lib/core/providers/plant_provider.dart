@@ -38,8 +38,8 @@ class PlantProvider extends ChangeNotifier {
     } catch (error) {
       debugPrint('Error loading crops: $error');
       _setError(error.toString());
-      // Keep empty list to force database usage
-      _crops = [];
+      // Use fallback data when there's a complete failure
+      _crops = PlantService.getFallbackCrops();
     } finally {
       _setLoading(false);
     }
@@ -71,6 +71,13 @@ class PlantProvider extends ChangeNotifier {
   Future<Map<String, dynamic>?> getCropDetails(String cropId) async {
     try {
       final result = await PlantService.getCropDetails(cropId);
+
+      // If there's an error but we have fallback data, use it
+      if (!result['success'] && result['data'] != null) {
+        debugPrint('Using fallback crop details: ${result['error']}');
+        return result['data'];
+      }
+
       return result['data'];
     } catch (error) {
       debugPrint('Error getting crop details: $error');

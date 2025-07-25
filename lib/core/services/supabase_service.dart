@@ -25,7 +25,7 @@ class SupabaseService {
       }
 
       // Simple query to test connection
-      final response = await _supabase.from('crops').select('count').limit(1);
+      await _supabase.from('crops').select('count').limit(1);
 
       return {
         'success': true,
@@ -159,6 +159,37 @@ class SupabaseService {
       }).toList();
     } catch (error) {
       debugPrint('Error searching crops: $error');
+      rethrow;
+    }
+  }
+
+  /// Search diseases by term
+  static Future<List<Map<String, dynamic>>> searchDiseases(
+      String searchTerm) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      final response = await _supabase
+          .rpc('search_diseases', params: {'search_term': searchTerm});
+
+      return response.map<Map<String, dynamic>>((disease) {
+        return {
+          'id': disease['id'].toString(),
+          'cropId': disease['crop_id'].toString(),
+          'className': disease['class_name'],
+          'name': disease['display_name'],
+          'description': _extractDescription(disease['description']),
+          'treatment':
+              disease['treatment'] ?? 'No treatment information available',
+          'cropName': disease['crop_name'],
+          'cropScientificName': disease['crop_scientific_name'],
+          'type': 'disease',
+        };
+      }).toList();
+    } catch (error) {
+      debugPrint('Error searching diseases: $error');
       rethrow;
     }
   }

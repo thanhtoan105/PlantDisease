@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
-import '../../../core/providers/plant_provider.dart';
+import '../../../core/services/plant_service.dart';
 import '../../../shared/widgets/custom_search_bar.dart';
 import '../../../shared/widgets/custom_card.dart';
+import '../../../shared/widgets/loading_spinner.dart';
+import '../../../navigation/route_names.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -17,8 +19,16 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _activeFilter = 'all';
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
+  String? _searchError;
+
+  final List<Map<String, String>> _filters = [
+    {'id': 'all', 'label': 'All', 'icon': 'search'},
+    {'id': 'crops', 'label': 'Crops', 'icon': 'agriculture'},
+    {'id': 'diseases', 'label': 'Diseases', 'icon': 'bug_report'},
+  ];
 
   @override
   void dispose() {
@@ -26,27 +36,55 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  void _performSearch(String query) {
+  Future<void> _performSearch(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _searchError = null;
+      });
+      return;
+    }
+
     setState(() {
       _searchQuery = query;
       _isSearching = true;
+      _searchError = null;
     });
 
-    // Simulate search delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        final plantProvider = context.read<PlantProvider>();
-        final results = plantProvider.crops.where((crop) {
-          return crop['name'].toLowerCase().contains(query.toLowerCase()) ||
-              crop['description'].toLowerCase().contains(query.toLowerCase());
-        }).toList();
+    try {
+      Map<String, dynamic> result;
 
+      switch (_activeFilter) {
+        case 'crops':
+          result = await PlantService.searchCrops(query.trim());
+          break;
+        case 'diseases':
+          result = await PlantService.searchDiseases(query.trim());
+          break;
+        default:
+          result = await PlantService.searchAll(query.trim());
+      }
+
+      if (mounted) {
         setState(() {
-          _searchResults = results;
+          if (result['success']) {
+            _searchResults = List<Map<String, dynamic>>.from(result['data']);
+          } else {
+            _searchError = result['error'];
+            _searchResults = [];
+          }
           _isSearching = false;
         });
       }
-    });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _searchError = error.toString();
+          _searchResults = [];
+          _isSearching = false;
+        });
+      }
+    }
   }
 
   @override
@@ -70,23 +108,65 @@ class _SearchScreenState extends State<SearchScreen> {
               value: _searchController.text,
               onChanged: (value) {
                 _searchController.text = value;
-                if (value.isNotEmpty) {
-                  _performSearch(value);
-                } else {
-                  setState(() {
-                    _searchQuery = '';
-                    _searchResults = [];
-                  });
-                }
+                _performSearch(value);
               },
             ),
           ),
+
+          // Filter tabs
+          _buildFilterTabs(),
 
           // Search results
           Expanded(
             child: _buildSearchResults(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    return Container(
+      height: 50,
+      color: AppColors.white,
+      child: Row(
+        children: _filters.map((filter) {
+          final isActive = _activeFilter == filter['id'];
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _activeFilter = filter['id']!;
+                });
+                _performSearch(_searchController.text);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isActive
+                          ? AppColors.primaryGreen
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    filter['label']!,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: isActive
+                          ? AppColors.primaryGreen
+                          : AppColors.mediumGray,
+                      fontWeight:
+                          isActive ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -98,8 +178,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
     if (_isSearching) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+        child: LoadingSpinner(size: 48),
       );
+    }
+
+    if (_searchError != null) {
+      return _buildErrorState();
     }
 
     if (_searchResults.isEmpty) {
@@ -217,6 +301,37 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.spacingXl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: AppDimensions.spacingLg),
+            Text(
+              'Search Error',
+              style: AppTypography.headlineMedium,
+            ),
+            const SizedBox(height: AppDimensions.spacingSm),
+            Text(
+              _searchError ?? 'An error occurred while searching',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mediumGray,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildNoResults() {
     return Center(
       child: Padding(
@@ -255,15 +370,13 @@ class _SearchScreenState extends State<SearchScreen> {
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
-        final crop = _searchResults[index];
+        final result = _searchResults[index];
+        final isDisease = result['type'] == 'disease';
+
         return Padding(
           padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
           child: CustomCard(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${crop['name']} details coming soon')),
-              );
-            },
+            onTap: () => _handleResultTap(result),
             child: Row(
               children: [
                 Container(
@@ -275,9 +388,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         BorderRadius.circular(AppDimensions.borderRadiusMedium),
                   ),
                   child: Center(
-                    child: Text(
-                      crop['emoji'],
-                      style: const TextStyle(fontSize: 28),
+                    child: Icon(
+                      isDisease ? Icons.bug_report : Icons.eco,
+                      color: isDisease
+                          ? AppColors.accentOrange
+                          : AppColors.primaryGreen,
+                      size: 28,
                     ),
                   ),
                 ),
@@ -287,11 +403,21 @@ class _SearchScreenState extends State<SearchScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        crop['name'],
+                        result['name'] ?? 'Unknown',
                         style: AppTypography.labelLarge,
                       ),
+                      if (isDisease && result['cropName'] != null) ...[
+                        Text(
+                          'Affects: ${result['cropName']}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.mediumGray,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimensions.spacingXs),
+                      ],
                       Text(
-                        crop['description'],
+                        result['description'] ?? 'No description available',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.mediumGray,
                         ),
@@ -305,14 +431,19 @@ class _SearchScreenState extends State<SearchScreen> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withOpacity(0.15),
+                          color: (isDisease
+                                  ? AppColors.accentOrange
+                                  : AppColors.primaryGreen)
+                              .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(
                               AppDimensions.borderRadiusSmall),
                         ),
                         child: Text(
-                          '${crop['diseaseCount']} diseases',
+                          isDisease ? 'Disease' : 'Crop',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.primaryGreen,
+                            color: isDisease
+                                ? AppColors.accentOrange
+                                : AppColors.primaryGreen,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -331,5 +462,17 @@ class _SearchScreenState extends State<SearchScreen> {
         );
       },
     );
+  }
+
+  void _handleResultTap(Map<String, dynamic> result) {
+    final isDisease = result['type'] == 'disease';
+
+    if (isDisease) {
+      // Navigate to disease details
+      context.push('/disease-details', extra: result);
+    } else {
+      // Navigate to crop details
+      context.push('${RouteNames.cropDetails}/${result['id']}', extra: result);
+    }
   }
 }

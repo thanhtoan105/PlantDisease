@@ -22,6 +22,7 @@ class ResultsScreen extends StatelessWidget {
     final predictions = analysisResult['predictions'] as List<dynamic>? ?? [];
     final isHealthy = analysisResult['isHealthy'] ?? false;
     final confidence = (analysisResult['confidence'] ?? 0.0) as double;
+    final isDemoResult = analysisResult['isDemoResult'] ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.lightGray,
@@ -36,6 +37,9 @@ class ResultsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Demo result banner
+            if (isDemoResult) _buildDemoResultBanner(),
+
             // Image display
             _buildImageCard(),
 
@@ -60,6 +64,37 @@ class ResultsScreen extends StatelessWidget {
             _buildActionButtons(context),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDemoResultBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppDimensions.spacingLg),
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        border: Border.all(color: Colors.orange, width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.orange,
+            size: 20,
+          ),
+          const SizedBox(width: AppDimensions.spacingSm),
+          Expanded(
+            child: Text(
+              'Demo Mode: AI model file not found. Showing simulated results.',
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

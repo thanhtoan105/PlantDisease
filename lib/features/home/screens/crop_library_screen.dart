@@ -6,7 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/plant_provider.dart';
 import '../../../shared/widgets/custom_search_bar.dart';
-import '../../../shared/widgets/custom_card.dart';
+
 import '../widgets/crop_card.dart';
 import '../../../navigation/route_names.dart';
 

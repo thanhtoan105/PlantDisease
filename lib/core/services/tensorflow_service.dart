@@ -7,7 +7,9 @@ import 'package:image/image.dart' as img;
 class TensorFlowService {
   static Interpreter? _interpreter;
   static bool _isModelLoaded = false;
+  static bool _isInitialized = false;
   static List<String>? _labels;
+  static String? _initializationError;
 
   // Model configuration matching React Native
   static const int modelInputSize = 128;
@@ -19,6 +21,8 @@ class TensorFlowService {
   static Future<bool> initialize() async {
     try {
       debugPrint('🔬 Initializing TensorFlow Lite model...');
+      _isInitialized = true;
+      _initializationError = null;
 
       // Check if model file exists first
       try {
@@ -30,10 +34,11 @@ class TensorFlowService {
         debugPrint(
             '⚠️ Model file not found. Please add apple_model_final.tflite to assets/models/');
         debugPrint('📖 See assets/models/README.md for setup instructions');
-        // Return true to allow app to continue without AI functionality
+        _initializationError =
+            'Model file not found. Please add the model file to continue.';
         _isModelLoaded = false;
         await _loadLabels(); // Still load labels for UI
-        return true;
+        return true; // Return true to allow app to continue
       }
 
       // Create interpreter options for better compatibility
@@ -84,6 +89,7 @@ class TensorFlowService {
     } catch (e) {
       debugPrint('❌ Failed to load TensorFlow model: $e');
       debugPrint('🔍 Error details: ${e.runtimeType}');
+      _initializationError = 'Failed to initialize TensorFlow: $e';
       _isModelLoaded = false;
       await _loadLabels(); // Still load labels for UI
       return true; // Return true to allow app to continue
@@ -134,14 +140,28 @@ class TensorFlowService {
   /// Check if model is loaded
   static bool get isModelLoaded => _isModelLoaded && _interpreter != null;
 
+  /// Check if service is initialized (even without model)
+  static bool get isInitialized => _isInitialized;
+
+  /// Get initialization error message
+  static String? get initializationError => _initializationError;
+
+  /// Check if service can be used (initialized, even without model)
+  static bool get canAnalyze => _isInitialized;
+
   /// Analyze image for plant disease detection
   static Future<Map<String, dynamic>> analyzeImage(String imagePath) async {
-    if (!isModelLoaded || _interpreter == null) {
+    if (!_isInitialized) {
       return {
         'success': false,
-        'error':
-            'AI model not available. Please add the model file to continue.',
+        'error': 'TensorFlow service not initialized. Please restart the app.',
       };
+    }
+
+    if (!isModelLoaded || _interpreter == null) {
+      // Provide demo results when model is not available
+      debugPrint('🔬 Model not available, providing demo results');
+      return _generateDemoResults(imagePath);
     }
 
     try {
@@ -300,11 +320,70 @@ class TensorFlowService {
   /// Get model labels
   static List<String> get labels => _labels ?? [];
 
+  /// Generate demo results when model is not available
+  static Map<String, dynamic> _generateDemoResults(String imagePath) {
+    // Simulate analysis based on image name or random selection
+    final fileName = imagePath.split('/').last.toLowerCase();
+
+    // Default to healthy with some randomness
+    String predictedClass = 'Apple___healthy';
+    double confidence = 0.85;
+
+    // Check filename for disease indicators
+    if (fileName.contains('scab')) {
+      predictedClass = 'Apple___Apple_scab';
+      confidence = 0.78;
+    } else if (fileName.contains('rot') || fileName.contains('black')) {
+      predictedClass = 'Apple___Black_rot';
+      confidence = 0.82;
+    } else if (fileName.contains('rust') || fileName.contains('cedar')) {
+      predictedClass = 'Apple___Cedar_apple_rust';
+      confidence = 0.75;
+    }
+
+    // Create demo predictions
+    final predictions = [
+      {
+        'label': predictedClass,
+        'confidence': confidence,
+        'displayName': _formatLabel(predictedClass),
+      },
+      {
+        'label': 'Apple___healthy',
+        'confidence': predictedClass == 'Apple___healthy' ? 0.15 : 0.92,
+        'displayName': 'Healthy',
+      },
+    ];
+
+    // Sort by confidence
+    predictions.sort((a, b) =>
+        (b['confidence'] as double).compareTo(a['confidence'] as double));
+
+    final topPrediction = predictions.first;
+
+    return {
+      'success': true,
+      'data': {
+        'predictions': predictions,
+        'topPrediction': topPrediction,
+        'confidence': topPrediction['confidence'],
+        'isHealthy':
+            (topPrediction['label'] as String?)?.contains('healthy') ?? false,
+        'diseaseDetected':
+            !((topPrediction['label'] as String?)?.contains('healthy') ?? true),
+        'isDemoResult': true,
+      },
+      'analysisMethod': 'demo_fallback',
+    };
+  }
+
   /// Dispose resources
   static void dispose() {
     _interpreter?.close();
     _interpreter = null;
     _isModelLoaded = false;
+    _isInitialized = false;
+    _initializationError = null;
     _labels = null;
   }
 }

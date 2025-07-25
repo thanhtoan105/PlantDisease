@@ -23,6 +23,7 @@ class _AiScanScreenState extends State<AiScanScreen>
   late Animation<double> _fadeAnimation;
 
   bool _modelLoaded = false;
+  bool _tensorflowInitialized = false;
   bool _cameraInitialized = false;
   bool _isAnalyzing = false;
   String? _error;
@@ -51,19 +52,25 @@ class _AiScanScreenState extends State<AiScanScreen>
   Future<void> _initializeServices() async {
     try {
       // Initialize TensorFlow model
-      final modelLoaded = await TensorFlowService.initialize();
+      final tensorflowInitialized = await TensorFlowService.initialize();
+      final modelLoaded = TensorFlowService.isModelLoaded;
+      final modelError = TensorFlowService.initializationError;
 
       // Initialize camera
       final cameraInitialized = await CameraService.initialize();
 
       if (mounted) {
         setState(() {
+          _tensorflowInitialized = tensorflowInitialized;
           _modelLoaded = modelLoaded;
           _cameraInitialized = cameraInitialized;
-          if (!modelLoaded) {
-            _error = 'Failed to load AI model';
+
+          if (!tensorflowInitialized) {
+            _error = 'Failed to initialize TensorFlow service';
           } else if (!cameraInitialized) {
             _error = 'Failed to initialize camera';
+          } else if (!modelLoaded && modelError != null) {
+            _error = null; // Clear error since we can still function
           }
         });
       }
@@ -77,7 +84,7 @@ class _AiScanScreenState extends State<AiScanScreen>
   }
 
   Future<void> _openCamera() async {
-    if (!_modelLoaded || !_cameraInitialized) {
+    if (!_tensorflowInitialized || !_cameraInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Please wait for initialization to complete')),
@@ -98,9 +105,10 @@ class _AiScanScreenState extends State<AiScanScreen>
   }
 
   Future<void> _pickFromGallery() async {
-    if (!_modelLoaded) {
+    if (!_tensorflowInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please wait for AI model to load')),
+        const SnackBar(
+            content: Text('Please wait for TensorFlow to initialize')),
       );
       return;
     }
@@ -142,9 +150,14 @@ class _AiScanScreenState extends State<AiScanScreen>
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Analysis failed: ${result['error']}')),
-          );
+          // Check if this is a model file issue
+          if (result['requiresModelFile'] == true) {
+            _showModelFileDialog();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Analysis failed: ${result['error']}')),
+            );
+          }
         }
       }
     } catch (e) {
@@ -160,6 +173,29 @@ class _AiScanScreenState extends State<AiScanScreen>
         });
       }
     }
+  }
+
+  void _showModelFileDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('AI Model Required'),
+          content: const Text(
+            'The AI model file is missing. To use plant disease detection, please:\n\n'
+            '1. Add the apple_model_final.tflite file to assets/models/\n'
+            '2. Restart the app\n\n'
+            'The app can still be used for other features.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -199,9 +235,13 @@ class _AiScanScreenState extends State<AiScanScreen>
                             ),
                             const SizedBox(width: AppDimensions.spacingSm),
                             Text(
-                              _modelLoaded ? 'AI Ready' : 'Loading AI...',
+                              _modelLoaded
+                                  ? 'AI Ready'
+                                  : _tensorflowInitialized
+                                      ? 'AI Ready (No Model)'
+                                      : 'Loading AI...',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.white.withOpacity(0.8),
+                                color: AppColors.white.withValues(alpha: 0.8),
                               ),
                             ),
                           ],
@@ -379,12 +419,18 @@ class _AiScanScreenState extends State<AiScanScreen>
                 children: [
                   // Capture button
                   GestureDetector(
-                    onTap: _modelLoaded && !_isAnalyzing ? _openCamera : null,
+                    onTap: _tensorflowInitialized &&
+                            _cameraInitialized &&
+                            !_isAnalyzing
+                        ? _openCamera
+                        : null,
                     child: Container(
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: _modelLoaded && !_isAnalyzing
+                        color: _tensorflowInitialized &&
+                                _cameraInitialized &&
+                                !_isAnalyzing
                             ? AppColors.primaryGreen
                             : AppColors.mediumGray,
                         shape: BoxShape.circle,
@@ -406,21 +452,24 @@ class _AiScanScreenState extends State<AiScanScreen>
                   // Gallery button
                   CustomButton(
                     text: 'Choose from Gallery',
-                    onPressed:
-                        _modelLoaded && !_isAnalyzing ? _pickFromGallery : null,
+                    onPressed: _tensorflowInitialized && !_isAnalyzing
+                        ? _pickFromGallery
+                        : null,
                     type: ButtonType.secondary,
-                    disabled: !_modelLoaded || _isAnalyzing,
+                    disabled: !_tensorflowInitialized || _isAnalyzing,
                   ),
 
                   const SizedBox(height: AppDimensions.spacingSm),
 
                   // Instructions
                   Text(
-                    _modelLoaded
-                        ? 'Tap the camera button to capture or choose from gallery'
-                        : 'Please wait for AI model to load...',
+                    _tensorflowInitialized
+                        ? _modelLoaded
+                            ? 'Tap the camera button to capture or choose from gallery'
+                            : 'AI ready! Note: Model file missing, will show demo results'
+                        : 'Please wait for AI to initialize...',
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.white.withOpacity(0.7),
+                      color: AppColors.white.withValues(alpha: 0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),
