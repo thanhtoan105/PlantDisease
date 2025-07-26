@@ -101,7 +101,7 @@ class AuthService {
 
 			// Clear stored session
 			await AsyncStorage.removeItem('user_session');
-			await AsyncStorage.removeItem('user_profile');
+			await AsyncStorage.removeItem('profile');
 
 			return {
 				success: true,

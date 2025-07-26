@@ -47,7 +47,7 @@ class EnvConfig {
 
   static String get weatherApiBaseUrl => _getEnv(
         'WEATHER_API_BASE_URL',
-        defaultValue: 'https://api.openweathermap.org/data/2.5',
+        defaultValue: 'https://api.openweathermap.org/data/3.0',
       );
 
   // Supabase Configuration

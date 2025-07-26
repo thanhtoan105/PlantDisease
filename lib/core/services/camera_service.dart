@@ -23,7 +23,11 @@ class CameraService {
       // Get available cameras
       _cameras = await availableCameras();
       if (_cameras == null || _cameras!.isEmpty) {
-        debugPrint('No cameras available');
+        debugPrint('❌ No cameras available on this device');
+        debugPrint(
+            '💡 If running on emulator, configure virtual cameras in AVD Manager');
+        debugPrint(
+            '💡 On real devices, ensure camera hardware is working properly');
         return false;
       }
 

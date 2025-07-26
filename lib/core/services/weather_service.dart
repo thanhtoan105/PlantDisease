@@ -10,47 +10,113 @@ class WeatherService {
   static String get _baseUrl => EnvConfig.weatherApiBaseUrl;
   static String get _apiKey => EnvConfig.weatherApiKey;
 
-  /// Get current weather data for coordinates
+  /// Test API connection and validate configuration
+  static Future<Map<String, dynamic>> testApiConnection() async {
+    try {
+      debugPrint('🌤️ Testing weather API connection...');
+      debugPrint('🔗 API Base URL: $_baseUrl');
+      debugPrint('🔑 API Key: ${_apiKey.isNotEmpty ? "✅ Set" : "❌ Missing"}');
+
+      if (_apiKey.isEmpty || _apiKey == 'YOUR_WEATHER_API_KEY') {
+        return {
+          'success': false,
+          'error':
+              'Weather API key is not configured. Please check your .env file.',
+          'errorType': 'config_error',
+        };
+      }
+
+      // Test with a known location (London) using One Call API 3.0
+      final url = Uri.parse(
+        '$_baseUrl/onecall?lat=51.5074&lon=-0.1278&appid=$_apiKey&units=metric&exclude=minutely,hourly,daily,alerts',
+      );
+
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        debugPrint('✅ Weather API connection successful');
+        return {
+          'success': true,
+          'message': 'Weather API connection successful',
+        };
+      } else if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'error': 'Invalid API key. Please check your OpenWeatherMap API key.',
+          'errorType': 'auth_error',
+        };
+      } else {
+        return {
+          'success': false,
+          'error':
+              'Weather API error: ${response.statusCode} - ${response.body}',
+          'errorType': 'api_error',
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ Weather API connection test failed: $e');
+      return {
+        'success': false,
+        'error': 'Failed to connect to weather service: $e',
+        'errorType': 'network_error',
+      };
+    }
+  }
+
+  /// Get current weather data for coordinates using One Call API 3.0
   static Future<Map<String, dynamic>> getCurrentWeather(
     double latitude,
     double longitude,
   ) async {
     try {
+      debugPrint('🌤️ Fetching weather for: $latitude, $longitude');
+
       final url = Uri.parse(
-        '$_baseUrl/weather?lat=$latitude&lon=$longitude&appid=$_apiKey&units=metric',
+        '$_baseUrl/onecall?lat=$latitude&lon=$longitude&appid=$_apiKey&units=metric&exclude=minutely,hourly,daily,alerts',
       );
 
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        debugPrint('✅ Weather data fetched successfully');
         return {
           'success': true,
-          'data': _processWeatherData(data),
+          'data': _processOneCallWeatherData(data),
         };
-      } else {
+      } else if (response.statusCode == 401) {
+        debugPrint('❌ Weather API authentication failed');
         return {
           'success': false,
-          'error': 'Failed to fetch weather data: ${response.statusCode}',
+          'error': 'Invalid API key. Please check your OpenWeatherMap API key.',
+          'errorType': 'auth_error',
+        };
+      } else {
+        debugPrint('❌ Weather API error: ${response.statusCode}');
+        return {
+          'success': false,
+          'error': 'Weather service error: ${response.statusCode}',
+          'errorType': 'api_error',
         };
       }
     } catch (e) {
-      debugPrint('Weather API error: $e');
+      debugPrint('❌ Weather API error: $e');
       return {
         'success': false,
-        'error': e.toString(),
+        'error': 'Failed to fetch weather data: $e',
+        'errorType': 'network_error',
       };
     }
   }
 
-  /// Get weather forecast for coordinates
+  /// Get weather forecast for coordinates using One Call API 3.0
   static Future<Map<String, dynamic>> getWeatherForecast(
     double latitude,
     double longitude,
   ) async {
     try {
       final url = Uri.parse(
-        '$_baseUrl/forecast?lat=$latitude&lon=$longitude&appid=$_apiKey&units=metric',
+        '$_baseUrl/onecall?lat=$latitude&lon=$longitude&appid=$_apiKey&units=metric&exclude=minutely,alerts',
       );
 
       final response = await http.get(url);
@@ -59,7 +125,7 @@ class WeatherService {
         final data = json.decode(response.body);
         return {
           'success': true,
-          'data': _processForecastData(data),
+          'data': _processOneCallForecastData(data),
         };
       } else {
         return {
@@ -298,54 +364,81 @@ class WeatherService {
     }
   }
 
-  /// Process weather data from API
-  static Map<String, dynamic> _processWeatherData(Map<String, dynamic> data) {
+  /// Process weather data from One Call API 3.0
+  static Map<String, dynamic> _processOneCallWeatherData(
+      Map<String, dynamic> data) {
+    final current = data['current'];
     return {
-      'temperature': (data['main']['temp'] as num).round(),
-      'feelsLike': (data['main']['feels_like'] as num).round(),
-      'description': data['weather'][0]['description'],
-      'icon': data['weather'][0]['icon'],
-      'humidity': data['main']['humidity'],
-      'windSpeed': (data['wind']['speed'] as num).toDouble(),
-      'pressure': data['main']['pressure'],
-      'visibility': data['visibility'],
-      'sunrise':
-          DateTime.fromMillisecondsSinceEpoch(data['sys']['sunrise'] * 1000),
-      'sunset':
-          DateTime.fromMillisecondsSinceEpoch(data['sys']['sunset'] * 1000),
-      'location': data['name'],
-      'country': data['sys']['country'],
+      'temperature': (current['temp'] as num).round(),
+      'feelsLike': (current['feels_like'] as num).round(),
+      'description': current['weather'][0]['description'],
+      'icon': current['weather'][0]['icon'],
+      'humidity': current['humidity'],
+      'windSpeed': (current['wind_speed'] as num).toDouble(),
+      'pressure': current['pressure'],
+      'visibility': current['visibility'] ?? 10000,
+      'uvIndex': current['uvi'] ?? 0,
+      'cloudiness': current['clouds'] ?? 0,
+      'sunrise': DateTime.fromMillisecondsSinceEpoch(current['sunrise'] * 1000),
+      'sunset': DateTime.fromMillisecondsSinceEpoch(current['sunset'] * 1000),
+      'location':
+          'Current Location', // One Call API doesn't provide location name
+      'country': '', // One Call API doesn't provide country
       'timestamp': DateTime.now(),
+      'latitude': data['lat'],
+      'longitude': data['lon'],
     };
   }
 
-  /// Process forecast data from API
-  static Map<String, dynamic> _processForecastData(Map<String, dynamic> data) {
-    final forecasts = (data['list'] as List).map((item) {
+  /// Process forecast data from One Call API 3.0
+  static Map<String, dynamic> _processOneCallForecastData(
+      Map<String, dynamic> data) {
+    final hourlyForecasts =
+        (data['hourly'] as List? ?? []).take(48).map((item) {
       return {
         'timestamp': DateTime.fromMillisecondsSinceEpoch(item['dt'] * 1000),
-        'temperature': (item['main']['temp'] as num).round(),
-        'feelsLike': (item['main']['feels_like'] as num).round(),
+        'temperature': (item['temp'] as num).round(),
+        'feelsLike': (item['feels_like'] as num).round(),
         'description': item['weather'][0]['description'],
         'icon': item['weather'][0]['icon'],
-        'humidity': item['main']['humidity'],
-        'windSpeed': (item['wind']['speed'] as num).toDouble(),
-        'pressure': item['main']['pressure'],
-        'pop': ((item['pop'] as num) * 100)
+        'humidity': item['humidity'],
+        'windSpeed': (item['wind_speed'] as num).toDouble(),
+        'pressure': item['pressure'],
+        'pop': ((item['pop'] as num? ?? 0) * 100)
             .round(), // Probability of precipitation
+        'uvIndex': item['uvi'] ?? 0,
+        'cloudiness': item['clouds'] ?? 0,
+      };
+    }).toList();
+
+    final dailyForecasts = (data['daily'] as List? ?? []).take(8).map((item) {
+      return {
+        'timestamp': DateTime.fromMillisecondsSinceEpoch(item['dt'] * 1000),
+        'temperature': (item['temp']['day'] as num).round(),
+        'tempMin': (item['temp']['min'] as num).round(),
+        'tempMax': (item['temp']['max'] as num).round(),
+        'feelsLike': (item['feels_like']['day'] as num).round(),
+        'description': item['weather'][0]['description'],
+        'icon': item['weather'][0]['icon'],
+        'humidity': item['humidity'],
+        'windSpeed': (item['wind_speed'] as num).toDouble(),
+        'pressure': item['pressure'],
+        'pop': ((item['pop'] as num? ?? 0) * 100).round(),
+        'uvIndex': item['uvi'] ?? 0,
+        'cloudiness': item['clouds'] ?? 0,
+        'sunrise': DateTime.fromMillisecondsSinceEpoch(item['sunrise'] * 1000),
+        'sunset': DateTime.fromMillisecondsSinceEpoch(item['sunset'] * 1000),
       };
     }).toList();
 
     return {
-      'city': {
-        'name': data['city']['name'],
-        'country': data['city']['country'],
-        'coordinates': {
-          'latitude': data['city']['coord']['lat'],
-          'longitude': data['city']['coord']['lon'],
-        },
+      'location': {
+        'latitude': data['lat'],
+        'longitude': data['lon'],
+        'timezone': data['timezone'],
       },
-      'forecasts': forecasts,
+      'hourlyForecasts': hourlyForecasts,
+      'dailyForecasts': dailyForecasts,
     };
   }
 }

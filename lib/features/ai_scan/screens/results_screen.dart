@@ -5,8 +5,9 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../core/services/supabase_service.dart';
 
-class ResultsScreen extends StatelessWidget {
+class ResultsScreen extends StatefulWidget {
   final String imagePath;
   final Map<String, dynamic> analysisResult;
 
@@ -17,12 +18,62 @@ class ResultsScreen extends StatelessWidget {
   });
 
   @override
+  State<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends State<ResultsScreen> {
+  final Map<String, bool> _expandedSections = {};
+  Map<String, dynamic>? _diseaseDetails;
+  bool _isLoadingDiseaseDetails = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDiseaseDetails();
+  }
+
+  void _toggleSection(String sectionId) {
+    setState(() {
+      _expandedSections[sectionId] = !(_expandedSections[sectionId] ?? false);
+    });
+  }
+
+  Future<void> _loadDiseaseDetails() async {
+    final topPrediction = widget.analysisResult['topPrediction'];
+    if (topPrediction == null || topPrediction == 'healthy') return;
+
+    setState(() {
+      _isLoadingDiseaseDetails = true;
+    });
+
+    try {
+      // Try to get disease details from database using the prediction class name
+      debugPrint('🔍 Searching for disease: $topPrediction');
+      final diseaseData = await SupabaseService.searchDiseases(topPrediction);
+      debugPrint('📊 Found ${diseaseData.length} disease results');
+      if (diseaseData.isNotEmpty) {
+        debugPrint('✅ Using disease: ${diseaseData.first['name']}');
+        setState(() {
+          _diseaseDetails = diseaseData.first;
+        });
+      } else {
+        debugPrint('❌ No disease found for: $topPrediction');
+      }
+    } catch (error) {
+      debugPrint('❌ Error loading disease details: $error');
+    } finally {
+      setState(() {
+        _isLoadingDiseaseDetails = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final topPrediction = analysisResult['topPrediction'];
-    final predictions = analysisResult['predictions'] as List<dynamic>? ?? [];
-    final isHealthy = analysisResult['isHealthy'] ?? false;
-    final confidence = (analysisResult['confidence'] ?? 0.0) as double;
-    final isDemoResult = analysisResult['isDemoResult'] ?? false;
+    final topPrediction = widget.analysisResult['topPrediction'];
+    final isHealthy = widget.analysisResult['isHealthy'] ?? false;
+    final confidence = (widget.analysisResult['confidence'] ?? 0.0) as double;
+    final isDemoResult = widget.analysisResult['isDemoResult'] ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.lightGray,
@@ -50,13 +101,18 @@ class ResultsScreen extends StatelessWidget {
 
             const SizedBox(height: AppDimensions.spacingXl),
 
-            // Detailed predictions
-            if (predictions.isNotEmpty) _buildDetailedPredictions(predictions),
+            // Disease Information (Causes and Treatment)
+            if (!isHealthy && _isLoadingDiseaseDetails)
+              _buildLoadingDiseaseInfo(),
+            if (!isHealthy &&
+                !_isLoadingDiseaseDetails &&
+                _diseaseDetails != null)
+              _buildDiseaseInformation(),
 
-            const SizedBox(height: AppDimensions.spacingXl),
-
-            // Recommendations
-            _buildRecommendations(isHealthy, topPrediction),
+            // Fallback recommendations for healthy plants or when no disease details
+            if (isHealthy ||
+                (!_isLoadingDiseaseDetails && _diseaseDetails == null))
+              _buildFallbackRecommendations(isHealthy, topPrediction),
 
             const SizedBox(height: AppDimensions.spacingXl),
 
@@ -113,7 +169,7 @@ class ResultsScreen extends StatelessWidget {
             borderRadius:
                 BorderRadius.circular(AppDimensions.borderRadiusMedium),
             child: Image.file(
-              File(imagePath),
+              File(widget.imagePath),
               width: double.infinity,
               height: 200,
               fit: BoxFit.cover,
@@ -142,7 +198,7 @@ class ResultsScreen extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: resultColor.withOpacity(0.1),
+                  color: resultColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -208,46 +264,103 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailedPredictions(List<dynamic> predictions) {
+  Widget _buildDiseaseInformation() {
+    if (_diseaseDetails == null) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        // Causes Section
+        _buildExpandableSection(
+          'Causes',
+          _diseaseDetails!['description'] ?? 'No cause information available.',
+          'causes',
+          Icons.info_outline,
+        ),
+        const SizedBox(height: AppDimensions.spacingMd),
+        // Treatment Section
+        _buildExpandableSection(
+          'Treatment',
+          _diseaseDetails!['treatment'] ??
+              'No treatment information available.',
+          'treatment',
+          Icons.medical_services,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpandableSection(
+    String title,
+    String content,
+    String sectionId,
+    IconData icon,
+  ) {
+    final isExpanded = _expandedSections[sectionId] ?? false;
+
     return CustomCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Detailed Analysis',
-            style: AppTypography.headlineMedium,
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          ...predictions.take(5).map((prediction) {
-            final confidence = (prediction['confidence'] as double) * 100;
-            final displayName = prediction['displayName'] ?? 'Unknown';
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
+          GestureDetector(
+            onTap: () => _toggleSection(sectionId),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppDimensions.spacingSm),
               child: Row(
                 children: [
+                  Icon(icon, size: 20, color: AppColors.primaryGreen),
+                  const SizedBox(width: AppDimensions.spacingXs),
                   Expanded(
                     child: Text(
-                      displayName,
-                      style: AppTypography.bodyMedium,
+                      title,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: AppColors.darkNavy,
+                      ),
                     ),
                   ),
-                  Text(
-                    '${confidence.toStringAsFixed(1)}%',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.mediumGray,
-                    ),
+                  Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    size: 24,
+                    color: AppColors.mediumGray,
                   ),
                 ],
               ),
-            );
-          }).toList(),
+            ),
+          ),
+          if (isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.only(top: AppDimensions.spacingSm),
+              child: Text(
+                content,
+                style: AppTypography.bodyMedium,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildRecommendations(
+  Widget _buildLoadingDiseaseInfo() {
+    return CustomCard(
+      child: Column(
+        children: [
+          const CircularProgressIndicator(
+            color: AppColors.primaryGreen,
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'Loading disease information...',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.mediumGray,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFallbackRecommendations(
       bool isHealthy, Map<String, dynamic>? topPrediction) {
     return CustomCard(
       child: Column(
@@ -307,7 +420,7 @@ class ResultsScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius:
                   BorderRadius.circular(AppDimensions.borderRadiusMedium),
             ),

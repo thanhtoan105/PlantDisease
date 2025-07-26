@@ -159,8 +159,17 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         break;
       case 'Disease Library':
-        // Navigate to crop library (which contains disease information)
-        context.push(RouteNames.cropLibrary);
+        // Navigate to crop details with diseases tab active
+        final plantProvider = context.read<PlantProvider>();
+        if (plantProvider.crops.isNotEmpty) {
+          final firstCrop = plantProvider.crops.first;
+          context.push(
+              '${RouteNames.cropDetails}/${firstCrop['id']}?tab=diseases',
+              extra: firstCrop);
+        } else {
+          // Fallback to crop library if no crops available
+          context.push(RouteNames.cropLibrary);
+        }
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -176,11 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
         'icon': Icons.eco,
         'color': AppColors.secondary,
       },
-      {
-        'title': 'Weather',
-        'icon': Icons.wb_sunny,
-        'color': AppColors.primaryGreen,
-      },
+      // {
+      //   'title': 'Weather',
+      //   'icon': Icons.wb_sunny,
+      //   'color': AppColors.primaryGreen,
+      // },
       {
         'title': 'Disease Library',
         'icon': Icons.bug_report,
@@ -201,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: (card['color'] as Color).withOpacity(0.1),
+                      color: (card['color'] as Color).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(
                           AppDimensions.borderRadiusMedium),
                     ),
@@ -257,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppDimensions.spacingLg),
             SizedBox(
-              height: 140,
+              height: 120, // Reduced from 140 to 120 to fit optimized cards
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: plantProvider.crops.length,

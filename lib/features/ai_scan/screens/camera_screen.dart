@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -12,37 +13,9 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _scanAnimationController;
-  late Animation<double> _scanAnimation;
-
+class _CameraScreenState extends State<CameraScreen> {
   bool _isCapturing = false;
   FlashMode _currentFlashMode = FlashMode.off;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Initialize scan animation
-    _scanAnimationController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    );
-    _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-          parent: _scanAnimationController, curve: Curves.easeInOut),
-    );
-
-    // Start continuous scanning animation
-    _scanAnimationController.repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _scanAnimationController.dispose();
-    super.dispose();
-  }
 
   Future<void> _captureImage() async {
     if (_isCapturing) return;
@@ -57,15 +30,17 @@ class _CameraScreenState extends State<CameraScreen>
       if (imagePath != null && mounted) {
         // Return the image path to the previous screen
         Navigator.of(context).pop(imagePath);
-      } else {
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to capture image')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Capture error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Capture error: $e')),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -87,11 +62,43 @@ class _CameraScreenState extends State<CameraScreen>
 
   Future<void> _switchCamera() async {
     final success = await CameraService.switchCamera();
-    if (!success) {
+    if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cannot switch camera')),
       );
     }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null && mounted) {
+        // Return the image path to the previous screen
+        Navigator.of(context).pop(pickedFile.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildModeButton(String label, bool isActive) {
+    return Text(
+      label,
+      style: TextStyle(
+        color: isActive ? Colors.white : Colors.grey,
+        fontSize: 16,
+        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
   }
 
   @override
@@ -100,7 +107,7 @@ class _CameraScreenState extends State<CameraScreen>
 
     if (controller == null || !controller.value.isInitialized) {
       return Scaffold(
-        backgroundColor: AppColors.darkNavy,
+        backgroundColor: Colors.black,
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.primaryGreen),
         ),
@@ -108,10 +115,10 @@ class _CameraScreenState extends State<CameraScreen>
     }
 
     return Scaffold(
-      backgroundColor: AppColors.darkNavy,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview
+          // Camera preview - full screen
           Positioned.fill(
             child: CameraPreview(controller),
           ),
@@ -123,168 +130,139 @@ class _CameraScreenState extends State<CameraScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Back button
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: AppColors.white,
-                      size: 28,
+                  // Close button (X)
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
                     ),
                   ),
 
-                  // Flash toggle
-                  if (CameraService.hasFlash)
-                    IconButton(
-                      onPressed: _toggleFlash,
-                      icon: Icon(
-                        _currentFlashMode == FlashMode.off
-                            ? Icons.flash_off
-                            : Icons.flash_on,
-                        color: AppColors.white,
-                        size: 28,
-                      ),
+                  // Menu button (three lines)
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
                     ),
-                ],
-              ),
-            ),
-          ),
-
-          // Scanning frame overlay
-          Center(
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: AppColors.primaryGreen,
-                  width: 3,
-                ),
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.borderRadiusLarge),
-              ),
-              child: Stack(
-                children: [
-                  // Corner indicators
-                  ...List.generate(4, (index) {
-                    return Positioned(
-                      top: index < 2 ? -3 : null,
-                      bottom: index >= 2 ? -3 : null,
-                      left: index % 2 == 0 ? -3 : null,
-                      right: index % 2 == 1 ? -3 : null,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
-                          borderRadius: BorderRadius.only(
-                            topLeft: index == 0
-                                ? const Radius.circular(12)
-                                : Radius.zero,
-                            topRight: index == 1
-                                ? const Radius.circular(12)
-                                : Radius.zero,
-                            bottomLeft: index == 2
-                                ? const Radius.circular(12)
-                                : Radius.zero,
-                            bottomRight: index == 3
-                                ? const Radius.circular(12)
-                                : Radius.zero,
-                          ),
-                        ),
+                    child: IconButton(
+                      onPressed: () {
+                        // Could open camera settings or options
+                      },
+                      icon: const Icon(
+                        Icons.menu,
+                        color: Colors.white,
+                        size: 20,
                       ),
-                    );
-                  }),
-
-                  // Scanning line animation
-                  AnimatedBuilder(
-                    animation: _scanAnimation,
-                    builder: (context, child) {
-                      return Positioned(
-                        top: _scanAnimation.value * 260,
-                        left: 10,
-                        right: 10,
-                        child: Container(
-                          height: 2,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primaryGreen.withOpacity(0.0),
-                                AppColors.primaryGreen,
-                                AppColors.primaryGreen.withOpacity(0.0),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Instructions
+          // Camera mode controls (bottom section above controls)
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.15,
+            bottom: 140,
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.spacingXl,
-                vertical: AppDimensions.spacingLg,
-              ),
-              child: Text(
-                'Position the plant leaf within the frame',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.white,
-                  shadows: [
-                    const Shadow(
-                      offset: Offset(0, 1),
-                      blurRadius: 3,
-                      color: Colors.black54,
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
+              height: 60,
+              color: Colors.black.withValues(alpha: 0.6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildModeButton('Photo', true),
+                  _buildModeButton('Pro', false),
+                  _buildModeButton('Portrait', false),
+                  _buildModeButton('Video', false),
+                  _buildModeButton('More', false),
+                ],
               ),
             ),
           ),
 
-          // Bottom controls
+          // Lighting control button (top-left, positioned lower)
+          Positioned(
+            top: 120,
+            left: 20,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _toggleFlash,
+                icon: Icon(
+                  _currentFlashMode == FlashMode.off
+                      ? Icons.flash_off
+                      : Icons.flash_on,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+
+          // Bottom controls - redesigned to match the provided image
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDimensions.spacingXl),
+              child: Container(
+                height: 120,
+                color: Colors.black.withValues(alpha: 0.8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Switch camera button
-                    IconButton(
-                      onPressed: _switchCamera,
-                      icon: const Icon(
-                        Icons.flip_camera_ios,
-                        color: AppColors.white,
-                        size: 32,
+                    // Gallery picker button (left)
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: IconButton(
+                        onPressed: _pickFromGallery,
+                        icon: const Icon(
+                          Icons.photo_library,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
 
-                    // Capture button
+                    // Capture button (center) - red circular button
                     GestureDetector(
                       onTap: _isCapturing ? null : _captureImage,
                       child: Container(
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: _isCapturing
-                              ? AppColors.mediumGray
-                              : AppColors.primaryGreen,
+                          color: _isCapturing ? Colors.grey : Colors.red,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: AppColors.white,
+                            color: Colors.white,
                             width: 4,
                           ),
                         ),
@@ -294,26 +272,31 @@ class _CameraScreenState extends State<CameraScreen>
                                   width: 24,
                                   height: 24,
                                   child: CircularProgressIndicator(
-                                    color: AppColors.white,
+                                    color: Colors.white,
                                     strokeWidth: 2,
                                   ),
                                 ),
                               )
-                            : const Icon(
-                                Icons.camera_alt,
-                                color: AppColors.white,
-                                size: 32,
-                              ),
+                            : null, // No icon, just the red circle
                       ),
                     ),
 
-                    // Gallery button
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(
-                        Icons.photo_library,
-                        color: AppColors.white,
-                        size: 32,
+                    // Camera switch button (right)
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: _switchCamera,
+                        icon: const Icon(
+                          Icons.flip_camera_ios,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
                   ],
@@ -325,19 +308,19 @@ class _CameraScreenState extends State<CameraScreen>
           // Loading overlay
           if (_isCapturing)
             Container(
-              color: AppColors.darkNavy.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const CircularProgressIndicator(
-                      color: AppColors.primaryGreen,
+                      color: Colors.white,
                     ),
                     const SizedBox(height: AppDimensions.spacingLg),
                     Text(
                       'Capturing...',
                       style: AppTypography.headlineMedium.copyWith(
-                        color: AppColors.white,
+                        color: Colors.white,
                       ),
                     ),
                   ],

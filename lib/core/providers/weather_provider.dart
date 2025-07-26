@@ -34,7 +34,13 @@ class WeatherProvider extends ChangeNotifier {
   bool get isPermissionError =>
       _errorType == 'permission_denied' ||
       _errorType == 'permission_denied_forever';
-  bool get canRetry => _errorType != 'permission_denied_forever';
+  bool get isApiError =>
+      _errorType == 'api_error' ||
+      _errorType == 'auth_error' ||
+      _errorType == 'network_error';
+  bool get isConfigError => _errorType == 'config_error';
+  bool get canRetry =>
+      _errorType != 'permission_denied_forever' && _errorType != 'config_error';
 
   WeatherProvider() {
     _initializeWeather();
@@ -42,6 +48,16 @@ class WeatherProvider extends ChangeNotifier {
 
   Future<void> _initializeWeather() async {
     await _loadLocationHistory();
+
+    // Test API connection first
+    final apiTest = await WeatherService.testApiConnection();
+    if (!apiTest['success']) {
+      _setError(apiTest['error'], apiTest['errorType']);
+      _loadMockData();
+      _setLoading(false);
+      return;
+    }
+
     await loadWeatherData();
   }
 
@@ -69,7 +85,8 @@ class WeatherProvider extends ChangeNotifier {
           _lastUpdated = DateTime.now();
           await _saveLocationToHistory(_locationInfo!);
         } else {
-          _setError(weatherResult['error'], 'api_error');
+          _setError(weatherResult['error'],
+              weatherResult['errorType'] ?? 'api_error');
           // Fallback to mock data
           _loadMockData();
         }

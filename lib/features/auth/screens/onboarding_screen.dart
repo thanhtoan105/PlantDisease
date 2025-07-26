@@ -58,7 +58,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _handleSkip() {
-    // Complete onboarding and navigate to sign-in screen
+    // Complete onboarding and navigate to auth screen (defaults to signup for new users)
     _completeOnboardingAndNavigate(RouteNames.auth);
   }
 
@@ -232,8 +232,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         // Sign Up button (primary)
                         CustomButton(
                           text: 'Sign Up',
-                          onPressed: () =>
-                              _completeOnboardingAndNavigate(RouteNames.signUp),
+                          onPressed: () => _completeOnboardingAndNavigate(
+                              '${RouteNames.auth}?tab=signup'),
                           type: ButtonType.primary,
                         ),
 
@@ -242,8 +242,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         // Sign In button (outlined)
                         CustomButton(
                           text: 'Sign In',
-                          onPressed: () =>
-                              _completeOnboardingAndNavigate(RouteNames.auth),
+                          onPressed: () => _completeOnboardingAndNavigate(
+                              '${RouteNames.auth}?tab=signin'),
                           type: ButtonType.secondary,
                         ),
                       ],

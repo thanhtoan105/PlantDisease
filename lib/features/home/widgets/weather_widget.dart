@@ -266,6 +266,12 @@ class WeatherWidget extends StatelessWidget {
         return Icons.location_off;
       case 'location_timeout':
         return Icons.gps_not_fixed;
+      case 'config_error':
+        return Icons.settings;
+      case 'auth_error':
+        return Icons.key_off;
+      case 'network_error':
+        return Icons.wifi_off;
       case 'api_error':
         return Icons.cloud_off;
       default:
@@ -283,6 +289,12 @@ class WeatherWidget extends StatelessWidget {
         return 'Location Services Disabled';
       case 'location_timeout':
         return 'Location Timeout';
+      case 'config_error':
+        return 'Weather API Not Configured';
+      case 'auth_error':
+        return 'Invalid Weather API Key';
+      case 'network_error':
+        return 'Network Connection Error';
       case 'api_error':
         return 'Weather Service Error';
       default:
@@ -300,6 +312,12 @@ class WeatherWidget extends StatelessWidget {
         return canRetry ? 'Tap to retry' : 'Enable location services';
       case 'location_timeout':
         return canRetry ? 'Tap to try again' : 'Check GPS signal';
+      case 'config_error':
+        return 'Check .env file configuration';
+      case 'auth_error':
+        return 'Verify OpenWeatherMap API key';
+      case 'network_error':
+        return canRetry ? 'Tap to retry' : 'Check internet connection';
       case 'api_error':
         return canRetry ? 'Tap to retry' : 'Service temporarily unavailable';
       default:

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_dimensions.dart';
 import '../../../core/services/camera_service.dart';
 import '../../../core/services/tensorflow_service.dart';
-import '../../../shared/widgets/custom_button.dart';
-import 'camera_screen.dart';
+
 import 'results_screen.dart';
 
 class AiScanScreen extends StatefulWidget {
@@ -19,38 +19,87 @@ class AiScanScreen extends StatefulWidget {
 
 class _AiScanScreenState extends State<AiScanScreen>
     with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
-  bool _modelLoaded = false;
-  bool _tensorflowInitialized = false;
+  // Camera and permissions
   bool _cameraInitialized = false;
+  bool _hasPermission = false;
+  FlashMode _flashMode = FlashMode.off;
+  bool _isBackCamera = true;
+
+  // AI and analysis
+  bool _tensorflowInitialized = false;
+  bool _modelLoaded = false;
   bool _isAnalyzing = false;
+  bool _isCapturing = false;
   String? _error;
+
+  // Animations
+  late AnimationController _pulseController;
+  late AnimationController _fadeController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+    _initializeAnimations();
+    _checkCameraPermission();
+    _initializeServices();
+  }
+
+  void _initializeAnimations() {
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 2),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
     );
 
+    _pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_fadeController);
+
+    _pulseController.repeat(reverse: true);
     _fadeController.forward();
-    _initializeServices();
+  }
+
+  Future<void> _checkCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (status.isGranted) {
+      setState(() {
+        _hasPermission = true;
+      });
+    } else if (status.isDenied) {
+      final result = await Permission.camera.request();
+      setState(() {
+        _hasPermission = result.isGranted;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _fadeController.dispose();
     super.dispose();
   }
 
   Future<void> _initializeServices() async {
     try {
+      // Debug asset availability first
+      final assetResults = await TensorFlowService.debugAssetAvailability();
+      debugPrint('🔍 Asset check results: $assetResults');
+
       // Initialize TensorFlow model
       final tensorflowInitialized = await TensorFlowService.initialize();
       final modelLoaded = TensorFlowService.isModelLoaded;
@@ -68,7 +117,8 @@ class _AiScanScreenState extends State<AiScanScreen>
           if (!tensorflowInitialized) {
             _error = 'Failed to initialize TensorFlow service';
           } else if (!cameraInitialized) {
-            _error = 'Failed to initialize camera';
+            _error =
+                'Camera not available. If using emulator, configure virtual cameras in AVD Manager.';
           } else if (!modelLoaded && modelError != null) {
             _error = null; // Clear error since we can still function
           }
@@ -83,33 +133,50 @@ class _AiScanScreenState extends State<AiScanScreen>
     }
   }
 
-  Future<void> _openCamera() async {
-    if (!_tensorflowInitialized || !_cameraInitialized) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please wait for initialization to complete')),
-      );
+  Future<void> _captureImage() async {
+    if (!_tensorflowInitialized || !_cameraInitialized || _isCapturing) {
       return;
     }
 
-    // Navigate to camera screen
-    final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (context) => const CameraScreen(),
-      ),
-    );
+    setState(() {
+      _isCapturing = true;
+    });
 
-    if (result != null) {
-      await _analyzeImage(result);
+    try {
+      // Add haptic feedback
+      HapticFeedback.lightImpact();
+
+      final imagePath = await CameraService.captureImage();
+      if (imagePath != null && mounted) {
+        await _analyzeImage(imagePath);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to capture image')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Capture error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCapturing = false;
+        });
+      }
     }
   }
 
   Future<void> _pickFromGallery() async {
     if (!_tensorflowInitialized) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please wait for TensorFlow to initialize')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Please wait for TensorFlow to initialize')),
+        );
+      }
       return;
     }
 
@@ -120,14 +187,49 @@ class _AiScanScreenState extends State<AiScanScreen>
         imageQuality: 85,
       );
 
-      if (pickedFile != null) {
+      if (pickedFile != null && mounted) {
         await _analyzeImage(pickedFile.path);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
     }
+  }
+
+  Future<void> _toggleFlash() async {
+    if (!_cameraInitialized) return;
+
+    setState(() {
+      _flashMode =
+          _flashMode == FlashMode.off ? FlashMode.torch : FlashMode.off;
+    });
+
+    await CameraService.setFlashMode(_flashMode);
+    HapticFeedback.selectionClick();
+  }
+
+  Future<void> _switchCamera() async {
+    if (!_cameraInitialized) return;
+
+    setState(() {
+      _isBackCamera = !_isBackCamera;
+    });
+
+    final success = await CameraService.switchCamera();
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to switch camera')),
+      );
+      // Revert the state if switching failed
+      setState(() {
+        _isBackCamera = !_isBackCamera;
+      });
+    }
+
+    HapticFeedback.selectionClick();
   }
 
   Future<void> _analyzeImage(String imagePath) async {
@@ -200,284 +302,323 @@ class _AiScanScreenState extends State<AiScanScreen>
 
   @override
   Widget build(BuildContext context) {
+    final controller = CameraService.controller;
+
+    // Show permission request screen if needed
+    if (!_hasPermission) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.camera_alt,
+                size: 80,
+                color: Colors.white54,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Camera Permission Required',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Please grant camera permission to scan plants',
+                style: TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _checkCameraPermission,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                ),
+                child: const Text('Grant Permission'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show loading screen while camera initializes
+    if (!_cameraInitialized ||
+        controller == null ||
+        !controller.value.isInitialized) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(
+                color: AppColors.primaryGreen,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Initializing Camera...',
+                style: AppTypography.headlineMedium.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: AppColors.darkNavy,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Modern Header with Status
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Container(
-                padding: const EdgeInsets.all(AppDimensions.spacingLg),
-                child: Column(
-                  children: [
-                    Text(
-                      'Plant Health Scanner',
-                      style: AppTypography.headlineLarge.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.spacingSm),
-                    Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color:
-                                    _modelLoaded ? Colors.green : Colors.orange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: AppDimensions.spacingSm),
-                            Text(
-                              _modelLoaded
-                                  ? 'AI Ready'
-                                  : _tensorflowInitialized
-                                      ? 'AI Ready (No Model)'
-                                      : 'Loading AI...',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _cameraInitialized
-                                    ? Colors.green
-                                    : Colors.orange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: AppDimensions.spacingSm),
-                            Text(
-                              _cameraInitialized
-                                  ? 'Camera Ready'
-                                  : 'Loading Camera...',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.white.withOpacity(0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Full-screen camera preview
+          Positioned.fill(
+            child: CameraPreview(controller),
+          ),
+
+          // Simple Header with Gradient Overlay
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: MediaQuery.of(context).padding.top + 60,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.transparent,
                   ],
                 ),
               ),
             ),
+          ),
 
-            // Camera Preview Area
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(AppDimensions.spacingLg),
-                decoration: BoxDecoration(
-                  color: AppColors.mediumGray.withOpacity(0.3),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.borderRadiusLarge),
-                  border: Border.all(
-                    color: AppColors.white.withOpacity(0.3),
-                    width: 2,
+        
+          
+          // Top Controls (Flash and Camera Switch)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 80,
+            left: 20,
+            right: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Flash toggle
+                GestureDetector(
+                  onTap: _toggleFlash,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _flashMode == FlashMode.torch
+                          ? Icons.flash_on
+                          : Icons.flash_off,
+                      color: _flashMode == FlashMode.torch
+                          ? Colors.yellow
+                          : Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    // Camera preview or placeholder
-                    if (_cameraInitialized && CameraService.controller != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                            AppDimensions.borderRadiusLarge),
-                        child: CameraPreview(CameraService.controller!),
-                      )
-                    else
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.camera_alt,
-                              size: 80,
-                              color: AppColors.white.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: AppDimensions.spacingLg),
-                            Text(
-                              _error ?? 'Initializing Camera...',
-                              style: AppTypography.headlineMedium.copyWith(
-                                color: AppColors.white.withOpacity(0.7),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: AppDimensions.spacingSm),
-                            Text(
-                              'Position the plant leaf within the frame',
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: AppColors.white.withOpacity(0.5),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
+                // // Camera switch
+                // GestureDetector(
+                //   onTap: _switchCamera,
+                //   child: Container(
+                //     width: 50,
+                //     height: 50,
+                //     decoration: BoxDecoration(
+                //       color: Colors.black.withValues(alpha: 0.5),
+                //       shape: BoxShape.circle,
+                //     ),
+                //     child: const Icon(
+                //       Icons.flip_camera_ios,
+                //       color: Colors.white,
+                //       size: 24,
+                //     ),
+                //   ),
+                // ),
+              ],
+            ),
+          ),
 
-                    // Scanning frame overlay
-                    Center(
-                      child: Container(
-                        width: 250,
-                        height: 250,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: AppColors.primaryGreen,
-                            width: 3,
-                          ),
-                          borderRadius: BorderRadius.circular(
-                              AppDimensions.borderRadiusLarge),
-                        ),
-                        child: Stack(
-                          children: [
-                            // Corner indicators
-                            ...List.generate(4, (index) {
-                              return Positioned(
-                                top: index < 2 ? 0 : null,
-                                bottom: index >= 2 ? 0 : null,
-                                left: index % 2 == 0 ? 0 : null,
-                                right: index % 2 == 1 ? 0 : null,
-                                child: Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: index == 0
-                                          ? const Radius.circular(8)
-                                          : Radius.zero,
-                                      topRight: index == 1
-                                          ? const Radius.circular(8)
-                                          : Radius.zero,
-                                      bottomLeft: index == 2
-                                          ? const Radius.circular(8)
-                                          : Radius.zero,
-                                      bottomRight: index == 3
-                                          ? const Radius.circular(8)
-                                          : Radius.zero,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Loading overlay
-                    if (_isAnalyzing)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.darkNavy.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(
-                              AppDimensions.borderRadiusLarge),
-                        ),
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                color: AppColors.primaryGreen,
-                              ),
-                              SizedBox(height: AppDimensions.spacingLg),
-                              Text(
-                                'Analyzing Image...',
-                                style: TextStyle(
-                                  color: AppColors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+          // Bottom Controls
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.7),
                   ],
                 ),
               ),
-            ),
-
-            // Control buttons
-            Padding(
-              padding: const EdgeInsets.all(AppDimensions.spacingLg),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Capture button
+                  // Gallery button
                   GestureDetector(
-                    onTap: _tensorflowInitialized &&
-                            _cameraInitialized &&
-                            !_isAnalyzing
-                        ? _openCamera
-                        : null,
+                    onTap: _pickFromGallery,
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: _tensorflowInitialized &&
-                                _cameraInitialized &&
-                                !_isAnalyzing
-                            ? AppColors.primaryGreen
-                            : AppColors.mediumGray,
+                        color: Colors.black.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.white,
-                          width: 4,
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 2,
                         ),
                       ),
                       child: const Icon(
-                        Icons.camera_alt,
-                        color: AppColors.white,
-                        size: 32,
+                        Icons.photo_library,
+                        color: Colors.white,
+                        size: 28,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: AppDimensions.spacingLg),
-
-                  // Gallery button
-                  CustomButton(
-                    text: 'Choose from Gallery',
-                    onPressed: _tensorflowInitialized && !_isAnalyzing
-                        ? _pickFromGallery
+                  // Capture button (center) - large circular button
+                  GestureDetector(
+                    onTap: _tensorflowInitialized &&
+                            _cameraInitialized &&
+                            !_isAnalyzing &&
+                            !_isCapturing
+                        ? _captureImage
                         : null,
-                    type: ButtonType.secondary,
-                    disabled: !_tensorflowInitialized || _isAnalyzing,
+                    child: AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _isCapturing ? 0.9 : 1.0,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: _tensorflowInitialized &&
+                                      _cameraInitialized &&
+                                      !_isAnalyzing &&
+                                      !_isCapturing
+                                  ? AppColors.primaryGreen
+                                  : Colors.grey,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 4,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primaryGreen
+                                      .withValues(alpha: 0.3),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: _isCapturing || _isAnalyzing
+                                ? const Center(
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
 
-                  const SizedBox(height: AppDimensions.spacingSm),
-
-                  // Instructions
-                  Text(
-                    _tensorflowInitialized
-                        ? _modelLoaded
-                            ? 'Tap the camera button to capture or choose from gallery'
-                            : 'AI ready! Note: Model file missing, will show demo results'
-                        : 'Please wait for AI to initialize...',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.white.withValues(alpha: 0.7),
+                  // Camera switcher button
+                  GestureDetector(
+                    onTap: _cameraInitialized ? _switchCamera : null,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.flip_camera_ios,
+                        color:
+                            _cameraInitialized ? Colors.white : Colors.white54,
+                        size: 28,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Loading overlay when analyzing
+          if (_isAnalyzing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.7),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(
+                        color: AppColors.primaryGreen,
+                        strokeWidth: 3,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Analyzing Plant...',
+                        style: AppTypography.headlineMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Please wait while AI examines the image',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

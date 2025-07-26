@@ -288,8 +288,10 @@ class _CropLibraryScreenState extends State<CropLibraryScreen> {
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: AppDimensions.spacingMd,
-          mainAxisSpacing: AppDimensions.spacingLg,
-          childAspectRatio: 0.85,
+          mainAxisSpacing:
+              AppDimensions.spacingMd, // Reduced from spacingLg to spacingMd
+          childAspectRatio:
+              0.95, // Increased from 0.85 to 0.95 for better proportions
         ),
         itemCount: _filteredCrops.length,
         itemBuilder: (context, index) {

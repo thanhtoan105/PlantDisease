@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -24,18 +25,39 @@ class TensorFlowService {
       _isInitialized = true;
       _initializationError = null;
 
-      // Check if model file exists first
+      // Check if model file exists first with detailed debugging
       try {
+        debugPrint(
+            '🔍 Attempting to load model from: assets/models/apple_model_final.tflite');
         final modelData =
             await rootBundle.load('assets/models/apple_model_final.tflite');
         debugPrint(
             '📊 Model file found, size: ${modelData.lengthInBytes} bytes');
+
+        // Verify the model data is valid
+        if (modelData.lengthInBytes < 1000) {
+          throw Exception('Model file too small, might be corrupted');
+        }
+
+        debugPrint('✅ Model file validation passed');
       } catch (e) {
+        debugPrint('❌ Model file loading failed: $e');
+        debugPrint('🔍 Error type: ${e.runtimeType}');
         debugPrint(
-            '⚠️ Model file not found. Please add apple_model_final.tflite to assets/models/');
+            '⚠️ Model file not found or corrupted. Please ensure apple_model_final.tflite is in assets/models/');
         debugPrint('📖 See assets/models/README.md for setup instructions');
+
+        // Try to list available assets for debugging
+        try {
+          final manifestContent =
+              await rootBundle.loadString('AssetManifest.json');
+          debugPrint('📋 Available assets: $manifestContent');
+        } catch (manifestError) {
+          debugPrint('⚠️ Could not load asset manifest: $manifestError');
+        }
+
         _initializationError =
-            'Model file not found. Please add the model file to continue.';
+            'Model file not found. Please rebuild the app after ensuring the model file is in assets/models/';
         _isModelLoaded = false;
         await _loadLabels(); // Still load labels for UI
         return true; // Return true to allow app to continue
@@ -145,6 +167,75 @@ class TensorFlowService {
 
   /// Get initialization error message
   static String? get initializationError => _initializationError;
+
+  /// Debug method to check asset availability
+  static Future<Map<String, dynamic>> debugAssetAvailability() async {
+    debugPrint('🔍 Checking asset availability...');
+
+    final results = <String, dynamic>{
+      'modelFound': false,
+      'modelSize': 0,
+      'labelsFound': false,
+      'labelsContent': '',
+      'manifestFound': false,
+      'modelInManifest': false,
+      'allModelAssets': <String>[],
+    };
+
+    // Check model file
+    try {
+      final modelData =
+          await rootBundle.load('assets/models/apple_model_final.tflite');
+      results['modelFound'] = true;
+      results['modelSize'] = modelData.lengthInBytes;
+      debugPrint('✅ Model file found: ${modelData.lengthInBytes} bytes');
+    } catch (e) {
+      debugPrint('❌ Model file not found: $e');
+      debugPrint('🔍 Error details: ${e.toString()}');
+    }
+
+    // Check labels file
+    try {
+      final labelsData =
+          await rootBundle.loadString('assets/models/labels.txt');
+      results['labelsFound'] = true;
+      results['labelsContent'] = labelsData;
+      debugPrint('✅ Labels file found: ${labelsData.length} characters');
+      debugPrint('📋 Labels: ${labelsData.replaceAll('\n', ', ')}');
+    } catch (e) {
+      debugPrint('❌ Labels file not found: $e');
+    }
+
+    // Check asset manifest
+    try {
+      final manifestContent = await rootBundle.loadString('AssetManifest.json');
+      final manifest = json.decode(manifestContent) as Map<String, dynamic>;
+      results['manifestFound'] = true;
+
+      final modelAssets = manifest.keys
+          .where((key) => key.contains('apple_model_final'))
+          .toList();
+      results['modelInManifest'] = modelAssets.isNotEmpty;
+      debugPrint('🔍 Model assets in manifest: $modelAssets');
+
+      final allModelAssets =
+          manifest.keys.where((key) => key.contains('models/')).toList();
+      results['allModelAssets'] = allModelAssets;
+      debugPrint('🔍 All model assets: $allModelAssets');
+
+      // Also check for any assets that might be similar
+      final similarAssets = manifest.keys
+          .where((key) =>
+              key.toLowerCase().contains('apple') ||
+              key.toLowerCase().contains('model'))
+          .toList();
+      debugPrint('🔍 Similar assets: $similarAssets');
+    } catch (e) {
+      debugPrint('❌ Could not check asset manifest: $e');
+    }
+
+    return results;
+  }
 
   /// Check if service can be used (initialized, even without model)
   static bool get canAnalyze => _isInitialized;

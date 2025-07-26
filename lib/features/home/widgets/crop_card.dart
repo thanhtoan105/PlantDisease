@@ -21,38 +21,39 @@ class CropCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 120,
+      width: 110, // Reduced from 120 to 110
       child: CustomCard(
         onTap: onTap,
-        padding: AppDimensions.spacingMd,
+        padding: AppDimensions.spacingSm, // Reduced from spacingMd to spacingSm
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Emoji container
+            // Emoji container - optimized size
             Container(
-              width: 50,
-              height: 50,
+              width: 40, // Reduced from 50 to 40
+              height: 40, // Reduced from 50 to 40
               decoration: BoxDecoration(
                 color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.borderRadiusLarge),
+                borderRadius: BorderRadius.circular(
+                    AppDimensions.borderRadiusMedium), // Reduced radius
               ),
               child: Center(
                 child: Text(
                   emoji,
-                  style: const TextStyle(fontSize: 28),
+                  style: const TextStyle(fontSize: 24), // Reduced from 28 to 24
                 ),
               ),
             ),
 
-            const SizedBox(height: AppDimensions.spacingSm),
+            const SizedBox(height: AppDimensions.spacingXs), // Reduced spacing
 
-            // Crop name
+            // Crop name - optimized typography
             Flexible(
               child: Text(
                 name,
-                style: AppTypography.labelMedium.copyWith(
+                style: AppTypography.labelSmall.copyWith(
+                  // Changed from labelMedium to labelSmall
                   fontWeight: FontWeight.w600,
                   color: AppColors.darkNavy,
                 ),
@@ -62,13 +63,13 @@ class CropCard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: AppDimensions.spacingXs),
+            const SizedBox(height: 4), // Reduced spacing
 
-            // Disease count badge
+            // Disease count badge - more compact
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.spacingXs,
-                vertical: 2,
+                horizontal: 6, // Reduced padding
+                vertical: 1, // Reduced padding
               ),
               decoration: BoxDecoration(
                 color: AppColors.primaryGreen.withValues(alpha: 0.15),
@@ -80,7 +81,7 @@ class CropCard extends StatelessWidget {
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.primaryGreen,
                   fontWeight: FontWeight.w500,
-                  fontSize: 10,
+                  fontSize: 9, // Reduced from 10 to 9
                 ),
               ),
             ),

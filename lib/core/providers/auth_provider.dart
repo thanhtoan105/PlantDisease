@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,40 +32,68 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _initializeAuth() async {
     try {
+      debugPrint('🔄 Starting auth initialization...');
       _setLoading(true);
 
-      // Check onboarding status and previous auth state
-      final prefs = await SharedPreferences.getInstance();
-      _onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-      _isGuestMode = prefs.getBool('guest_mode') ?? false;
+      // Add timeout to prevent infinite loading
+      await Future.any([
+        _performInitialization(),
+        Future.delayed(const Duration(seconds: 10), () {
+          throw TimeoutException('Auth initialization timeout');
+        }),
+      ]);
 
-      // Check if user was previously authenticated
-      final wasAuthenticated = prefs.getBool('was_authenticated') ?? false;
-
-      debugPrint('🔍 Auth initialization:');
-      debugPrint('  - Onboarding completed: $_onboardingCompleted');
-      debugPrint('  - Guest mode: $_isGuestMode');
-      debugPrint('  - Was authenticated: $wasAuthenticated');
-
-      // Add a small delay to ensure Supabase is fully initialized
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Check current session with retry mechanism
-      await _checkExistingSession();
-
-      // If user was previously authenticated but no session exists,
-      // they should still skip onboarding but go to auth screen
-      if (wasAuthenticated && !_isAuthenticated && !_onboardingCompleted) {
-        debugPrint(
-            '📝 User was previously authenticated, marking onboarding as completed');
-        await completeOnboarding();
-      }
+      debugPrint('✅ Auth initialization completed successfully');
     } catch (e) {
-      debugPrint('Auth initialization error: $e');
+      debugPrint('❌ Auth initialization error: $e');
       _setError('Failed to initialize authentication: ${e.toString()}');
     } finally {
+      debugPrint('🔄 Setting loading to false...');
       _setLoading(false);
+      debugPrint('✅ Auth initialization finished, loading: $_isLoading');
     }
+  }
+
+  Future<void> _performInitialization() async {
+    debugPrint('🔄 Performing initialization (BYPASS AUTH MODE)...');
+
+    // Check onboarding status and previous auth state
+    final prefs = await SharedPreferences.getInstance();
+    _onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+    _isGuestMode = prefs.getBool('guest_mode') ?? false;
+
+    // Check if user was previously authenticated
+    final wasAuthenticated = prefs.getBool('was_authenticated') ?? false;
+
+    debugPrint('🔍 Auth initialization:');
+    debugPrint('  - Onboarding completed: $_onboardingCompleted');
+    debugPrint('  - Guest mode: $_isGuestMode');
+    debugPrint('  - Was authenticated: $wasAuthenticated');
+
+    // BYPASS AUTH: Automatically enable guest mode to skip authentication
+    if (!_isGuestMode && !_isAuthenticated) {
+      debugPrint('🚀 BYPASS AUTH: Automatically enabling guest mode');
+      await skipAuth();
+      return; // skipAuth() will handle the rest
+    }
+
+    // Add a small delay to ensure Supabase is fully initialized
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Check current session with retry mechanism
+    debugPrint('🔄 Checking existing session...');
+    await _checkExistingSession();
+    debugPrint('✅ Session check completed');
+
+    // If user was previously authenticated but no session exists,
+    // they should still skip onboarding but go to auth screen
+    if (wasAuthenticated && !_isAuthenticated && !_onboardingCompleted) {
+      debugPrint(
+          '📝 User was previously authenticated, marking onboarding as completed');
+      await completeOnboarding();
+    }
+
+    debugPrint('✅ Initialization performance completed');
   }
 
   Future<void> _checkExistingSession() async {
@@ -78,8 +107,9 @@ class AuthProvider extends ChangeNotifier {
           await _supabase.auth.getUser();
           _setSession(session);
           _setUser(session.user);
-          await _loadUserProfile(session.user.id);
           await _markAsAuthenticated();
+          // Load profile in background, don't block initialization
+          _loadUserProfile(session.user.id);
           debugPrint('✅ Existing session restored successfully');
         } catch (e) {
           debugPrint('⚠️ Existing session is invalid, clearing: $e');
@@ -105,9 +135,10 @@ class AuthProvider extends ChangeNotifier {
         debugPrint('✅ User signed in: ${session.user.email}');
         _setUser(session.user);
         _setSession(session);
-        await _loadUserProfile(session.user.id);
         await completeOnboarding();
         await _markAsAuthenticated();
+        // Load profile in background
+        _loadUserProfile(session.user.id);
       } else if (event == AuthChangeEvent.signedOut) {
         debugPrint('👋 User signed out');
         await _clearAuthenticationState();
@@ -154,8 +185,9 @@ class AuthProvider extends ChangeNotifier {
 
       return {'success': false, 'error': 'Failed to create account'};
     } catch (e) {
-      _setError(e.toString());
-      return {'success': false, 'error': e.toString()};
+      final errorMessage = _parseAuthError(e.toString());
+      _setError(errorMessage);
+      return {'success': false, 'error': errorMessage};
     } finally {
       _setLoading(false);
     }
@@ -177,11 +209,52 @@ class AuthProvider extends ChangeNotifier {
 
       return {'success': false, 'error': 'Failed to sign in'};
     } catch (e) {
-      _setError(e.toString());
-      return {'success': false, 'error': e.toString()};
+      final errorMessage = _parseAuthError(e.toString());
+      _setError(errorMessage);
+      return {'success': false, 'error': errorMessage};
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<Map<String, dynamic>> resetPassword(String email) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      await _supabase.auth.resetPasswordForEmail(email);
+
+      return {
+        'success': true,
+        'message': 'Password reset email sent! Please check your inbox.',
+      };
+    } catch (e) {
+      final errorMessage = _parseAuthError(e.toString());
+      _setError(errorMessage);
+      return {'success': false, 'error': errorMessage};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Parse authentication errors to provide user-friendly messages
+  String _parseAuthError(String error) {
+    if (error.contains('Invalid login credentials')) {
+      return 'Invalid email or password. Please try again.';
+    } else if (error.contains('Email not confirmed')) {
+      return 'Please check your email and click the confirmation link.';
+    } else if (error.contains('Too many requests')) {
+      return 'Too many attempts. Please try again later.';
+    } else if (error.contains('User not found')) {
+      return 'No account found with this email address.';
+    } else if (error.contains('Invalid email')) {
+      return 'Please enter a valid email address.';
+    } else if (error.contains('Password should be at least')) {
+      return 'Password must be at least 6 characters long.';
+    } else if (error.contains('User already registered')) {
+      return 'An account with this email already exists.';
+    }
+    return error;
   }
 
   Future<void> signOut() async {
@@ -221,7 +294,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _createUserProfile(
       String userId, Map<String, dynamic> profileData) async {
     try {
-      await _supabase.from('user_profiles').insert({
+      await _supabase.from('profiles').insert({
         'id': userId,
         ...profileData,
         'created_at': DateTime.now().toIso8601String(),
@@ -233,11 +306,8 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _loadUserProfile(String userId) async {
     try {
-      final response = await _supabase
-          .from('user_profiles')
-          .select()
-          .eq('id', userId)
-          .single();
+      final response =
+          await _supabase.from('profiles').select().eq('id', userId).single();
 
       _profile = response;
       notifyListeners();
@@ -271,6 +341,10 @@ class AuthProvider extends ChangeNotifier {
   void _clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  void clearError() {
+    _clearError();
   }
 
   void _logout() {

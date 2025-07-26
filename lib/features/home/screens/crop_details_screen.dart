@@ -13,11 +13,13 @@ import '../../../shared/widgets/loading_spinner.dart';
 class CropDetailsScreen extends StatefulWidget {
   final String cropId;
   final Map<String, dynamic>? crop;
+  final String? initialTab; // Add initial tab parameter
 
   const CropDetailsScreen({
     super.key,
     required this.cropId,
     this.crop,
+    this.initialTab, // Add initial tab parameter
   });
 
   @override
@@ -39,6 +41,12 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   @override
   void initState() {
     super.initState();
+
+    // Set initial tab if provided
+    if (widget.initialTab != null) {
+      _activeTab = widget.initialTab!;
+    }
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
