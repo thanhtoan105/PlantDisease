@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# API keys and secrets
+**/secrets/
+**/keys/
+*.key
+*.pem
+
+# Temporary files
+*.tmp
+*.temp
+README_NEW.md
