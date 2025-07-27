@@ -120,32 +120,7 @@ class CameraService {
     }
   }
 
-  /// Start camera preview
-  static Future<void> startPreview() async {
-    if (isInitialized && !_controller!.value.isStreamingImages) {
-      try {
-        await _controller!.startImageStream((image) {
-          // Handle image stream if needed for real-time processing
-          // Image data is automatically disposed by Flutter when the callback ends
-        });
-        debugPrint('✅ Camera preview started');
-      } catch (e) {
-        debugPrint('❌ Failed to start camera preview: $e');
-      }
-    }
-  }
-
-  /// Stop camera preview
-  static Future<void> stopPreview() async {
-    if (isInitialized && _controller!.value.isStreamingImages) {
-      try {
-        await _controller!.stopImageStream();
-        debugPrint('✅ Camera preview stopped');
-      } catch (e) {
-        debugPrint('❌ Failed to stop camera preview: $e');
-      }
-    }
-  }
+  
 
   /// Switch camera (front/back)
   static Future<bool> switchCamera() async {

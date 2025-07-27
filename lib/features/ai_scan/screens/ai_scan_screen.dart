@@ -91,6 +91,7 @@ class _AiScanScreenState extends State<AiScanScreen>
   void dispose() {
     _pulseController.dispose();
     _fadeController.dispose();
+    CameraService.dispose();
     super.dispose();
   }
 
