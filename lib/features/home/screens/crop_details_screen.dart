@@ -84,19 +84,21 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
       final plantProvider = context.read<PlantProvider>();
       final details = await plantProvider.getCropDetails(widget.cropId);
 
-      setState(() {
-        _cropDetails = details;
-        _isLoading = false;
-      });
-
-      // Start animations after loading
-      _fadeController.forward();
-      _slideController.forward();
-    } catch (error) {
-      setState(() {
-        _error = error.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _cropDetails = details;
+          _isLoading = false;
+        });
+        _fadeController.forward();
+        _slideController.forward();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -108,51 +110,47 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: AppColors.lightGray,
-        body: SafeArea(
-          child: Center(
-            child: LoadingSpinner(size: 48),
-          ),
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        backgroundColor: AppColors.lightGray,
-        body: SafeArea(
-          child: _buildErrorState(),
-        ),
-      );
-    }
-
-    if (_cropDetails == null) {
-      return Scaffold(
-        backgroundColor: AppColors.lightGray,
-        body: SafeArea(
-          child: Center(
-            child: Text(
-              'No crop data available',
-              style: AppTypography.headlineSmall,
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: AppColors.lightGray,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildTabBar(),
-            Expanded(
-              child: _buildContent(),
-            ),
-          ],
+        child: Consumer<PlantProvider>(
+          builder: (context, plantProvider, child) {
+            if (plantProvider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primaryGreen,
+                ),
+              );
+            }
+
+            if (plantProvider.error != null && _cropDetails == null) {
+              return _buildErrorState(plantProvider.error!);
+            }
+
+            if (_cropDetails == null) {
+              return Scaffold(
+                backgroundColor: AppColors.lightGray,
+                body: SafeArea(
+                  child: Center(
+                    child: Text(
+                      'No crop data available',
+                      style: AppTypography.headlineSmall,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                _buildHeader(),
+                _buildTabBar(),
+                Expanded(
+                  child: _buildContent(),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -934,7 +932,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(String error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingXl),
@@ -954,7 +952,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
             ),
             const SizedBox(height: AppDimensions.spacingSm),
             Text(
-              _error ?? 'Please check your connection and try again.',
+              error,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.mediumGray,
               ),

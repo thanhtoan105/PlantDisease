@@ -27,62 +27,40 @@ class PlantProvider extends ChangeNotifier {
 
     try {
       final result = await PlantService.getAllCrops();
-
-      if (result['success']) {
-        _crops = List<Map<String, dynamic>>.from(result['data']);
-      } else {
-        _setError(result['error']);
-        // Use fallback data even on error
-        _crops = List<Map<String, dynamic>>.from(result['data']);
-      }
+      _crops = List<Map<String, dynamic>>.from(result['data']);
     } catch (error) {
       debugPrint('Error loading crops: $error');
-      _setError(error.toString());
-      // Use fallback data when there's a complete failure
-      _crops = PlantService.getFallbackCrops();
+      _setError('Could not load crops. Please check your connection.');
+      _crops = [];
     } finally {
       _setLoading(false);
     }
   }
 
-  /// Search crops by term
   Future<List<Map<String, dynamic>>> searchCrops(String searchTerm) async {
     try {
       final result = await PlantService.searchCrops(searchTerm);
       return List<Map<String, dynamic>>.from(result['data']);
     } catch (error) {
       debugPrint('Error searching crops: $error');
-      // Fallback to local search
-      return _crops
-          .where((crop) =>
-              crop['name']
-                  .toString()
-                  .toLowerCase()
-                  .contains(searchTerm.toLowerCase()) ||
-              crop['description']
-                  .toString()
-                  .toLowerCase()
-                  .contains(searchTerm.toLowerCase()))
-          .toList();
+      _setError('Could not perform search. Please check your connection.');
+      return [];
     }
   }
 
   /// Get crop details by ID
   Future<Map<String, dynamic>?> getCropDetails(String cropId) async {
+    _setLoading(true);
+    _clearError();
     try {
       final result = await PlantService.getCropDetails(cropId);
-
-      // If there's an error but we have fallback data, use it
-      if (!result['success'] && result['data'] != null) {
-        debugPrint('Using fallback crop details: ${result['error']}');
-        return result['data'];
-      }
-
       return result['data'];
     } catch (error) {
       debugPrint('Error getting crop details: $error');
-      _setError(error.toString());
+      _setError('Could not load crop details. Please check your connection.');
       return null;
+    } finally {
+      _setLoading(false);
     }
   }
 

@@ -77,7 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: AppDimensions.spacingXl),
 
               // Weather widget
-              const WeatherWidget(),
+              Consumer<WeatherProvider>(
+                builder: (context, weatherProvider, child) {
+                  return const WeatherWidget();
+                },
+              ),
 
               const SizedBox(height: AppDimensions.spacingXl),
 

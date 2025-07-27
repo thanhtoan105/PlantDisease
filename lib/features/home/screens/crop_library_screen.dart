@@ -58,20 +58,8 @@ class _CropLibraryScreenState extends State<CropLibraryScreen> {
         _filteredCrops = results;
       });
     } catch (error) {
-      // Fallback to local filtering
-      final allCrops = context.read<PlantProvider>().crops;
       setState(() {
-        _filteredCrops = allCrops
-            .where((crop) =>
-                crop['name']
-                    .toString()
-                    .toLowerCase()
-                    .contains(query.toLowerCase()) ||
-                crop['description']
-                    .toString()
-                    .toLowerCase()
-                    .contains(query.toLowerCase()))
-            .toList();
+        _filteredCrops = [];
       });
     }
   }
@@ -96,6 +84,32 @@ class _CropLibraryScreenState extends State<CropLibraryScreen> {
                     return const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primaryGreen,
+                      ),
+                    );
+                  }
+
+                  if (plantProvider.error != null) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: AppColors.errorRed,
+                            size: 48,
+                          ),
+                          const SizedBox(height: AppDimensions.spacingLg),
+                          Text(
+                            plantProvider.error!,
+                            style: AppTypography.headlineSmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppDimensions.spacingLg),
+                          ElevatedButton(
+                            onPressed: () => plantProvider.refreshCrops(),
+                            child: const Text('Try Again'),
+                          ),
+                        ],
                       ),
                     );
                   }

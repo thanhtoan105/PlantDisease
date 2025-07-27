@@ -8,8 +8,8 @@ search_path to plant_disease;
 
 -- Tạo bảng crops (giữ nguyên: thêm description và image_url)
 create table if not exists crops (
-                                     id SERIAL primary key,
-                                     name VARCHAR(255) not null,
+ id SERIAL primary key,
+ name VARCHAR(255) not null,
     scientific_name VARCHAR(255) not null,
     description TEXT, -- Để hỗ trợ thư viện cây trồng
     image_url TEXT, -- URL ảnh từ Supabase Storage
@@ -19,8 +19,8 @@ create table if not exists crops (
 
 -- Tạo bảng diseases (loại bỏ severity theo yêu cầu của bạn)
 create table if not exists diseases (
-                                        id SERIAL primary key,
-                                        crop_id INTEGER not null references crops (id) on delete CASCADE,
+    id SERIAL primary key,
+    crop_id INTEGER not null references crops (id) on delete CASCADE,
     class_name VARCHAR(255) not null,
     display_name VARCHAR(255) not null,
     description TEXT,
@@ -32,7 +32,7 @@ create table if not exists diseases (
 
 -- Tạo bảng profiles (thay thế users, tích hợp với Supabase Auth, thêm location)
 create table if not exists profiles (
-                                        id UUID primary key references auth.users (id) on delete CASCADE,
+    id UUID primary key references auth.users (id) on delete CASCADE,
     username VARCHAR(255) not null unique,
     role VARCHAR(50) not null default 'user',
     location VARCHAR(255), -- Để cá nhân hóa (có thể dùng cho thời tiết sau)
@@ -42,16 +42,15 @@ create table if not exists profiles (
 
 -- Tạo bảng analysis_results (giữ nguyên từ script của bạn, thêm crop_id)
 create table if not exists analysis_results (
-                                                id SERIAL primary key,
-                                                user_id UUID references auth.users (id) on delete set null, -- Liên kết với Auth
+    id SERIAL primary key,
+    user_id UUID references auth.users (id) on delete set null, -- Liên kết với Auth
     crop_id INTEGER references crops (id) on delete set null, -- Để liên kết trực tiếp
     image_uri TEXT,
     plant_type VARCHAR(255),
     detected_diseases JSONB,
     confidence_score DECIMAL(3, 2),
     analysis_date timestamp with time zone default NOW(),
-    location_data JSONB,
-    notes TEXT
+    location_data JSONB
     );
 
 -- Tạo indexes (cập nhật: bỏ index cho weather_data)
