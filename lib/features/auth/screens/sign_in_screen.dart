@@ -20,6 +20,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _navigated = false;
 
   @override
   void dispose() {
@@ -28,31 +29,42 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  void _clearForm() {
+    _emailController.clear();
+    _passwordController.clear();
+    setState(() {
+      _isLoading = false;
+      _obscurePassword = true;
+      _navigated = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          // Email Field
-          _buildEmailField(),
-          
-          const SizedBox(height: AppDimensions.spacingLg),
-          
-          // Password Field
-          _buildPasswordField(),
-          
-          const SizedBox(height: AppDimensions.spacingLg),
-          
-          // Forgot Password
-          _buildForgotPassword(),
-          
-          const SizedBox(height: AppDimensions.spacingXl),
-          
-          // Sign In Button
-          _buildSignInButton(),
-        ],
-      ),
+    return Selector<AuthProvider, bool>(
+      selector: (_, provider) => provider.isAuthenticated,
+      builder: (context, isAuthenticated, child) {
+        if (isAuthenticated && !_navigated) {
+          _navigated = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.go('/main'); // Replace '/main' with your main screen route name
+          });
+        }
+        return Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              _buildEmailField(),
+              const SizedBox(height: AppDimensions.spacingLg),
+              _buildPasswordField(),
+              const SizedBox(height: AppDimensions.spacingLg),
+              _buildForgotPassword(),
+              const SizedBox(height: AppDimensions.spacingXl),
+              _buildSignInButton(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -82,7 +94,6 @@ class _SignInScreenState extends State<SignInScreen> {
         return null;
       },
       onChanged: (_) {
-        // Clear errors when user starts typing
         final authProvider = context.read<AuthProvider>();
         if (authProvider.error != null) {
           authProvider.clearError();
@@ -126,7 +137,6 @@ class _SignInScreenState extends State<SignInScreen> {
         return null;
       },
       onChanged: (_) {
-        // Clear errors when user starts typing
         final authProvider = context.read<AuthProvider>();
         if (authProvider.error != null) {
           authProvider.clearError();
@@ -140,7 +150,6 @@ class _SignInScreenState extends State<SignInScreen> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {
-          // TODO: Implement forgot password
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Forgot password coming soon')),
           );
@@ -159,7 +168,6 @@ class _SignInScreenState extends State<SignInScreen> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final isLoading = _isLoading || authProvider.isLoading;
-        
         return CustomButton(
           text: 'Sign In',
           onPressed: isLoading ? null : _handleSignIn,
@@ -172,25 +180,21 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _handleSignIn() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
       _isLoading = true;
     });
-
     try {
       final authProvider = context.read<AuthProvider>();
       final result = await authProvider.signIn(
         _emailController.text.trim(),
         _passwordController.text,
       );
-
       if (result['success']) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(result['message'])),
           );
-          // Navigate to main app
-          context.go('/');
+          // No manual navigation here
         }
       } else {
         if (mounted) {
@@ -213,4 +217,4 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     }
   }
-} 
+}

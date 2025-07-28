@@ -350,6 +350,10 @@ class ProfileScreen extends StatelessWidget {
 
           if (shouldLogout == true) {
             await authProvider.signOut();
+            await authProvider.resetOnboarding();
+            if (context.mounted) {
+              context.go(RouteNames.onboarding);
+            }
           }
         } else {
           // Navigate to auth screen

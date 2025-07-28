@@ -29,16 +29,22 @@ class AppRouter {
         return null; // Show loading screen
       }
       
-      // Check if onboarding is needed
+      // Always redirect to onboarding if not completed
       if (!authProvider.onboardingCompleted) {
         debugPrint('📱 Redirecting to onboarding');
-        return RouteNames.onboarding;
+        if (state.uri.path != RouteNames.onboarding) {
+          return RouteNames.onboarding;
+        }
+        return null;
       }
       
       // Check if authentication is needed
       if (!authProvider.isAuthenticated && !authProvider.isGuestMode) {
         debugPrint('🔐 Redirecting to auth');
-        return RouteNames.auth;
+        if (state.uri.path != RouteNames.auth) {
+          return RouteNames.auth;
+        }
+        return null;
       }
       
       debugPrint('✅ Navigation allowed');
