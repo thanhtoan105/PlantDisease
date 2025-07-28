@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
 class SupabaseService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -252,6 +253,53 @@ class SupabaseService {
       debugPrint('Error searching diseases: $error');
       rethrow;
     }
+  }
+
+  /// Get current user ID
+  static String? currentUserId() {
+    return _supabase.auth.currentUser?.id;
+  }
+
+  /// Save analysis result to the database
+  static Future<void> saveAnalysisResult({
+    required String userId,
+    required String imageUri,
+    required dynamic detectedDiseases,
+    required double confidenceScore,
+    required dynamic locationData,
+    required String analysisDate,
+  }) async {
+    // Check for null or empty userId
+    if (userId.isEmpty) {
+      throw Exception('User ID cannot be null or empty');
+    }
+    // Validate detectedDiseases and locationData are JSON (Map or List)
+    if (!(detectedDiseases is Map || detectedDiseases is List)) {
+      throw Exception('detectedDiseases must be a Map or List');
+    }
+    if (!(locationData is Map || locationData is List)) {
+      // Try to decode if it's a String
+      try {
+        if (locationData is String) {
+          locationData = jsonDecode(locationData);
+          if (!(locationData is Map || locationData is List)) {
+            throw Exception('locationData must decode to a Map or List. Actual value: ${locationData.toString()}, type: ${locationData.runtimeType}');
+          }
+        } else {
+          throw Exception('locationData must be a Map or List. Actual type: ${locationData.runtimeType}, value: ${locationData.toString()}');
+        }
+      } catch (e) {
+        throw Exception('locationData must be a Map or List. Error: ${e.toString()}. Actual value: ${locationData.toString()}');
+      }
+    }
+    await _supabase.from('analysis_results').insert({
+      'user_id': userId,
+      'image_uri': imageUri,
+      'detected_diseases': detectedDiseases,
+      'confidence_score': confidenceScore,
+      'location_data': locationData,
+      'analysis_date': analysisDate,
+    });
   }
 
   /// Helper method to extract description from JSON or return fallback

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -25,11 +27,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
   final Map<String, bool> _expandedSections = {};
   Map<String, dynamic>? _diseaseDetails;
   bool _isLoadingDiseaseDetails = false;
+  bool _isSaving = false;
+  Map<String, dynamic>? _locationData;
 
   @override
   void initState() {
     super.initState();
     _loadDiseaseDetails();
+    _fetchLocationAndWeather();
   }
 
   void _toggleSection(String sectionId) {
@@ -64,6 +69,94 @@ class _ResultsScreenState extends State<ResultsScreen> {
     } finally {
       setState(() {
         _isLoadingDiseaseDetails = false;
+      });
+    }
+  }
+
+  Future<void> _fetchLocationAndWeather() async {
+    // Example: Use geolocator to get location, then fetch weather
+    // Replace with your actual API key and endpoint
+    const apiKey = 'YOUR_WEATHER_API_KEY';
+    double latitude = 0.0;
+    double longitude = 0.0;
+    // TODO: Use geolocator or similar to get real location
+    // For demo, use fixed coordinates
+    latitude = 10.762622;
+    longitude = 106.660172;
+    final weatherUrl =
+        'https://api.openweathermap.org/data/2.5/weather?lat=$latitude&lon=$longitude&appid=$apiKey&units=metric';
+    try {
+      final response = await http.get(Uri.parse(weatherUrl));
+      if (response.statusCode == 200) {
+        final weatherData = jsonDecode(response.body);
+        setState(() {
+          _locationData = {
+            'latitude': latitude,
+            'longitude': longitude,
+            'weather': weatherData,
+          };
+        });
+      } else {
+        setState(() {
+          _locationData = {
+            'latitude': latitude,
+            'longitude': longitude,
+            'weather': null,
+          };
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _locationData = {
+          'latitude': latitude,
+          'longitude': longitude,
+          'weather': null,
+          'error': e.toString(),
+        };
+      });
+    }
+  }
+
+  Future<void> _saveResult() async {
+    setState(() {
+      _isSaving = true;
+    });
+    try {
+      final userId = SupabaseService.currentUserId();
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must be signed in to save results.')),
+        );
+        setState(() {
+          _isSaving = false;
+        });
+        return;
+      }
+      // Prepare data for saving
+      final imageUri = widget.imagePath;
+      final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
+      final confidenceScore = widget.analysisResult['confidence'] ?? 0.0;
+      final locationData = _locationData; // Use fetched location data
+      final analysisDate = DateTime.now().toIso8601String();
+
+      await SupabaseService.saveAnalysisResult(
+        userId: userId,
+        imageUri: imageUri,
+        detectedDiseases: detectedDiseases,
+        confidenceScore: confidenceScore,
+        locationData: locationData,
+        analysisDate: analysisDate,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Result saved successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save result: $e')),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
       });
     }
   }
@@ -458,12 +551,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Column(
       children: [
         CustomButton(
-          text: 'Save Results',
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Save functionality coming soon')),
-            );
-          },
+          text: _isSaving ? 'Saving...' : 'Save Results',
+          onPressed: _isSaving ? null : _saveResult,
           type: ButtonType.primary,
           icon: const Icon(Icons.save, color: AppColors.white),
         ),

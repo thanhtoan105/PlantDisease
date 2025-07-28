@@ -10,6 +10,8 @@ import '../../../shared/widgets/custom_button.dart';
 import '../widgets/profile_option_card.dart';
 import '../../debug/debug_screen.dart';
 import '../../../navigation/route_names.dart';
+import '../../../core/providers/scan_history_provider.dart';
+import '../../ai_scan/screens/scan_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -220,10 +222,21 @@ class ProfileScreen extends StatelessWidget {
           icon: Icons.history,
           title: 'Scan History',
           subtitle: 'View your previous plant scans',
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Scan history coming soon')),
-            );
+          onTap: () async {
+            final userId = authProvider.user?.id;
+            if (userId != null) {
+              await Provider.of<ScanHistoryProvider>(context, listen: false)
+                  .fetchScanHistory(userId);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ScanHistoryScreen(),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please sign in to view scan history.')),
+              );
+            }
           },
         ),
       ],
