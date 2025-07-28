@@ -4,42 +4,63 @@ import '../../core/theme/app_typography.dart';
 
 class LoadingSpinner extends StatelessWidget {
   final String? message;
+  final double? size;
   final Color? color;
-  final double size;
 
   const LoadingSpinner({
     super.key,
     this.message,
+    this.size,
     this.color,
-    this.size = 24.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: size,
-          height: size,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              color ?? AppColors.primaryGreen,
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: size ?? 40,
+            height: size ?? 40,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                color ?? AppColors.primaryGreen,
+              ),
             ),
           ),
-        ),
-        if (message != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            message!,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.mediumGray,
+          if (message != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              message!,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mediumGray,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
         ],
-      ],
+      ),
+    );
+  }
+}
+
+class LoadingScreen extends StatelessWidget {
+  final String? message;
+  final Widget? child;
+
+  const LoadingScreen({
+    super.key,
+    this.message,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: child ?? LoadingSpinner(message: message),
     );
   }
 }

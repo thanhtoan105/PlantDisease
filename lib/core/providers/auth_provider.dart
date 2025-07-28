@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _profile;
   String? _error;
   bool _onboardingCompleted = false;
+  bool _isInitialized = false;
 
   // Getters
   bool get isLoading => _isLoading;
@@ -22,106 +24,122 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? get profile => _profile;
   String? get error => _error;
   bool get onboardingCompleted => _onboardingCompleted;
+  bool get isInitialized => _isInitialized;
 
   final SupabaseClient _supabase = Supabase.instance.client;
 
   AuthProvider() {
-    _initializeAuth();
+    // Initialize auth in background to prevent main thread blocking
+    _initializeAuthAsync();
     _setupAuthListener();
   }
 
-  Future<void> _initializeAuth() async {
+  /// Initialize auth in background thread to prevent main thread blocking
+  Future<void> _initializeAuthAsync() async {
     try {
-      debugPrint('🔄 Starting auth initialization...');
-      _setLoading(true);
-
-      // Add timeout to prevent infinite loading
-      await Future.any([
-        _performInitialization(),
-        Future.delayed(const Duration(seconds: 10), () {
-          throw TimeoutException('Auth initialization timeout');
-        }),
-      ]);
-
+      debugPrint('🔄 Starting auth initialization in background...');
+      
+      // Use compute to run heavy operations in background
+      final result = await compute(_performInitializationInBackground, null);
+      
+      // Update state on main thread
+      _updateStateFromBackground(result);
+      
       debugPrint('✅ Auth initialization completed successfully');
     } catch (e) {
       debugPrint('❌ Auth initialization error: $e');
       _setError('Failed to initialize authentication: ${e.toString()}');
     } finally {
-      debugPrint('🔄 Setting loading to false...');
       _setLoading(false);
+      _isInitialized = true;
       debugPrint('✅ Auth initialization finished, loading: $_isLoading');
     }
   }
 
-  Future<void> _performInitialization() async {
-    debugPrint('🔄 Performing initialization (BYPASS AUTH MODE)...');
-
-    // Check onboarding status and previous auth state
-    final prefs = await SharedPreferences.getInstance();
-    _onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-    _isGuestMode = prefs.getBool('guest_mode') ?? false;
-
-    // Check if user was previously authenticated
-    final wasAuthenticated = prefs.getBool('was_authenticated') ?? false;
-
-    debugPrint('🔍 Auth initialization:');
-    debugPrint('  - Onboarding completed: $_onboardingCompleted');
-    debugPrint('  - Guest mode: $_isGuestMode');
-    debugPrint('  - Was authenticated: $wasAuthenticated');
-
-    // BYPASS AUTH: Automatically enable guest mode to skip authentication
-    if (!_isGuestMode && !_isAuthenticated) {
-      debugPrint('🚀 BYPASS AUTH: Automatically enabling guest mode');
-      await skipAuth();
-      return; // skipAuth() will handle the rest
-    }
-
-    // Add a small delay to ensure Supabase is fully initialized
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    // Check current session with retry mechanism
-    debugPrint('🔄 Checking existing session...');
-    await _checkExistingSession();
-    debugPrint('✅ Session check completed');
-
-    // If user was previously authenticated but no session exists,
-    // they should still skip onboarding but go to auth screen
-    if (wasAuthenticated && !_isAuthenticated && !_onboardingCompleted) {
-      debugPrint(
-          '📝 User was previously authenticated, marking onboarding as completed');
-      await completeOnboarding();
-    }
-
-    debugPrint('✅ Initialization performance completed');
-  }
-
-  Future<void> _checkExistingSession() async {
+  /// Background initialization function
+  static Future<Map<String, dynamic>> _performInitializationInBackground(dynamic _) async {
     try {
-      // First, try to get the current session
-      final session = _supabase.auth.currentSession;
+      debugPrint('🔄 Performing initialization in background...');
+
+      // Check onboarding status and previous auth state
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      final isGuestMode = prefs.getBool('guest_mode') ?? false;
+      final wasAuthenticated = prefs.getBool('was_authenticated') ?? false;
+
+      debugPrint('🔍 Auth initialization:');
+      debugPrint('  - Onboarding completed: $onboardingCompleted');
+      debugPrint('  - Guest mode: $isGuestMode');
+      debugPrint('  - Was authenticated: $wasAuthenticated');
+
+      // Add a small delay to ensure Supabase is fully initialized
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // Check current session
+      final supabase = Supabase.instance.client;
+      final session = supabase.auth.currentSession;
+      bool isAuthenticated = false;
+      User? user;
+      Session? currentSession;
 
       if (session != null) {
-        // Verify the session is still valid by making a simple request
         try {
-          await _supabase.auth.getUser();
-          _setSession(session);
-          _setUser(session.user);
-          await _markAsAuthenticated();
-          // Load profile in background, don't block initialization
-          _loadUserProfile(session.user.id);
+          // Verify the session is still valid
+          await supabase.auth.getUser();
+          isAuthenticated = true;
+          user = session.user;
+          currentSession = session;
           debugPrint('✅ Existing session restored successfully');
         } catch (e) {
           debugPrint('⚠️ Existing session is invalid, clearing: $e');
-          await _supabase.auth.signOut();
+          await supabase.auth.signOut();
         }
       } else {
         debugPrint('ℹ️ No existing session found');
       }
+
+      return {
+        'onboardingCompleted': onboardingCompleted,
+        'isGuestMode': isGuestMode,
+        'wasAuthenticated': wasAuthenticated,
+        'isAuthenticated': isAuthenticated,
+        'user': user,
+        'session': currentSession,
+      };
     } catch (e) {
-      debugPrint('Error checking existing session: $e');
-      // Don't throw here, just log the error
+      debugPrint('Error in background initialization: $e');
+      return {
+        'onboardingCompleted': false,
+        'isGuestMode': false,
+        'wasAuthenticated': false,
+        'isAuthenticated': false,
+        'user': null,
+        'session': null,
+      };
     }
+  }
+
+  /// Update state from background initialization results
+  void _updateStateFromBackground(Map<String, dynamic> result) {
+    _onboardingCompleted = result['onboardingCompleted'] ?? false;
+    _isGuestMode = result['isGuestMode'] ?? false;
+    _isAuthenticated = result['isAuthenticated'] ?? false;
+    _user = result['user'];
+    _session = result['session'];
+
+    // Load profile in background if authenticated
+    if (_isAuthenticated && _user != null) {
+      _loadUserProfileAsync(_user!.id);
+    }
+
+    // If user was previously authenticated but no session exists,
+    // they should still skip onboarding but go to auth screen
+    if (result['wasAuthenticated'] == true && !_isAuthenticated && !_onboardingCompleted) {
+      debugPrint('📝 User was previously authenticated, marking onboarding as completed');
+      completeOnboarding();
+    }
+
+    debugPrint('✅ Background initialization state updated');
   }
 
   void _setupAuthListener() {
@@ -138,7 +156,7 @@ class AuthProvider extends ChangeNotifier {
         await completeOnboarding();
         await _markAsAuthenticated();
         // Load profile in background
-        _loadUserProfile(session.user.id);
+        _loadUserProfileAsync(session.user.id);
       } else if (event == AuthChangeEvent.signedOut) {
         debugPrint('👋 User signed out');
         await _clearAuthenticationState();
@@ -148,6 +166,31 @@ class AuthProvider extends ChangeNotifier {
         _setSession(session);
       }
     });
+  }
+
+  /// Load user profile in background
+  Future<void> _loadUserProfileAsync(String userId) async {
+    try {
+      final response = await compute(_loadProfileInBackground, userId);
+      if (response != null) {
+        _profile = response;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
+    }
+  }
+
+  /// Background profile loading function
+  static Future<Map<String, dynamic>?> _loadProfileInBackground(String userId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase.from('profiles').select().eq('id', userId).single();
+      return response;
+    } catch (e) {
+      debugPrint('Error loading profile in background: $e');
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>> signUp(
@@ -169,12 +212,12 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (response.user != null) {
-        // Create user profile
-        await _createUserProfile(response.user!.id, {
+        // Create user profile in background
+        unawaited(_createUserProfileAsync(response.user!.id, {
           'username': userData?['username'] ?? email.split('@')[0],
           'role': 'user',
           'location': userData?['location'],
-        });
+        }));
 
         return {
           'success': true,
@@ -291,28 +334,30 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _createUserProfile(
+  /// Create user profile in background
+  Future<void> _createUserProfileAsync(
       String userId, Map<String, dynamic> profileData) async {
     try {
-      await _supabase.from('profiles').insert({
-        'id': userId,
-        ...profileData,
-        'created_at': DateTime.now().toIso8601String(),
+      await compute(_createProfileInBackground, {
+        'userId': userId,
+        'profileData': profileData,
       });
     } catch (e) {
       debugPrint('Error creating user profile: $e');
     }
   }
 
-  Future<void> _loadUserProfile(String userId) async {
+  /// Background profile creation function
+  static Future<void> _createProfileInBackground(Map<String, dynamic> data) async {
     try {
-      final response =
-          await _supabase.from('profiles').select().eq('id', userId).single();
-
-      _profile = response;
-      notifyListeners();
+      final supabase = Supabase.instance.client;
+      await supabase.from('profiles').insert({
+        'id': data['userId'],
+        ...data['profileData'],
+        'created_at': DateTime.now().toIso8601String(),
+      });
     } catch (e) {
-      debugPrint('Error loading user profile: $e');
+      debugPrint('Error creating profile in background: $e');
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -8,6 +9,7 @@ import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../widgets/profile_option_card.dart';
 import '../../debug/debug_screen.dart';
+import '../../../navigation/route_names.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -79,13 +81,12 @@ class ProfileScreen extends StatelessWidget {
               // Profile Avatar
               CircleAvatar(
                 radius: 32,
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: authProvider.isAuthenticated
+                    ? AppColors.primaryGreen
+                    : AppColors.mediumGray,
                 child: Text(
                   authProvider.isAuthenticated
-                      ? (authProvider.user?.email
-                              ?.substring(0, 1)
-                              .toUpperCase() ??
-                          'G')
+                      ? (authProvider.user?.email?.substring(0, 1).toUpperCase() ?? 'U')
                       : 'G',
                   style: AppTypography.headlineLarge.copyWith(
                     color: AppColors.white,
@@ -101,13 +102,17 @@ class ProfileScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      authProvider.profile?['username'] ??
-                          authProvider.user?.email?.split('@')[0] ??
-                          'Guest User',
+                      authProvider.isAuthenticated
+                          ? (authProvider.profile?['username'] ?? 
+                             authProvider.user?.email?.split('@')[0] ?? 
+                             'User')
+                          : 'Guest User',
                       style: AppTypography.headlineMedium,
                     ),
                     Text(
-                      authProvider.user?.email ?? 'Not signed in',
+                      authProvider.isAuthenticated
+                          ? (authProvider.user?.email ?? '')
+                          : 'Sign in to save your scan results',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.mediumGray,
                       ),
@@ -115,7 +120,7 @@ class ProfileScreen extends StatelessWidget {
                     Text(
                       authProvider.isAuthenticated
                           ? 'Member since ${DateTime.now().year}'
-                          : 'Guest mode',
+                          : 'Limited features available',
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.mediumGray,
                       ),
@@ -348,9 +353,7 @@ class ProfileScreen extends StatelessWidget {
           }
         } else {
           // Navigate to auth screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sign in functionality coming soon')),
-          );
+          context.push(RouteNames.auth);
         }
       },
       type: ButtonType.secondary,

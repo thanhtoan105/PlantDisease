@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +36,6 @@ void main() async {
       ),
     );
 
-    // Connection test temporarily disabled for build
     debugPrint('🔗 Supabase initialized successfully');
   } catch (e) {
     debugPrint('❌ Failed to initialize Supabase: $e');
@@ -46,8 +46,8 @@ void main() async {
   // Print configuration status for debugging
   EnvConfig.printConfigStatus();
 
-  // Run app diagnostics to verify both Supabase schema and TensorFlow model
-  await AppDiagnostics.runDiagnostics();
+  // Run app diagnostics in background to avoid blocking startup
+  unawaited(AppDiagnostics.runDiagnostics());
 
   runApp(
     MultiProvider(
