@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/scan_history_provider.dart';
 import '../models/scan_history.dart';
+import 'scan_history_item.dart';
 
 class ScanHistoryScreen extends StatelessWidget {
   const ScanHistoryScreen({Key? key}) : super(key: key);
@@ -27,18 +28,31 @@ class ScanHistoryScreen extends StatelessWidget {
             itemCount: provider.history.length,
             itemBuilder: (context, index) {
               final scan = provider.history[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: scan.imageUri.isNotEmpty
-                      ? Image.network(scan.imageUri, width: 56, height: 56, fit: BoxFit.cover)
-                      : const Icon(Icons.image_not_supported),
-                  title: Text('Scan #${scan.id}'),
-                  subtitle: Text('Confidence: ${scan.confidenceScore.toStringAsFixed(2)}\nDate: ${scan.analysisDate.toLocal()}'),
-                  onTap: () {
-                    // Optionally show details
-                  },
-                ),
+              // Use plantName and plantImage from ScanHistory
+              String plantName = scan.plantName;
+              String plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUri;
+              // Location
+              String location = 'Unknown location';
+              if (scan.locationData != null && scan.locationData!['address'] != null) {
+                location = scan.locationData!['address'];
+              }
+              // Disease result
+              String diseaseResult = 'Không nhận ra bệnh, cần chụp cận vết bệnh';
+              if (scan.detectedDiseases.isNotEmpty) {
+                final firstDisease = scan.detectedDiseases.first;
+                if (firstDisease is Map && firstDisease['name'] != null) {
+                  diseaseResult = firstDisease['name'];
+                } else if (firstDisease is String) {
+                  diseaseResult = firstDisease;
+                }
+              }
+              return ScanHistoryItem(
+                imageUrl: plantImage,
+                plantName: plantName,
+                location: location,
+                analysisDate: scan.analysisDate,
+                diseaseResult: diseaseResult,
+                confidenceScore: scan.confidenceScore,
               );
             },
           );

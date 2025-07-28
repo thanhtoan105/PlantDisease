@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class SupabaseService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -260,25 +261,43 @@ class SupabaseService {
     return _supabase.auth.currentUser?.id;
   }
 
+  /// Upload image to Supabase Storage and return public URL
+  static Future<String> uploadScanImage({
+    required String userId,
+    required String imagePath,
+    required String analysisDate,
+  }) async {
+    final file = File(imagePath);
+    final fileName = '${userId}_${analysisDate.replaceAll(':', '-')}.jpg';
+    final storagePath = 'scan-images/$userId/$fileName';
+    final bucket = _supabase.storage.from('scan-images');
+    final response = await bucket.upload(storagePath, file);
+    // Fix: response is a String if successful, else throws
+    // So just check if response is not empty
+    if (response == null || response.isEmpty) {
+      throw Exception('Image upload failed: No response from Supabase Storage');
+    }
+    // Get public URL
+    final publicUrl = bucket.getPublicUrl(storagePath);
+    return publicUrl;
+  }
+
   /// Save analysis result to the database
   static Future<void> saveAnalysisResult({
     required String userId,
-    required String imageUri,
+    required String imagePath,
     required dynamic detectedDiseases,
     required double confidenceScore,
     required dynamic locationData,
     required String analysisDate,
   }) async {
-    // Check for null or empty userId
     if (userId.isEmpty) {
       throw Exception('User ID cannot be null or empty');
     }
-    // Validate detectedDiseases and locationData are JSON (Map or List)
     if (!(detectedDiseases is Map || detectedDiseases is List)) {
       throw Exception('detectedDiseases must be a Map or List');
     }
     if (!(locationData is Map || locationData is List)) {
-      // Try to decode if it's a String
       try {
         if (locationData is String) {
           locationData = jsonDecode(locationData);
@@ -292,14 +311,42 @@ class SupabaseService {
         throw Exception('locationData must be a Map or List. Error: ${e.toString()}. Actual value: ${locationData.toString()}');
       }
     }
+    // Upload image and get public URL
+    final imageUrl = await uploadScanImage(
+      userId: userId,
+      imagePath: imagePath,
+      analysisDate: analysisDate,
+    );
     await _supabase.from('analysis_results').insert({
       'user_id': userId,
-      'image_uri': imageUri,
+      'image_uri': imageUrl,
       'detected_diseases': detectedDiseases,
       'confidence_score': confidenceScore,
       'location_data': locationData,
       'analysis_date': analysisDate,
     });
+  }
+
+  /// Fetch all scan history for the current user
+  static Future<List<Map<String, dynamic>>> getUserScanHistory({
+    required String userId,
+  }) async {
+    if (userId.isEmpty) {
+      throw Exception('User ID cannot be null or empty');
+    }
+
+    // Get analysis results without trying to join with crops
+    final response = await _supabase
+        .from('analysis_results')
+        .select()
+        .eq('user_id', userId)
+        .order('analysis_date', ascending: false);
+
+    // Convert response to a properly typed list
+    final results = List<Map<String, dynamic>>.from(response);
+
+    // The ScanHistory model will handle the lack of crops data
+    return results;
   }
 
   /// Helper method to extract description from JSON or return fallback

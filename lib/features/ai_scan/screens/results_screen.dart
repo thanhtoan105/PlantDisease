@@ -132,16 +132,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
         });
         return;
       }
-      // Prepare data for saving
-      final imageUri = widget.imagePath;
+      final imagePath = widget.imagePath;
       final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
       final confidenceScore = widget.analysisResult['confidence'] ?? 0.0;
-      final locationData = _locationData; // Use fetched location data
+      final locationData = _locationData;
       final analysisDate = DateTime.now().toIso8601String();
-
       await SupabaseService.saveAnalysisResult(
         userId: userId,
-        imageUri: imageUri,
+        imagePath: imagePath,
         detectedDiseases: detectedDiseases,
         confidenceScore: confidenceScore,
         locationData: locationData,
