@@ -83,17 +83,12 @@ class AuthProvider extends ChangeNotifier {
       Session? currentSession;
 
       if (session != null) {
-        try {
-          // Verify the session is still valid
-          await supabase.auth.getUser();
-          isAuthenticated = true;
-          user = session.user;
-          currentSession = session;
-          debugPrint('✅ Existing session restored successfully');
-        } catch (e) {
-          debugPrint('⚠️ Existing session is invalid, clearing: $e');
-          await supabase.auth.signOut();
-        }
+        // If a session exists, assume the user is authenticated.
+        // The Supabase client will handle token refreshing automatically.
+        isAuthenticated = true;
+        user = session.user;
+        currentSession = session;
+        debugPrint('✅ Existing session restored successfully from local storage');
       } else {
         debugPrint('ℹ️ No existing session found');
       }
@@ -248,6 +243,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.session != null) {
         return {'success': true, 'message': 'Signed in successfully!'};
+
       }
 
       return {'success': false, 'error': 'Failed to sign in'};
