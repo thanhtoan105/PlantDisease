@@ -24,22 +24,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Health Check',
       subtitle:
           'Take picture of your crop or upload images to detect diseases and receive treatment advice',
-      imagePath: 'assets/images/onboarding/news_check.jpg',
+      imagePath: 'assets/images/onboarding/news.jpg',
       icon: Icons.health_and_safety,
       color: AppColors.primaryGreen,
     ),
     OnboardingData(
-      title: 'Community',
-      subtitle:
-          'Ask a question about your crop to receive help from the community',
-      imagePath: 'assets/images/onboarding/farmer_using_smartphone.png',
-      icon: Icons.people,
-      color: AppColors.accentOrange,
-    ),
-    OnboardingData(
       title: 'Cultivation Tips',
       subtitle: 'Receive farming advice about how to improve your yield',
-      imagePath: 'assets/images/onboarding/cultivation_tips.jpg',
+      imagePath: 'assets/images/onboarding/farmer.png',
       icon: Icons.agriculture,
       color: AppColors.primaryGreen,
     ),
