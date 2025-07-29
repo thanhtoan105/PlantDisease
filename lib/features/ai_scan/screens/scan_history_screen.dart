@@ -46,11 +46,13 @@ class ScanHistoryScreen extends StatelessWidget {
                   diseaseResult = firstDisease;
                 }
               }
+              // Format analysisDate to a readable string (e.g., '2 days ago' or date)
+              String timeAgo = _formatTimeAgo(scan.analysisDate);
               return ScanHistoryItem(
                 imageUrl: plantImage,
                 plantName: plantName,
                 location: location,
-                analysisDate: scan.analysisDate,
+                timeAgo: timeAgo,
                 diseaseResult: diseaseResult,
                 confidenceScore: scan.confidenceScore,
               );
@@ -59,5 +61,22 @@ class ScanHistoryScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  // Helper function to format DateTime to 'time ago' string
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    if (difference.inDays > 7) {
+      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+    } else if (difference.inDays >= 1) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+    } else {
+      return 'Just now';
+    }
   }
 }
