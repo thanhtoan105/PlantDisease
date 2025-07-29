@@ -12,11 +12,13 @@ import '../../../core/services/supabase_service.dart';
 class ResultsScreen extends StatefulWidget {
   final String imagePath;
   final Map<String, dynamic> analysisResult;
+  final Map<String, dynamic>? locationData;
 
   const ResultsScreen({
     super.key,
     required this.imagePath,
     required this.analysisResult,
+    required this.locationData,
   });
 
   @override
@@ -34,7 +36,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   void initState() {
     super.initState();
     _loadDiseaseDetails();
-    _fetchLocationAndWeather();
+    _locationData = widget.locationData;
   }
 
   void _toggleSection(String sectionId) {
@@ -69,50 +71,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
     } finally {
       setState(() {
         _isLoadingDiseaseDetails = false;
-      });
-    }
-  }
-
-  Future<void> _fetchLocationAndWeather() async {
-    // Example: Use geolocator to get location, then fetch weather
-    // Replace with your actual API key and endpoint
-    const apiKey = 'YOUR_WEATHER_API_KEY';
-    double latitude = 0.0;
-    double longitude = 0.0;
-    // TODO: Use geolocator or similar to get real location
-    // For demo, use fixed coordinates
-    latitude = 10.762622;
-    longitude = 106.660172;
-    final weatherUrl =
-        'https://api.openweathermap.org/data/2.5/weather?lat=$latitude&lon=$longitude&appid=$apiKey&units=metric';
-    try {
-      final response = await http.get(Uri.parse(weatherUrl));
-      if (response.statusCode == 200) {
-        final weatherData = jsonDecode(response.body);
-        setState(() {
-          _locationData = {
-            'latitude': latitude,
-            'longitude': longitude,
-            'weather': weatherData,
-          };
-        });
-      } else {
-        setState(() {
-          _locationData = {
-            'latitude': latitude,
-            'longitude': longitude,
-            'weather': null,
-          };
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _locationData = {
-          'latitude': latitude,
-          'longitude': longitude,
-          'weather': null,
-          'error': e.toString(),
-        };
       });
     }
   }

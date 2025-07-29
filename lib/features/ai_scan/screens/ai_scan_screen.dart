@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/services/camera_service.dart';
 import '../../../core/services/tensorflow_service.dart';
+import '../../../core/services/weather_service.dart';
 
 import 'results_screen.dart';
 
@@ -149,7 +150,11 @@ class _AiScanScreenState extends State<AiScanScreen>
 
       final imagePath = await CameraService.captureImage();
       if (imagePath != null && mounted) {
-        await _analyzeImage(imagePath);
+        final locationResult = await WeatherService.getCurrentLocation();
+        final locationData = locationResult['success'] == true
+            ? locationResult['data']
+            : null;
+        await _analyzeImage(imagePath, locationData: locationData);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to capture image')),
@@ -189,7 +194,11 @@ class _AiScanScreenState extends State<AiScanScreen>
       );
 
       if (pickedFile != null && mounted) {
-        await _analyzeImage(pickedFile.path);
+        final locationResult = await WeatherService.getCurrentLocation();
+        final locationData = locationResult['success'] == true
+            ? locationResult['data']
+            : null;
+        await _analyzeImage(pickedFile.path, locationData: locationData);
       }
     } catch (e) {
       if (mounted) {
@@ -233,7 +242,8 @@ class _AiScanScreenState extends State<AiScanScreen>
     HapticFeedback.selectionClick();
   }
 
-  Future<void> _analyzeImage(String imagePath) async {
+  Future<void> _analyzeImage(String imagePath,
+      {Map<String, dynamic>? locationData}) async {
     setState(() {
       _isAnalyzing = true;
     });
@@ -249,6 +259,7 @@ class _AiScanScreenState extends State<AiScanScreen>
               builder: (context) => ResultsScreen(
                 imagePath: imagePath,
                 analysisResult: result['data'],
+                locationData: locationData,
               ),
             ),
           );
@@ -258,7 +269,7 @@ class _AiScanScreenState extends State<AiScanScreen>
             _showModelFileDialog();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Analysis failed: ${result['error']}')),
+              SnackBar(content: Text('Analysis failed: \\${result['error']}')),
             );
           }
         }
@@ -402,8 +413,6 @@ class _AiScanScreenState extends State<AiScanScreen>
             ),
           ),
 
-        
-          
           // Top Controls (Flash and Camera Switch)
           Positioned(
             top: MediaQuery.of(context).padding.top + 80,

@@ -33,8 +33,14 @@ class ScanHistoryScreen extends StatelessWidget {
               String plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUri;
               // Location
               String location = 'Unknown location';
-              if (scan.locationData != null && scan.locationData!['address'] != null) {
-                location = scan.locationData!['address'];
+              if (scan.locationData != null) {
+                if (scan.locationData!['name'] != null && scan.locationData!['name'].toString().trim().isNotEmpty) {
+                  location = scan.locationData!['name'];
+                } else if (scan.locationData!['location_name'] != null && scan.locationData!['location_name'].toString().trim().isNotEmpty) {
+                  location = scan.locationData!['location_name'];
+                } else if (scan.locationData!['latitude'] != null && scan.locationData!['longitude'] != null) {
+                  location = '${scan.locationData!['latitude']}, ${scan.locationData!['longitude']}';
+                }
               }
               // Disease result
               String diseaseResult = 'Không nhận ra bệnh, cần chụp cận vết bệnh';
