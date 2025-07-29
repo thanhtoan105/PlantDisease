@@ -19,16 +19,9 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _activeFilter = 'all';
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   String? _searchError;
-
-  final List<Map<String, String>> _filters = [
-    {'id': 'all', 'label': 'All', 'icon': 'search'},
-    {'id': 'crops', 'label': 'Crops', 'icon': 'agriculture'},
-    {'id': 'diseases', 'label': 'Diseases', 'icon': 'bug_report'},
-  ];
 
   @override
   void dispose() {
@@ -52,18 +45,8 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      Map<String, dynamic> result;
-
-      switch (_activeFilter) {
-        case 'crops':
-          result = await PlantService.searchCrops(query.trim());
-          break;
-        case 'diseases':
-          result = await PlantService.searchDiseases(query.trim());
-          break;
-        default:
-          result = await PlantService.searchAll(query.trim());
-      }
+      // Always search all since filter tabs are removed
+      final result = await PlantService.searchAll(query.trim());
 
       if (mounted) {
         setState(() {
@@ -105,68 +88,18 @@ class _SearchScreenState extends State<SearchScreen> {
             color: AppColors.primaryGreen,
             child: CustomSearchBar(
               placeholder: 'Search plants, diseases, tips...',
-              value: _searchController.text,
+              controller: _searchController,
               onChanged: (value) {
-                _searchController.text = value;
                 _performSearch(value);
               },
             ),
           ),
-
-          // Filter tabs
-          _buildFilterTabs(),
 
           // Search results
           Expanded(
             child: _buildSearchResults(),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterTabs() {
-    return Container(
-      height: 50,
-      color: AppColors.white,
-      child: Row(
-        children: _filters.map((filter) {
-          final isActive = _activeFilter == filter['id'];
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _activeFilter = filter['id']!;
-                });
-                _performSearch(_searchController.text);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isActive
-                          ? AppColors.primaryGreen
-                          : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    filter['label']!,
-                    style: AppTypography.labelMedium.copyWith(
-                      color: isActive
-                          ? AppColors.primaryGreen
-                          : AppColors.mediumGray,
-                      fontWeight:
-                          isActive ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -211,11 +144,9 @@ class _SearchScreenState extends State<SearchScreen> {
             runSpacing: AppDimensions.spacingSm,
             children: [
               'Apple diseases',
-              'Tomato blight',
+              'Tomato diseases',
               'Plant care tips',
               'Pest control',
-              'Organic farming',
-              'Weather forecast',
             ].map((suggestion) {
               return ActionChip(
                 label: Text(suggestion),

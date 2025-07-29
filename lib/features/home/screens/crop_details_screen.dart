@@ -178,8 +178,8 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withValues(alpha: 0.3),
-              Colors.black.withValues(alpha: 0.7),
+              Colors.black.withOpacity(0.3),
+              Colors.black.withOpacity(0.7),
             ],
           ),
         ),
@@ -199,7 +199,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Icon(
@@ -217,7 +217,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Icon(
@@ -247,7 +247,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                               color: Colors.white,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black.withValues(alpha: 0.5),
+                                  color: Colors.black.withOpacity(0.5),
                                   offset: const Offset(0, 1),
                                   blurRadius: 3,
                                 ),
@@ -259,11 +259,11 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                             crop['scientificName'] ??
                                 'Scientific name not available',
                             style: AppTypography.bodyLarge.copyWith(
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: Colors.white.withOpacity(0.9),
                               fontStyle: FontStyle.italic,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black.withValues(alpha: 0.5),
+                                  color: Colors.black.withOpacity(0.5),
                                   offset: const Offset(0, 1),
                                   blurRadius: 3,
                                 ),
@@ -471,7 +471,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             offset: const Offset(0, 2),
             blurRadius: 4,
           ),
@@ -551,48 +551,56 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   }
 
   Widget _buildBasicInfo(Map<String, dynamic> crop) {
-    return Column(
-      children: [
-        _buildInfoRow(
-            'Scientific Name:', crop['scientificName'] ?? 'Not available'),
-        if (crop['overview']?['basic_info']?['family'] != null)
-          _buildInfoRow('Family:', crop['overview']['basic_info']['family']),
-        if (crop['overview']?['basic_info']?['origin'] != null)
-          _buildInfoRow('Origin:', crop['overview']['basic_info']['origin']),
-      ],
-    );
-  }
+    final info = {
+      'Family': crop['family'],
+      'Origin': crop['origin'],
+      'Tree Type': crop['treeType'],
+      'Mature Height': crop['matureHeight'],
+      'Mature Width': crop['matureWidth'],
+      'Lifespan': crop['lifespan'],
+    };
 
-  Widget _buildGrowingConditionsContent(Map<String, dynamic> conditions) {
     return Column(
-      children: conditions.entries.map((entry) {
-        return _buildInfoRow(
-          '${entry.key.substring(0, 1).toUpperCase()}${entry.key.substring(1)}:',
-          entry.value.toString(),
-        );
+      children: info.entries.map((entry) {
+        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
       }).toList(),
     );
   }
 
-  Widget _buildGrowingSeasonsContent(dynamic seasons) {
-    if (seasons is List) {
-      return Column(
-        children: seasons.asMap().entries.map((entry) {
-          return _buildInfoRow(
-              'Season ${entry.key + 1}:', entry.value.toString());
-        }).toList(),
-      );
-    } else if (seasons is Map) {
-      return Column(
-        children: seasons.entries.map((entry) {
-          return _buildInfoRow(
-            '${entry.key.substring(0, 1).toUpperCase()}${entry.key.substring(1)}:',
-            entry.value.toString(),
-          );
-        }).toList(),
-      );
-    }
-    return const SizedBox.shrink();
+  Widget _buildGrowingConditionsContent(Map<String, dynamic> conditions) {
+    final info = {
+      'Climate': conditions['climate'],
+      'Hardiness Zones': conditions['hardinessZones'],
+      'Temperature': conditions['temperature'],
+      'Sunlight': conditions['sunlight'],
+      'Soil Type': conditions['soilType'],
+      'Soil pH': conditions['soilPh'],
+      'Water Requirements': conditions['waterRequirements'],
+      'Spacing': conditions['spacing'],
+    };
+
+    return Column(
+      children: info.entries.map((entry) {
+        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
+      }).toList(),
+    );
+  }
+
+  Widget _buildGrowingSeasonsContent(Map<String, dynamic> seasons) {
+    final info = {
+      'Planting Time': seasons['plantingTime'],
+      'Blooming Period': seasons['bloomingPeriod'],
+      'Fruit Development': seasons['fruitDevelopment'],
+      'Harvest Time': seasons['harvestTime'],
+      'First Harvest': seasons['firstHarvest'],
+      'Dormancy': seasons['dormancy'],
+    };
+
+    return Column(
+      children: info.entries.map((entry) {
+        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
+      }).toList(),
+    );
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -621,8 +629,32 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     );
   }
 
+  Widget _buildTipsTab() {
+    final tips = _cropDetails?['growing_tips'] as List<dynamic>? ?? [];
+
+    if (tips.isEmpty) {
+      return const Center(
+        child: Text('No growing tips available.'),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppDimensions.spacingLg),
+      itemCount: tips.length,
+      itemBuilder: (context, index) {
+        final tip = tips[index] as Map<String, dynamic>;
+        return _buildExpandableSection(
+          tip['title'] ?? 'Tip',
+          Text(tip['description'] ?? 'No description'),
+          'tip-$index',
+          Icons.eco,
+        );
+      },
+    );
+  }
+
   Widget _buildDiseasesTab() {
-    final diseases = _cropDetails?['diseases'] as List? ?? [];
+    final diseases = _cropDetails?['diseases'] as List<dynamic>? ?? [];
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -688,7 +720,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           borderRadius: BorderRadius.circular(AppDimensions.borderRadiusLarge),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.1),
               offset: const Offset(0, 2),
               blurRadius: 4,
             ),
@@ -791,136 +823,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
             const SizedBox(height: AppDimensions.spacingSm),
             Text(
               'Disease information for this crop is not yet available.',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.mediumGray,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTipsTab() {
-    final tips = _cropDetails?['tips'] as List? ?? [];
-
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.spacingLg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section Header
-            Text(
-              'Growing Tips',
-              style: AppTypography.headlineMedium,
-            ),
-            const SizedBox(height: AppDimensions.spacingLg),
-
-            // Tips Content
-            if (tips.isNotEmpty)
-              _buildTipsContent(tips)
-            else
-              _buildEmptyTipsState(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTipsContent(List tips) {
-    return CustomCard(
-      child: Column(
-        children: tips.asMap().entries.map((entry) {
-          final index = entry.key;
-          final tip = entry.value;
-          final isLast = index == tips.length - 1;
-
-          return Container(
-            padding:
-                const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
-            decoration: BoxDecoration(
-              border: isLast
-                  ? null
-                  : const Border(
-                      bottom: BorderSide(
-                        color: AppColors.lightGray,
-                        width: 1,
-                      ),
-                    ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Numbered circle
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${index + 1}',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.spacingMd),
-                // Tip content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tip is String
-                            ? tip
-                            : (tip['description'] ??
-                                tip['title'] ??
-                                'Growing tip'),
-                        style: AppTypography.bodyMedium.copyWith(
-                          height: 1.5,
-                          color: AppColors.darkNavy,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildEmptyTipsState() {
-    return CustomCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
-        child: Column(
-          children: [
-            Icon(
-              Icons.eco,
-              size: 48,
-              color: AppColors.mediumGray,
-            ),
-            const SizedBox(height: AppDimensions.spacingLg),
-            Text(
-              'No tips available',
-              style: AppTypography.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppDimensions.spacingSm),
-            Text(
-              'Growing tips for this crop will be added soon.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.mediumGray,
               ),

@@ -71,11 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: AppDimensions.spacingXl),
 
-              // Function cards
-              _buildFunctionCards(),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
               // Weather widget
               Consumer<WeatherProvider>(
                 builder: (context, weatherProvider, child) {
@@ -151,125 +146,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleFunctionCardTap(String title) {
-    switch (title) {
-      case 'Plant Details':
-        context.push(RouteNames.cropLibrary);
-        break;
-      case 'Weather':
-        // Navigate to weather details or show weather widget
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Weather details coming soon')),
-        );
-        break;
-      case 'Disease Library':
-        // Navigate to crop details with diseases tab active
-        final plantProvider = context.read<PlantProvider>();
-        if (plantProvider.crops.isNotEmpty) {
-          final firstCrop = plantProvider.crops.first;
-          context.push(
-              '${RouteNames.cropDetails}/${firstCrop['id']}?tab=diseases',
-              extra: firstCrop);
-        } else {
-          // Fallback to crop library if no crops available
-          context.push(RouteNames.cropLibrary);
-        }
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$title coming soon')),
-        );
-    }
-  }
-
-  Widget _buildFunctionCards() {
-    final functionCards = [
-      {
-        'title': 'Plant Details',
-        'icon': Icons.eco,
-        'color': AppColors.secondary,
-      },
-      // {
-      //   'title': 'Weather',
-      //   'icon': Icons.wb_sunny,
-      //   'color': AppColors.primaryGreen,
-      // },
-      {
-        'title': 'Disease Library',
-        'icon': Icons.bug_report,
-        'color': AppColors.accentOrange,
-      },
-    ];
-
-    return Row(
-      children: functionCards.map((card) {
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: CustomCard(
-              onTap: () => _handleFunctionCardTap(card['title'] as String),
-              child: Column(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: (card['color'] as Color).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(
-                          AppDimensions.borderRadiusMedium),
-                    ),
-                    child: Icon(
-                      card['icon'] as IconData,
-                      color: card['color'] as Color,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingSm),
-                  Text(
-                    card['title'] as String,
-                    style: AppTypography.labelSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildCropLibrary() {
-    return Consumer<PlantProvider>(
-      builder: (context, plantProvider, child) {
-        if (plantProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Crop Library',
-                  style: AppTypography.headlineMedium,
-                ),
-                GestureDetector(
-                  onTap: () => context.push(RouteNames.cropLibrary),
-                  child: Text(
-                    'View All',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              'My Crops',
+              style: AppTypography.headlineMedium,
             ),
-            const SizedBox(height: AppDimensions.spacingLg),
-            SizedBox(
+          ],
+        ),
+        const SizedBox(height: AppDimensions.spacingLg),
+        Consumer<PlantProvider>(
+          builder: (context, plantProvider, child) {
+            if (plantProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return SizedBox(
               height: 120, // Reduced from 140 to 120 to fit optimized cards
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
@@ -294,10 +191,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-            ),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 }

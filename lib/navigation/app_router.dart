@@ -9,7 +9,6 @@ import '../features/auth/screens/sign_up_screen.dart';
 
 import '../features/main/main_screen.dart';
 import '../features/home/screens/home_screen.dart';
-import '../features/home/screens/crop_library_screen.dart';
 import '../features/home/screens/crop_details_screen.dart';
 import '../features/home/screens/disease_details_screen.dart';
 import '../features/ai_scan/screens/ai_scan_screen.dart';
@@ -108,10 +107,6 @@ class AppRouter {
             builder: (context, state) => const ProfileScreen(),
           ),
         ],
-      ),
-      GoRoute(
-        path: RouteNames.cropLibrary,
-        builder: (context, state) => const CropLibraryScreen(),
       ),
       GoRoute(
         path: '${RouteNames.cropDetails}/:cropId',
