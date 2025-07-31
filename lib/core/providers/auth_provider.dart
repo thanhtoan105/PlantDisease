@@ -18,7 +18,7 @@ class AuthProvider extends ChangeNotifier {
   // Getters
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _isAuthenticated;
-  bool get isGuestMode => _isGuestMode;
+  bool get isGuestMode => false;
   User? get user => _user;
   Session? get session => _session;
   Map<String, dynamic>? get profile => _profile;
@@ -64,7 +64,7 @@ class AuthProvider extends ChangeNotifier {
       // Check onboarding status and previous auth state
       final prefs = await SharedPreferences.getInstance();
       final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-      final isGuestMode = prefs.getBool('guest_mode') ?? false;
+      final isGuestMode = false; // Always disable guest mode
       final wasAuthenticated = prefs.getBool('was_authenticated') ?? false;
 
       debugPrint('🔍 Auth initialization:');
@@ -95,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
 
       return {
         'onboardingCompleted': onboardingCompleted,
-        'isGuestMode': isGuestMode,
+        'isGuestMode': false, // Always disable guest mode
         'wasAuthenticated': wasAuthenticated,
         'isAuthenticated': isAuthenticated,
         'user': user,
@@ -105,7 +105,7 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('Error in background initialization: $e');
       return {
         'onboardingCompleted': false,
-        'isGuestMode': false,
+        'isGuestMode': false, // Always disable guest mode
         'wasAuthenticated': false,
         'isAuthenticated': false,
         'user': null,
@@ -117,7 +117,7 @@ class AuthProvider extends ChangeNotifier {
   /// Update state from background initialization results
   void _updateStateFromBackground(Map<String, dynamic> result) {
     _onboardingCompleted = result['onboardingCompleted'] ?? false;
-    _isGuestMode = result['isGuestMode'] ?? false;
+    _isGuestMode = false; // Always disable guest mode
     _isAuthenticated = result['isAuthenticated'] ?? false;
     _user = result['user'];
     _session = result['session'];

@@ -1,4 +1,5 @@
-Apple___Apple_scab
-Apple___Black_rot
-Apple___Cedar_apple_rust
-Apple___healthy
+Tomato___Septoria_leaf_spot
+Tomato___Late_blight
+Tomato___Bacterial_spot
+Tomato___Tomato_Yellow_Leaf_Curl_Virus
+Tomato___healthy

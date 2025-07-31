@@ -42,7 +42,7 @@ class ScanHistory {
 
     // Try to determine plant name from detected diseases
     String plantName = 'Unknown';
-    if (detectedDiseases is List && detectedDiseases.isNotEmpty) {
+    if (detectedDiseases.isNotEmpty) {
       var firstDisease = detectedDiseases.first;
       if (firstDisease is Map && firstDisease['plant'] != null) {
         plantName = firstDisease['plant'];

@@ -15,7 +15,7 @@ class TensorFlowService {
   // Model configuration matching React Native
   static const int modelInputSize = 128;
   static const int modelChannels = 3;
-  static const String modelPath = 'assets/models/apple_model_final.tflite';
+  static const String modelPath = 'assets/models/tomato_model_final.tflite';
   static const String labelsPath = 'assets/models/labels.txt';
 
   /// Initialize TensorFlow Lite model
@@ -27,10 +27,9 @@ class TensorFlowService {
 
       // Check if model file exists first with detailed debugging
       try {
-        debugPrint(
-            '🔍 Attempting to load model from: assets/models/apple_model_final.tflite');
+        debugPrint('🔍 Attempting to load model from: $modelPath');
         final modelData =
-            await rootBundle.load('assets/models/apple_model_final.tflite');
+            await rootBundle.load(modelPath);
         debugPrint(
             '📊 Model file found, size: ${modelData.lengthInBytes} bytes');
 
@@ -82,7 +81,7 @@ class TensorFlowService {
       // Load the model with options
       try {
         _interpreter = await Interpreter.fromAsset(
-          'assets/models/apple_model_final.tflite',
+          modelPath,
           options: options,
         );
         debugPrint('✅ Interpreter created with GPU delegate');
@@ -92,7 +91,7 @@ class TensorFlowService {
         final cpuOptions = InterpreterOptions();
         cpuOptions.threads = 2;
         _interpreter = await Interpreter.fromAsset(
-          'assets/models/apple_model_final.tflite',
+          modelPath,
           options: cpuOptions,
         );
         debugPrint('✅ Interpreter created with CPU only');
@@ -122,7 +121,7 @@ class TensorFlowService {
   static Future<void> _loadLabels() async {
     try {
       final labelsData =
-          await rootBundle.loadString('assets/models/labels.txt');
+          await rootBundle.loadString(labelsPath);
       _labels =
           labelsData.split('\n').where((label) => label.isNotEmpty).toList();
       debugPrint('✅ Loaded ${_labels!.length} labels');
@@ -185,7 +184,7 @@ class TensorFlowService {
     // Check model file
     try {
       final modelData =
-          await rootBundle.load('assets/models/apple_model_final.tflite');
+          await rootBundle.load(modelPath);
       results['modelFound'] = true;
       results['modelSize'] = modelData.lengthInBytes;
       debugPrint('✅ Model file found: ${modelData.lengthInBytes} bytes');
@@ -197,7 +196,7 @@ class TensorFlowService {
     // Check labels file
     try {
       final labelsData =
-          await rootBundle.loadString('assets/models/labels.txt');
+          await rootBundle.loadString(labelsPath);
       results['labelsFound'] = true;
       results['labelsContent'] = labelsData;
       debugPrint('✅ Labels file found: ${labelsData.length} characters');
@@ -213,7 +212,7 @@ class TensorFlowService {
       results['manifestFound'] = true;
 
       final modelAssets = manifest.keys
-          .where((key) => key.contains('apple_model_final'))
+          .where((key) => key.contains(modelPath.split('/').last))
           .toList();
       results['modelInManifest'] = modelAssets.isNotEmpty;
       debugPrint('🔍 Model assets in manifest: $modelAssets');
@@ -384,6 +383,24 @@ class TensorFlowService {
     // Get top prediction
     final topPrediction = predictions.isNotEmpty ? predictions.first : null;
 
+    // Build detectedDiseases list for storage
+    List<Map<String, dynamic>> detectedDiseases = [];
+    if (predictions.isNotEmpty) {
+      for (final pred in predictions) {
+        detectedDiseases.add({
+          'disease': pred['displayName'],
+          'confidence': pred['confidence'],
+          'label': pred['label'],
+        });
+      }
+    } else {
+      detectedDiseases.add({
+        'disease': 'Unknown',
+        'confidence': 0.0,
+        'label': 'Unknown',
+      });
+    }
+
     return {
       'predictions': predictions,
       'topPrediction': topPrediction,
@@ -391,6 +408,7 @@ class TensorFlowService {
       'isHealthy': topPrediction?['label']?.contains('healthy') ?? false,
       'diseaseDetected': topPrediction != null &&
           !(topPrediction['label']?.contains('healthy') ?? true),
+      'detectedDiseases': detectedDiseases,
     };
   }
 
