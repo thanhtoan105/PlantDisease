@@ -89,7 +89,7 @@ class ScanHistoryItem extends StatelessWidget {
                 const Icon(Icons.verified_user, size: 18, color: Colors.teal),
                 const SizedBox(width: 4),
                 Text(
-                  '${(confidenceScore * 100).toStringAsFixed(1)}% (chẩn đoán)',
+                  '${(confidenceScore * 100).toStringAsFixed(1)}% (confidence)',
                   style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w500, fontSize: 14),
                 ),
               ],

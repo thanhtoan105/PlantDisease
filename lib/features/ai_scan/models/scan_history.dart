@@ -27,14 +27,26 @@ class ScanHistory {
 
   factory ScanHistory.fromJson(Map<String, dynamic> json) {
     // Extract detected diseases with safer parsing
-    var detectedDiseases = [];
+    List<dynamic> detectedDiseases = [];
     try {
       if (json['detected_diseases'] != null) {
-        detectedDiseases = jsonDecode(json['detected_diseases'].toString());
+        final raw = json['detected_diseases'];
+        if (raw is List) {
+          detectedDiseases = raw;
+        } else if (raw is String) {
+          // Try to decode the string as a list
+          final decoded = jsonDecode(raw);
+          if (decoded is List) {
+            detectedDiseases = decoded;
+          } else {
+            detectedDiseases = [decoded];
+          }
+        } else {
+          detectedDiseases = [raw];
+        }
       }
     } catch (e) {
       print('Error parsing detected_diseases: $e');
-      // If parsing fails, try to use it as a string directly
       if (json['detected_diseases'] != null) {
         detectedDiseases = [json['detected_diseases'].toString()];
       }
