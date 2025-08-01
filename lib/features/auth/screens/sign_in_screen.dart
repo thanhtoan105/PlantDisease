@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/utils/exit_confirmation_dialog.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -41,30 +42,33 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<AuthProvider, bool>(
-      selector: (_, provider) => provider.isAuthenticated,
-      builder: (context, isAuthenticated, child) {
-        if (isAuthenticated && !_navigated) {
-          _navigated = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.go('/main'); // Replace '/main' with your main screen route name
-          });
-        }
-        return Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _buildEmailField(),
-              const SizedBox(height: AppDimensions.spacingLg),
-              _buildPasswordField(),
-              const SizedBox(height: AppDimensions.spacingLg),
-              _buildForgotPassword(),
-              const SizedBox(height: AppDimensions.spacingXl),
-              _buildSignInButton(),
-            ],
-          ),
-        );
-      },
+    return WillPopScope(
+      onWillPop: () => showExitConfirmationDialog(context),
+      child: Selector<AuthProvider, bool>(
+        selector: (_, provider) => provider.isAuthenticated,
+        builder: (context, isAuthenticated, child) {
+          if (isAuthenticated && !_navigated) {
+            _navigated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.go('/main'); // Replace '/main' with your main screen route name
+            });
+          }
+          return Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _buildEmailField(),
+                const SizedBox(height: AppDimensions.spacingLg),
+                _buildPasswordField(),
+                const SizedBox(height: AppDimensions.spacingLg),
+                _buildForgotPassword(),
+                const SizedBox(height: AppDimensions.spacingXl),
+                _buildSignInButton(),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

@@ -287,7 +287,6 @@ class SupabaseService {
     required String userId,
     required String imagePath,
     required dynamic detectedDiseases,
-    required double confidenceScore,
     required dynamic locationData,
     required String analysisDate,
   }) async {
@@ -302,13 +301,13 @@ class SupabaseService {
         if (locationData is String) {
           locationData = jsonDecode(locationData);
           if (!(locationData is Map || locationData is List)) {
-            throw Exception('locationData must decode to a Map or List. Actual value: ${locationData.toString()}, type: ${locationData.runtimeType}');
+            throw Exception('locationData must decode to a Map or List. Actual value: \\${locationData.toString()}, type: \\${locationData.runtimeType}');
           }
         } else {
-          throw Exception('locationData must be a Map or List. Actual type: ${locationData.runtimeType}, value: ${locationData.toString()}');
+          throw Exception('locationData must be a Map or List. Actual type: \\${locationData.runtimeType}, value: \\${locationData.toString()}');
         }
       } catch (e) {
-        throw Exception('locationData must be a Map or List. Error: ${e.toString()}. Actual value: ${locationData.toString()}');
+        throw Exception('locationData must be a Map or List. Error: \\${e.toString()}. Actual value: \\${locationData.toString()}');
       }
     }
     // Upload image and get public URL
@@ -321,7 +320,6 @@ class SupabaseService {
       'user_id': userId,
       'image_uri': imageUrl,
       'detected_diseases': detectedDiseases,
-      'confidence_score': confidenceScore,
       'location_data': locationData,
       'analysis_date': analysisDate,
     });

@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/utils/exit_confirmation_dialog.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -36,38 +37,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          // Username Field
-          _buildUsernameField(),
-          
-          const SizedBox(height: AppDimensions.spacingLg),
-          
-          // Email Field
-          _buildEmailField(),
-          
-          const SizedBox(height: AppDimensions.spacingLg),
-          
-          // Password Field
-          _buildPasswordField(),
-          
-          const SizedBox(height: AppDimensions.spacingLg),
-          
-          // Confirm Password Field
-          _buildConfirmPasswordField(),
-          
-          const SizedBox(height: AppDimensions.spacingLg),
-          
-          // Terms Checkbox
-          _buildTermsCheckbox(),
-          
-          const SizedBox(height: AppDimensions.spacingXl),
-          
-          // Sign Up Button
-          _buildSignUpButton(),
-        ],
+    return WillPopScope(
+      onWillPop: () => showExitConfirmationDialog(context),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Username Field
+            _buildUsernameField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Email Field
+            _buildEmailField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Password Field
+            _buildPasswordField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Confirm Password Field
+            _buildConfirmPasswordField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Terms Checkbox
+            _buildTermsCheckbox(),
+
+            const SizedBox(height: AppDimensions.spacingXl),
+
+            // Sign Up Button
+            _buildSignUpButton(),
+          ],
+        ),
       ),
     );
   }

@@ -92,14 +92,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
       final imagePath = widget.imagePath;
       final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
-      final confidenceScore = widget.analysisResult['confidence'] ?? 0.0;
       final locationData = _locationData;
       final analysisDate = DateTime.now().toIso8601String();
       await SupabaseService.saveAnalysisResult(
         userId: userId,
         imagePath: imagePath,
         detectedDiseases: detectedDiseases,
-        confidenceScore: confidenceScore,
         locationData: locationData,
         analysisDate: analysisDate,
       );
@@ -121,7 +119,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget build(BuildContext context) {
     final topPrediction = widget.analysisResult['topPrediction'];
     final isHealthy = widget.analysisResult['isHealthy'] ?? false;
-    final confidence = (widget.analysisResult['confidence'] ?? 0.0) as double;
     final isDemoResult = widget.analysisResult['isDemoResult'] ?? false;
 
     return Scaffold(
@@ -146,7 +143,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             const SizedBox(height: AppDimensions.spacingXl),
 
             // Main result
-            _buildMainResult(topPrediction, isHealthy, confidence),
+            _buildMainResult(topPrediction, isHealthy),
 
             const SizedBox(height: AppDimensions.spacingXl),
 
@@ -230,12 +227,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildMainResult(
-      Map<String, dynamic>? topPrediction, bool isHealthy, double confidence) {
+      Map<String, dynamic>? topPrediction, bool isHealthy) {
     final resultColor =
         isHealthy ? AppColors.successGreen : AppColors.warningOrange;
     final resultIcon = isHealthy ? Icons.check_circle : Icons.warning;
     final resultText =
         isHealthy ? 'Plant appears healthy!' : 'Disease detected';
+
+    // Extract confidence from detectedDiseases
+    final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
+    double confidence = 0.0;
+    if (detectedDiseases.isNotEmpty && detectedDiseases[0] is Map && detectedDiseases[0]['confidence'] != null) {
+      confidence = (detectedDiseases[0]['confidence'] as num).toDouble();
+    }
 
     return CustomCard(
       child: Column(
@@ -272,39 +276,28 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         topPrediction['displayName'] ?? 'Unknown',
                         style: AppTypography.bodyLarge,
                       ),
+                    if (confidence > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            LinearProgressIndicator(
+                              value: confidence,
+                              minHeight: 8,
+                              backgroundColor: Colors.grey[200],
+                              color: resultColor,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
+                              style: AppTypography.bodySmall.copyWith(color: resultColor),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: AppDimensions.spacingLg),
-
-          // Confidence meter
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Confidence',
-                    style: AppTypography.labelMedium,
-                  ),
-                  Text(
-                    '${(confidence * 100).toStringAsFixed(1)}%',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: resultColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppDimensions.spacingSm),
-              LinearProgressIndicator(
-                value: confidence,
-                backgroundColor: AppColors.lightGray,
-                valueColor: AlwaysStoppedAnimation<Color>(resultColor),
-                minHeight: 8,
               ),
             ],
           ),

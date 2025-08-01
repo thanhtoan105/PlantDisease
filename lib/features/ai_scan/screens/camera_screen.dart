@@ -15,21 +15,78 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   bool _isCapturing = false;
+  bool _isCameraSwitching = false;
   FlashMode _currentFlashMode = FlashMode.off;
+  CameraController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeCamera({CameraDescription? cameraDescription}) async {
+    setState(() {
+      _isCameraSwitching = true;
+    });
+    try {
+      // Get available cameras if not provided
+      final cameras = CameraService.controller != null
+          ? null
+          : await availableCameras();
+      final camera = cameraDescription ??
+          (cameras != null && cameras.isNotEmpty
+              ? cameras.firstWhere(
+                  (c) => c.lensDirection == CameraLensDirection.back,
+                  orElse: () => cameras.first,
+                )
+              : null);
+      if (camera == null) {
+        setState(() {
+          _isCameraSwitching = false;
+        });
+        return;
+      }
+      final newController = CameraController(
+        camera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
+      await newController.initialize();
+      _controller?.dispose();
+      if (mounted) {
+        setState(() {
+          _controller = newController;
+          _isCameraSwitching = false;
+        });
+      } else {
+        newController.dispose();
+      }
+    } catch (e) {
+      setState(() {
+        _isCameraSwitching = false;
+      });
+    }
+  }
 
   Future<void> _captureImage() async {
-    if (_isCapturing) return;
+    if (_isCapturing || _controller == null || !_controller!.value.isInitialized) return;
 
     setState(() {
       _isCapturing = true;
     });
 
     try {
-      final imagePath = await CameraService.captureImage();
-
-      if (imagePath != null && mounted) {
-        // Return the image path to the previous screen
-        Navigator.of(context).pop(imagePath);
+      final image = await _controller!.takePicture();
+      if (image.path.isNotEmpty && mounted) {
+        Navigator.of(context).pop(image.path);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to capture image')),
@@ -61,11 +118,27 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _switchCamera() async {
-    final success = await CameraService.switchCamera();
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot switch camera')),
+    if (_isCameraSwitching || _controller == null) return;
+    setState(() {
+      _isCameraSwitching = true;
+    });
+    try {
+      final cameras = await availableCameras();
+      final current = _controller!.description;
+      final newCamera = cameras.firstWhere(
+        (c) => c.lensDirection != current.lensDirection,
+        orElse: () => cameras.first,
       );
+      await _initializeCamera(cameraDescription: newCamera);
+    } catch (e) {
+      setState(() {
+        _isCameraSwitching = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot switch camera')),
+        );
+      }
     }
   }
 
@@ -103,9 +176,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = CameraService.controller;
-
-    if (controller == null || !controller.value.isInitialized) {
+    final controller = _controller;
+    if (_isCameraSwitching || controller == null || !controller.value.isInitialized) {
       return Scaffold(
         backgroundColor: Colors.black,
         body: const Center(

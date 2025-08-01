@@ -25,6 +25,26 @@ class ScanHistory {
     required this.plantImage,
   });
 
+  // Getter for the confidence score of the first detected disease
+  double get firstConfidence {
+    if (detectedDiseases.isNotEmpty &&
+        detectedDiseases[0] is Map &&
+        detectedDiseases[0]['confidence'] != null) {
+      return (detectedDiseases[0]['confidence'] as num).toDouble();
+    }
+    return 0.0;
+  }
+
+  // Getter for the label of the first detected disease
+  String get firstLabel {
+    if (detectedDiseases.isNotEmpty &&
+        detectedDiseases[0] is Map &&
+        detectedDiseases[0]['label'] != null) {
+      return detectedDiseases[0]['label'].toString();
+    }
+    return '';
+  }
+
   factory ScanHistory.fromJson(Map<String, dynamic> json) {
     // Extract detected diseases with safer parsing
     List<dynamic> detectedDiseases = [];
@@ -107,7 +127,7 @@ class ScanHistory {
       cropId: json['crop_id'] as int?,
       imageUri: json['image_uri'] as String,
       detectedDiseases: detectedDiseases,
-      confidenceScore: (json['confidence_score'] as num).toDouble(),
+      confidenceScore: (json['confidence_score'] != null) ? (json['confidence_score'] as num).toDouble() : 0.0,
       locationData: locationData,
       analysisDate: DateTime.parse(json['analysis_date']),
       plantName: plantName,

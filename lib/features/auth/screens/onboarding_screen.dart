@@ -7,6 +7,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../navigation/route_names.dart';
+import '../../../shared/utils/exit_confirmation_dialog.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -64,186 +65,189 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Skip button
-            if (_currentIndex < _onboardingData.length - 1)
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppDimensions.spacingLg),
-                  child: TextButton(
-                    onPressed: _handleSkip,
-                    child: Text(
-                      'Skip',
-                      style: AppTypography.labelMedium.copyWith(
-                        color: AppColors.mediumGray,
+    return WillPopScope(
+      onWillPop: () => showExitConfirmationDialog(context),
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Skip button
+              if (_currentIndex < _onboardingData.length - 1)
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppDimensions.spacingLg),
+                    child: TextButton(
+                      onPressed: _handleSkip,
+                      child: Text(
+                        'Skip',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.mediumGray,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-            // Page view
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-                itemCount: _onboardingData.length,
-                itemBuilder: (context, index) {
-                  final data = _onboardingData[index];
-                  return Padding(
-                    padding: const EdgeInsets.all(AppDimensions.spacingXl),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Image with fallback to icon
-                        Container(
-                          width: 300,
-                          height: 300,
-                          decoration: BoxDecoration(
-                            color: data.color.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(
-                                AppDimensions.borderRadiusLarge),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                                AppDimensions.borderRadiusLarge),
-                            child: Image.asset(
-                              data.imagePath,
-                              width: 300,
-                              height: 300,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback to icon if image fails to load
-                                return Icon(
-                                  data.icon,
-                                  size: 120,
-                                  color: data.color,
-                                );
-                              },
+              // Page view
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  itemCount: _onboardingData.length,
+                  itemBuilder: (context, index) {
+                    final data = _onboardingData[index];
+                    return Padding(
+                      padding: const EdgeInsets.all(AppDimensions.spacingXl),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Image with fallback to icon
+                          Container(
+                            width: 300,
+                            height: 300,
+                            decoration: BoxDecoration(
+                              color: data.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                  AppDimensions.borderRadiusLarge),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimensions.borderRadiusLarge),
+                              child: Image.asset(
+                                data.imagePath,
+                                width: 300,
+                                height: 300,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // Fallback to icon if image fails to load
+                                  return Icon(
+                                    data.icon,
+                                    size: 120,
+                                    color: data.color,
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: AppDimensions.spacingXxxl),
+                          const SizedBox(height: AppDimensions.spacingXxxl),
 
-                        // Title
-                        Text(
-                          data.title,
-                          style: AppTypography.headlineLarge,
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: AppDimensions.spacingLg),
-
-                        // Subtitle
-                        Text(
-                          data.subtitle,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.mediumGray,
+                          // Title
+                          Text(
+                            data.title,
+                            style: AppTypography.headlineLarge,
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
 
-            // Page indicators and navigation
-            Padding(
-              padding: const EdgeInsets.all(AppDimensions.spacingXl),
-              child: Column(
-                children: [
-                  // Page indicators
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _onboardingData.length,
-                      (index) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentIndex == index ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _currentIndex == index
-                              ? AppColors.primaryGreen
-                              : AppColors.mediumGray,
-                          borderRadius: BorderRadius.circular(4),
+                          const SizedBox(height: AppDimensions.spacingLg),
+
+                          // Subtitle
+                          Text(
+                            data.subtitle,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.mediumGray,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Page indicators and navigation
+              Padding(
+                padding: const EdgeInsets.all(AppDimensions.spacingXl),
+                child: Column(
+                  children: [
+                    // Page indicators
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        _onboardingData.length,
+                        (index) => Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: _currentIndex == index ? 24 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _currentIndex == index
+                                ? AppColors.primaryGreen
+                                : AppColors.mediumGray,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: AppDimensions.spacingXl),
+                    const SizedBox(height: AppDimensions.spacingXl),
 
-                  // Navigation buttons
-                  if (_currentIndex < _onboardingData.length - 1)
-                    // Arrow button for non-final screens positioned at bottom right
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        GestureDetector(
-                          onTap: _handleNext,
-                          child: Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen,
-                              borderRadius: BorderRadius.circular(28),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryGreen
-                                      .withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.arrow_forward,
-                              color: AppColors.white,
-                              size: 24,
+                    // Navigation buttons
+                    if (_currentIndex < _onboardingData.length - 1)
+                      // Arrow button for non-final screens positioned at bottom right
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          GestureDetector(
+                            onTap: _handleNext,
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen,
+                                borderRadius: BorderRadius.circular(28),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryGreen
+                                        .withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward,
+                                color: AppColors.white,
+                                size: 24,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    )
-                  else
-                    // Sign In and Sign Up buttons for final screen
-                    Column(
-                      children: [
-                        // Sign Up button (primary)
-                        CustomButton(
-                          text: 'Sign Up',
-                          onPressed: () => _completeOnboardingAndNavigate(
-                              '${RouteNames.auth}?tab=signup'),
-                          type: ButtonType.primary,
-                        ),
+                        ],
+                      )
+                    else
+                      // Sign In and Sign Up buttons for final screen
+                      Column(
+                        children: [
+                          // Sign Up button (primary)
+                          CustomButton(
+                            text: 'Sign Up',
+                            onPressed: () => _completeOnboardingAndNavigate(
+                                '${RouteNames.auth}?tab=signup'),
+                            type: ButtonType.primary,
+                          ),
 
-                        const SizedBox(height: AppDimensions.spacingLg),
+                          const SizedBox(height: AppDimensions.spacingLg),
 
-                        // Sign In button (outlined)
-                        CustomButton(
-                          text: 'Sign In',
-                          onPressed: () => _completeOnboardingAndNavigate(
-                              '${RouteNames.auth}?tab=signin'),
-                          type: ButtonType.secondary,
-                        ),
-                      ],
-                    ),
-                ],
+                          // Sign In button (outlined)
+                          CustomButton(
+                            text: 'Sign In',
+                            onPressed: () => _completeOnboardingAndNavigate(
+                                '${RouteNames.auth}?tab=signin'),
+                            type: ButtonType.secondary,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

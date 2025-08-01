@@ -27,14 +27,14 @@ class _AuthScreenState extends State<AuthScreen> {
             children: [
               // Header
               _buildHeader(),
-              
+
               const SizedBox(height: 48),
-              
+
               // Auth Form
               _isSignIn ? const SignInScreen() : const SignUpScreen(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Toggle between sign in/up
               _buildToggleButton(),
             ],

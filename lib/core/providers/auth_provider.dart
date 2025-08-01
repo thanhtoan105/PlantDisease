@@ -28,10 +28,15 @@ class AuthProvider extends ChangeNotifier {
 
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  static const String _devEmail = 'ronalhung05@gmail.com';
+  static const String _devPassword = 'ronalhung05@gmail.com';
+
   AuthProvider() {
     // Initialize auth in background to prevent main thread blocking
     _initializeAuthAsync();
     _setupAuthListener();
+    // DEV: Always skip onboarding and auto-login
+    devAutoLogin();
   }
 
   /// Initialize auth in background thread to prevent main thread blocking
@@ -415,5 +420,52 @@ class AuthProvider extends ChangeNotifier {
   /// Check if user should skip onboarding (either completed or was previously authenticated)
   bool get shouldSkipOnboarding {
     return _onboardingCompleted || _isAuthenticated || _isGuestMode;
+  }
+
+  /// DEV: Force onboarding complete and auto-login
+  ///
+  /// To enable auto-login and skip onboarding for development/testing,
+  /// uncomment the call to [devAutoLogin] in the AuthProvider constructor:
+  ///
+  ///   AuthProvider() {
+  ///     ...
+  ///     devAutoLogin(); // <--- UNCOMMENT to enable auto-login for dev
+  ///   }
+  ///
+  /// To disable auto-login and restore normal onboarding/auth flow,
+  /// comment out or remove the call to [devAutoLogin]:
+  ///
+  ///   AuthProvider() {
+  ///     ...
+  ///     // devAutoLogin(); // <--- COMMENT to disable auto-login
+  ///   }
+  ///
+  /// You can also comment out or remove the entire [devAutoLogin] method if not needed.
+  Future<void> devAutoLogin() async {
+    // Mark onboarding as completed
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
+    _onboardingCompleted = true;
+    notifyListeners();
+
+    // If not authenticated, sign in with dev credentials
+    if (!_isAuthenticated) {
+      try {
+        final response = await _supabase.auth.signInWithPassword(
+          email: _devEmail,
+          password: _devPassword,
+        );
+        if (response.session != null) {
+          _isAuthenticated = true;
+          _user = response.user;
+          _session = response.session;
+          await _markAsAuthenticated();
+          _loadUserProfileAsync(_user!.id);
+          notifyListeners();
+        }
+      } catch (e) {
+        _setError('Dev auto-login failed: \\n$e');
+      }
+    }
   }
 }

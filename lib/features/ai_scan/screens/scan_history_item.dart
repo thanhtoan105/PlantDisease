@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class ScanHistoryItem extends StatelessWidget {
@@ -5,8 +6,7 @@ class ScanHistoryItem extends StatelessWidget {
   final String plantName;
   final String location;
   final String timeAgo;
-  final String diseaseResult;
-  final double confidenceScore;
+  final String detectedDiseasesJson; // pass detected_diseases JSON string
 
   const ScanHistoryItem({
     Key? key,
@@ -14,12 +14,26 @@ class ScanHistoryItem extends StatelessWidget {
     required this.plantName,
     required this.location,
     required this.timeAgo,
-    required this.diseaseResult,
-    required this.confidenceScore,
+    required this.detectedDiseasesJson,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Parse detectedDiseasesJson
+    List<dynamic> detectedDiseases = [];
+    String diseaseResult = '';
+    double confidenceScore = 0.0;
+    try {
+      detectedDiseases = jsonDecode(detectedDiseasesJson);
+      if (detectedDiseases.isNotEmpty) {
+        diseaseResult = detectedDiseases[0]['disease']?.toString().trim() ?? '';
+        confidenceScore = (detectedDiseases[0]['confidence'] as num?)?.toDouble() ?? 0.0;
+      }
+    } catch (e) {
+      // fallback if parsing fails
+      diseaseResult = '';
+      confidenceScore = 0.0;
+    }
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Padding(
