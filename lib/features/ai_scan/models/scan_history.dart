@@ -4,19 +4,19 @@ class ScanHistory {
   final int id;
   final String userId;
   final int? cropId; // Make nullable since it may not exist
-  final String imageUri;
+  final String imageUrl;
   final List<dynamic> detectedDiseases;
   final double confidenceScore;
   final Map<String, dynamic>? locationData;
   final DateTime analysisDate;
   final String plantName; // We'll derive this from cropId or detected diseases
-  final String plantImage; // We'll use imageUri as a fallback
+  final String plantImage; // We'll use imageUrl as a fallback
 
   ScanHistory({
     required this.id,
     required this.userId,
     this.cropId,
-    required this.imageUri,
+    required this.imageUrl,
     required this.detectedDiseases,
     required this.confidenceScore,
     required this.locationData,
@@ -125,13 +125,13 @@ class ScanHistory {
       id: json['id'] as int,
       userId: json['user_id'] as String,
       cropId: json['crop_id'] as int?,
-      imageUri: json['image_uri'] as String,
+      imageUrl: json['image_url'] as String,
       detectedDiseases: detectedDiseases,
       confidenceScore: (json['confidence_score'] != null) ? (json['confidence_score'] as num).toDouble() : 0.0,
       locationData: locationData,
       analysisDate: DateTime.parse(json['analysis_date']),
       plantName: plantName,
-      plantImage: json['image_uri'] as String,
+      plantImage: json['image_url'] as String,
     );
   }
 }

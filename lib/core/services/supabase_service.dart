@@ -318,7 +318,7 @@ class SupabaseService {
     );
     await _supabase.from('analysis_results').insert({
       'user_id': userId,
-      'image_uri': imageUrl,
+      'image_url': imageUrl,
       'detected_diseases': detectedDiseases,
       'location_data': locationData,
       'analysis_date': analysisDate,

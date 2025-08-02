@@ -34,7 +34,7 @@ class AuthProvider extends ChangeNotifier {
     _initializeAuthAsync();
     _setupAuthListener();
     // DEV: Always skip onboarding and auto-login
-    // devAutoLogin();
+    devAutoLogin();
   }
 
   /// Initialize auth in background thread to prevent main thread blocking
@@ -352,25 +352,6 @@ class AuthProvider extends ChangeNotifier {
     return _onboardingCompleted || _isAuthenticated || _isGuestMode;
   }
 
-  /// DEV: Force onboarding complete and auto-login
-  ///
-  /// To enable auto-login and skip onboarding for development/testing,
-  /// uncomment the call to [devAutoLogin] in the AuthProvider constructor:
-  ///
-  ///   AuthProvider() {
-  ///     ...
-  ///     devAutoLogin(); // <--- UNCOMMENT to enable auto-login for dev
-  ///   }
-  ///
-  /// To disable auto-login and restore normal onboarding/auth flow,
-  /// comment out or remove the call to [devAutoLogin]:
-  ///
-  ///   AuthProvider() {
-  ///     ...
-  ///     // devAutoLogin(); // <--- COMMENT to disable auto-login
-  ///   }
-  ///
-  /// You can also comment out or remove the entire [devAutoLogin] method if not needed.
   Future<void> devAutoLogin() async {
     // Mark onboarding as completed
     final prefs = await SharedPreferences.getInstance();

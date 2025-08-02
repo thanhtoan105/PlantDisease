@@ -32,7 +32,7 @@ class ScanHistoryScreen extends StatelessWidget {
               final scan = provider.history[index];
               // Hard code plant name to 'Tomato'
               String plantName = 'Tomato';
-              String plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUri;
+              String plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
               // Location: prefer name if available, optimized for performance
               String location = scan.locationData != null && scan.locationData!['name'] != null && scan.locationData!['name'].toString().trim().isNotEmpty
                   ? scan.locationData!['name']
