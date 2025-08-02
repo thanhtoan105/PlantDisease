@@ -10,7 +10,6 @@ class AuthProvider extends ChangeNotifier {
   bool _isGuestMode = false;
   User? _user;
   Session? _session;
-  Map<String, dynamic>? _profile;
   String? _error;
   bool _onboardingCompleted = false;
   bool _isInitialized = false;
@@ -21,7 +20,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isGuestMode => false;
   User? get user => _user;
   Session? get session => _session;
-  Map<String, dynamic>? get profile => _profile;
   String? get error => _error;
   bool get onboardingCompleted => _onboardingCompleted;
   bool get isInitialized => _isInitialized;
@@ -36,7 +34,7 @@ class AuthProvider extends ChangeNotifier {
     _initializeAuthAsync();
     _setupAuthListener();
     // DEV: Always skip onboarding and auto-login
-    devAutoLogin();
+    // devAutoLogin();
   }
 
   /// Initialize auth in background thread to prevent main thread blocking
@@ -127,11 +125,6 @@ class AuthProvider extends ChangeNotifier {
     _user = result['user'];
     _session = result['session'];
 
-    // Load profile in background if authenticated
-    if (_isAuthenticated && _user != null) {
-      _loadUserProfileAsync(_user!.id);
-    }
-
     // If user was previously authenticated but no session exists,
     // they should still skip onboarding but go to auth screen
     if (result['wasAuthenticated'] == true && !_isAuthenticated && !_onboardingCompleted) {
@@ -150,47 +143,20 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('🔐 Auth state changed: $event');
 
       if (event == AuthChangeEvent.signedIn && session != null) {
-        debugPrint('✅ User signed in: ${session.user.email}');
+        debugPrint('✅ User signed in: {session.user.email}');
         _setUser(session.user);
         _setSession(session);
         await completeOnboarding();
         await _markAsAuthenticated();
-        // Load profile in background
-        _loadUserProfileAsync(session.user.id);
       } else if (event == AuthChangeEvent.signedOut) {
         debugPrint('👋 User signed out');
         await _clearAuthenticationState();
         _logout();
       } else if (event == AuthChangeEvent.tokenRefreshed && session != null) {
-        debugPrint('🔄 Token refreshed for: ${session.user.email}');
+        debugPrint('🔄 Token refreshed for: {session.user.email}');
         _setSession(session);
       }
     });
-  }
-
-  /// Load user profile in background
-  Future<void> _loadUserProfileAsync(String userId) async {
-    try {
-      final response = await compute(_loadProfileInBackground, userId);
-      if (response != null) {
-        _profile = response;
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error loading user profile: $e');
-    }
-  }
-
-  /// Background profile loading function
-  static Future<Map<String, dynamic>?> _loadProfileInBackground(String userId) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final response = await supabase.from('profiles').select().eq('id', userId).single();
-      return response;
-    } catch (e) {
-      debugPrint('Error loading profile in background: $e');
-      return null;
-    }
   }
 
   Future<Map<String, dynamic>> signUp(
@@ -206,19 +172,11 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
         data: {
-          'username': userData?['username'] ?? email.split('@')[0],
           'phone': userData?['phone'],
         },
       );
 
       if (response.user != null) {
-        // Create user profile in background
-        unawaited(_createUserProfileAsync(response.user!.id, {
-          'username': userData?['username'] ?? email.split('@')[0],
-          'role': 'user',
-          'location': userData?['location'],
-        }));
-
         return {
           'success': true,
           'message':
@@ -335,33 +293,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Create user profile in background
-  Future<void> _createUserProfileAsync(
-      String userId, Map<String, dynamic> profileData) async {
-    try {
-      await compute(_createProfileInBackground, {
-        'userId': userId,
-        'profileData': profileData,
-      });
-    } catch (e) {
-      debugPrint('Error creating user profile: $e');
-    }
-  }
-
-  /// Background profile creation function
-  static Future<void> _createProfileInBackground(Map<String, dynamic> data) async {
-    try {
-      final supabase = Supabase.instance.client;
-      await supabase.from('profiles').insert({
-        'id': data['userId'],
-        ...data['profileData'],
-        'created_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('Error creating profile in background: $e');
-    }
-  }
-
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -396,7 +327,6 @@ class AuthProvider extends ChangeNotifier {
   void _logout() {
     _user = null;
     _session = null;
-    _profile = null;
     _isAuthenticated = false;
     _isGuestMode = false;
     _error = null;
@@ -460,7 +390,6 @@ class AuthProvider extends ChangeNotifier {
           _user = response.user;
           _session = response.session;
           await _markAsAuthenticated();
-          _loadUserProfileAsync(_user!.id);
           notifyListeners();
         }
       } catch (e) {

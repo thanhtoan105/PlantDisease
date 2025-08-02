@@ -105,9 +105,7 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Text(
                       authProvider.isAuthenticated
-                          ? (authProvider.profile?['username'] ?? 
-                             authProvider.user?.email?.split('@')[0] ?? 
-                             'User')
+                          ? (authProvider.user?.email ?? 'User')
                           : 'Guest User',
                       style: AppTypography.headlineMedium,
                     ),

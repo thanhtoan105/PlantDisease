@@ -17,7 +17,6 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -28,7 +27,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -43,11 +41,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         key: _formKey,
         child: Column(
           children: [
-            // Username Field
-            _buildUsernameField(),
-
-            const SizedBox(height: AppDimensions.spacingLg),
-
             // Email Field
             _buildEmailField(),
 
@@ -73,24 +66,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildUsernameField() {
-    return TextFormField(
-      controller: _usernameController,
-      textInputAction: TextInputAction.next,
-      decoration: InputDecoration(
-        labelText: 'Username (Optional)',
-        hintText: 'Enter your username',
-        prefixIcon: const Icon(Icons.person_outlined),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-        ),
-        filled: true,
-        fillColor: AppColors.white,
-      ),
-      onChanged: (_) => _clearErrors(),
     );
   }
 
@@ -292,11 +267,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final result = await authProvider.signUp(
         _emailController.text.trim(),
         _passwordController.text,
-        userData: {
-          'username': _usernameController.text.trim().isNotEmpty
-              ? _usernameController.text.trim()
-              : null,
-        },
       );
 
       if (result['success']) {
