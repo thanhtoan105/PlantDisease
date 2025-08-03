@@ -43,7 +43,7 @@ class TensorFlowService {
         debugPrint('❌ Model file loading failed: $e');
         debugPrint('🔍 Error type: ${e.runtimeType}');
         debugPrint(
-            '⚠️ Model file not found or corrupted. Please ensure apple_model_final.tflite is in assets/models/');
+            '⚠️ Model file not found or corrupted. Please ensure tomato_model_final.tflite is in assets/models/');
         debugPrint('📖 See assets/models/README.md for setup instructions');
 
         // Try to list available assets for debugging

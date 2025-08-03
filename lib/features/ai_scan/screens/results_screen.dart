@@ -129,43 +129,74 @@ class _ResultsScreenState extends State<ResultsScreen> {
         foregroundColor: AppColors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.spacingLg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Demo result banner
-            if (isDemoResult) _buildDemoResultBanner(),
+      body: Column(
+        children: [
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppDimensions.spacingLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Demo result banner
+                  if (isDemoResult) _buildDemoResultBanner(),
 
-            // Image display
-            _buildImageCard(),
+                  // Image display with rounded corners and better styling
+                  _buildImageCard(),
 
-            const SizedBox(height: AppDimensions.spacingXl),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
-            // Main result
-            _buildMainResult(topPrediction, isHealthy),
+                  // Main result with improved design
+                  _buildMainResult(topPrediction, isHealthy),
 
-            const SizedBox(height: AppDimensions.spacingXl),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
-            // Disease Information (Causes and Treatment)
-            if (!isHealthy && _isLoadingDiseaseDetails)
-              _buildLoadingDiseaseInfo(),
-            if (!isHealthy &&
-                !_isLoadingDiseaseDetails &&
-                _diseaseDetails != null)
-              _buildDiseaseInformation(),
+                  // Disease Information (Causes and Treatment)
+                  if (!isHealthy && _isLoadingDiseaseDetails)
+                    _buildLoadingDiseaseInfo(),
+                  if (!isHealthy &&
+                      !_isLoadingDiseaseDetails &&
+                      _diseaseDetails != null)
+                    _buildDiseaseInformation(),
 
-            // Fallback recommendations for healthy plants or when no disease details
-            if (isHealthy ||
-                (!_isLoadingDiseaseDetails && _diseaseDetails == null))
-              _buildFallbackRecommendations(isHealthy, topPrediction),
+                  // Fallback recommendations for healthy plants or when no disease details
+                  if (isHealthy ||
+                      (!_isLoadingDiseaseDetails && _diseaseDetails == null))
+                    _buildFallbackRecommendations(isHealthy, topPrediction),
 
-            const SizedBox(height: AppDimensions.spacingXl),
+                  // Add bottom padding to ensure content doesn't get hidden behind button
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
 
-            // Action buttons
-            _buildActionButtons(context),
-          ],
-        ),
+          // Fixed bottom button (like in your reference image)
+          Container(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  offset: const Offset(0, -2),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: CustomButton(
+                text: _isSaving ? 'Saving Results...' : 'Save Disease Detection',
+                onPressed: _isSaving ? null : _saveResult,
+                type: ButtonType.primary,
+                icon: Icon(
+                  _isSaving ? Icons.hourglass_empty : Icons.bookmark,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -451,6 +482,144 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
+  Widget _buildDiseaseRecommendations() {
+    final disease = _diseaseDetails!;
+    final causes = disease['description'] as String? ?? '';
+    final treatment = disease['treatment'] as String? ?? '';
+    final displayName = disease['display_name'] as String? ?? '';
+    final className = disease['class_name'] as String? ?? '';
+
+    // Debug information
+    debugPrint('🔍 Building disease recommendations with data: $disease');
+    debugPrint('📝 Display name: $displayName');
+    debugPrint('🏷️ Class name: $className');
+    debugPrint('📄 Description: ${causes.length} characters');
+    debugPrint('💊 Treatment: ${treatment.length} characters');
+
+    return Column(
+      children: [
+        // Debug info card (remove this in production)
+        CustomCard(
+          child: Container(
+            padding: const EdgeInsets.all(AppDimensions.spacingSm),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+            ),
+            child: Text(
+              'DEBUG: Disease details loaded - ${disease.keys.join(', ')}',
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.blue,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppDimensions.spacingMd),
+
+        // Disease Title Card
+        CustomCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName.isNotEmpty ? displayName : (className.isNotEmpty ? className : 'Unknown Disease'),
+                style: AppTypography.headlineMedium.copyWith(
+                  color: AppColors.warningOrange,
+                ),
+              ),
+              if (className.isNotEmpty && displayName.isNotEmpty && className != displayName) ...[
+                const SizedBox(height: AppDimensions.spacingXs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.spacingSm,
+                    vertical: AppDimensions.spacingXs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+                  ),
+                  child: Text(
+                    'Class: $className',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.primaryGreen,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppDimensions.spacingMd),
+
+        // Causes Section
+        if (causes.isNotEmpty)
+          _buildDetailSection(
+            'Causes',
+            causes,
+            Icons.info_outline,
+            AppColors.info,
+          ),
+
+        // Treatment Section
+        if (treatment.isNotEmpty) ...[
+          const SizedBox(height: AppDimensions.spacingMd),
+          _buildDetailSection(
+            'Treatment',
+            treatment,
+            Icons.medical_services_outlined,
+            AppColors.successGreen,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDetailSection(String title, String content, IconData icon, Color color) {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: AppDimensions.spacingMd),
+              Text(
+                title,
+                style: AppTypography.labelLarge.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            content,
+            style: AppTypography.bodyMedium.copyWith(
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecommendationItem(
       IconData icon, String title, String description, Color color) {
     return Padding(
@@ -493,28 +662,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Column(
-      children: [
-        CustomButton(
-          text: _isSaving ? 'Saving...' : 'Save Results',
-          onPressed: _isSaving ? null : _saveResult,
-          type: ButtonType.primary,
-          icon: const Icon(Icons.save, color: AppColors.white),
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
-        CustomButton(
-          text: 'Scan Another Plant',
-          onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-          type: ButtonType.secondary,
-          icon: const Icon(Icons.camera_alt, color: AppColors.primaryGreen),
-        ),
-      ],
     );
   }
 }

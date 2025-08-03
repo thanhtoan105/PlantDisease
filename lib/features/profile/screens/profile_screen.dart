@@ -8,7 +8,6 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../widgets/profile_option_card.dart';
-import '../../debug/debug_screen.dart';
 import '../../../navigation/route_names.dart';
 import '../../../core/providers/scan_history_provider.dart';
 import '../../ai_scan/screens/scan_history_screen.dart';
@@ -38,11 +37,6 @@ class ProfileScreen extends StatelessWidget {
 
                   // User Information
                   _buildUserInformation(context, authProvider),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // Statistics
-                  _buildStatistics(),
 
                   const SizedBox(height: AppDimensions.spacingXl),
 
@@ -149,54 +143,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatistics() {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Statistics',
-            style: AppTypography.headlineMedium,
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem('Scans', '0'),
-              ),
-              Expanded(
-                child: _buildStatItem('Diseases Found', '0'),
-              ),
-              Expanded(
-                child: _buildStatItem('Plants Saved', '0'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: AppTypography.headlineLarge.copyWith(
-            color: AppColors.primaryGreen,
-          ),
-        ),
-        Text(
-          label,
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.mediumGray,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
   Widget _buildAccountActions(BuildContext context, AuthProvider authProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,14 +196,6 @@ class ProfileScreen extends StatelessWidget {
           style: AppTypography.headlineMedium,
         ),
         const SizedBox(height: AppDimensions.spacingLg),
-        ProfileOptionCard(
-          icon: Icons.notifications,
-          title: 'Notifications',
-          subtitle: 'Manage your notification preferences',
-          onTap: () {
-            // TODO: Navigate to notifications settings
-          },
-        ),
         ProfileOptionCard(
           icon: Icons.security,
           title: 'Privacy & Security',
@@ -317,18 +255,6 @@ class ProfileScreen extends StatelessWidget {
           subtitle: 'Rate us on the app store',
           onTap: () {
             // TODO: Open app store rating
-          },
-        ),
-        ProfileOptionCard(
-          icon: Icons.bug_report,
-          title: 'Debug Configuration',
-          subtitle: 'View environment and API configuration',
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const DebugScreen(),
-              ),
-            );
           },
         ),
       ],

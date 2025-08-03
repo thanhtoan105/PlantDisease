@@ -297,7 +297,7 @@ class _AiScanScreenState extends State<AiScanScreen>
           title: const Text('AI Model Required'),
           content: const Text(
             'The AI model file is missing. To use plant disease detection, please:\n\n'
-            '1. Add the apple_model_final.tflite file to assets/models/\n'
+            '1. Add the tomato_model_final.tflite file to assets/models/\n'
             '2. Restart the app\n\n'
             'The app can still be used for other features.',
           ),

@@ -48,12 +48,14 @@ class _AuthScreenState extends State<AuthScreen> {
     return Column(
       children: [
         Text(
-          'Welcome Back',
+          _isSignIn ? 'Welcome Back' : 'Join Us Today',
           style: AppTypography.headlineLarge,
         ),
         const SizedBox(height: 8),
         Text(
-          'Sign in to save your scan results and access your history',
+          _isSignIn
+            ? 'Sign in to save your scan results and access your history'
+            : 'Create your account to start scanning plants and tracking your garden',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.mediumGray,
           ),

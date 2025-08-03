@@ -287,7 +287,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     final tabs = [
       {'id': 'overview', 'label': 'Overview', 'icon': Icons.info},
       {'id': 'diseases', 'label': 'Diseases', 'icon': Icons.bug_report},
-      {'id': 'tips', 'label': 'Growing Tips', 'icon': Icons.eco},
+      {'id': 'tips', 'label': 'Growing', 'icon': Icons.eco},
     ];
 
     return Container(

@@ -76,7 +76,7 @@ class AppDiagnostics {
         'initialized': isInitialized,
         'modelLoaded': isModelLoaded,
         'labelsCount': labels.length,
-        'modelPath': 'assets/models/apple_model_final.tflite',
+        'modelPath': 'assets/models/tomato_model_final.tflite',
         'inputSize': TensorFlowService.modelInputSize,
       };
     } catch (e) {

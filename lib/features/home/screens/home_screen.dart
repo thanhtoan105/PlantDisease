@@ -154,8 +154,31 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'My Crops',
+              'Crops Collection',
               style: AppTypography.headlineMedium,
+            ),
+            Consumer<PlantProvider>(
+              builder: (context, plantProvider, child) {
+                // Show "View All" button only if there are more than 3 crops
+                if (plantProvider.crops.length > 3) {
+                  return GestureDetector(
+                    onTap: () {
+                      // TODO: Navigate to full crops library screen
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Full crops library coming soon')),
+                      );
+                    },
+                    child: Text(
+                      'View All (${plantProvider.crops.length})',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),
@@ -166,16 +189,46 @@ class _HomeScreenState extends State<HomeScreen> {
               return const Center(child: CircularProgressIndicator());
             }
 
+            // Limit to maximum 3 crops for home screen display
+            final displayCrops = plantProvider.crops.take(3).toList();
+
+            if (displayCrops.isEmpty) {
+              return CustomCard(
+                child: Container(
+                  height: 100,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.eco,
+                          size: 32,
+                          color: AppColors.mediumGray,
+                        ),
+                        const SizedBox(height: AppDimensions.spacingSm),
+                        Text(
+                          'No crops available',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.mediumGray,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             return SizedBox(
-              height: 120, // Reduced from 140 to 120 to fit optimized cards
+              height: 120,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: plantProvider.crops.length,
+                itemCount: displayCrops.length,
                 itemBuilder: (context, index) {
-                  final crop = plantProvider.crops[index];
+                  final crop = displayCrops[index];
                   return Padding(
                     padding: EdgeInsets.only(
-                      right: index < plantProvider.crops.length - 1
+                      right: index < displayCrops.length - 1
                           ? AppDimensions.spacingMd
                           : 0,
                     ),
