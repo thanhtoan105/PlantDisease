@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/services/camera_service.dart';
@@ -10,6 +11,7 @@ import '../../../core/services/tensorflow_service.dart';
 import '../../../core/services/weather_service.dart';
 
 import 'results_screen.dart';
+import 'crop_image_screen.dart';
 
 class AiScanScreen extends StatefulWidget {
   const AiScanScreen({super.key});
@@ -135,6 +137,74 @@ class _AiScanScreenState extends State<AiScanScreen>
     }
   }
 
+  /// Helper method to crop and process an image before analysis
+  Future<void> _cropAndProcessImage(String imagePath) async {
+    try {
+      // Show the cropping interface
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imagePath,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Plant Image',
+            toolbarColor: AppColors.primaryGreen,
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: Colors.black,
+            activeControlsWidgetColor: AppColors.primaryGreen,
+            cropFrameColor: AppColors.primaryGreen,
+            cropGridColor: Colors.white.withOpacity(0.5),
+            dimmedLayerColor: Colors.black.withOpacity(0.6),
+            statusBarColor: const Color(0xFF1B5E20),
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9
+            ],
+          ),
+          IOSUiSettings(
+            title: 'Crop Plant Image',
+            aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            aspectRatioPickerButtonHidden: false,
+            resetButtonHidden: false,
+            rotateButtonsHidden: false,
+            rotateClockwiseButtonHidden: false,
+            hidesNavigationBar: false,
+            doneButtonTitle: 'Done',
+            cancelButtonTitle: 'Cancel',
+          ),
+        ],
+      );
+
+      // If user canceled cropping
+      if (croppedFile == null) {
+        return;
+      }
+
+      // Process the cropped image
+      final processedImagePath = await CameraService.processGalleryImage(croppedFile.path);
+
+      if (mounted) {
+        final locationResult = await WeatherService.getCurrentLocation();
+        final locationData = locationResult['success'] == true
+            ? locationResult['data']
+            : null;
+        await _analyzeImage(processedImagePath, locationData: locationData);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image processing error: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _captureImage() async {
     if (!_tensorflowInitialized || !_cameraInitialized || _isCapturing) {
       return;
@@ -148,18 +218,19 @@ class _AiScanScreenState extends State<AiScanScreen>
       // Add haptic feedback
       HapticFeedback.lightImpact();
 
+      // Capture image from camera
       final imagePath = await CameraService.captureImage();
-      if (imagePath != null && mounted) {
-        final locationResult = await WeatherService.getCurrentLocation();
-        final locationData = locationResult['success'] == true
-            ? locationResult['data']
-            : null;
-        await _analyzeImage(imagePath, locationData: locationData);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to capture image')),
-        );
+      if (imagePath == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to capture image')),
+          );
+        }
+        return;
       }
+
+      // Use the common helper method for cropping and processing
+      await _cropAndProcessImage(imagePath);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -194,11 +265,8 @@ class _AiScanScreenState extends State<AiScanScreen>
       );
 
       if (pickedFile != null && mounted) {
-        final locationResult = await WeatherService.getCurrentLocation();
-        final locationData = locationResult['success'] == true
-            ? locationResult['data']
-            : null;
-        await _analyzeImage(pickedFile.path, locationData: locationData);
+        // Use the common helper method for cropping and processing
+        await _cropAndProcessImage(pickedFile.path);
       }
     } catch (e) {
       if (mounted) {

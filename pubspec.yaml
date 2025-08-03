@@ -31,6 +31,8 @@ dependencies:
   image: ^4.1.3
   image_picker: ^1.0.4
   path_provider: ^2.1.1
+  gal: ^2.3.0
+  image_cropper: ^8.0.1
 
   # AI & ML
   tflite_flutter: ^0.11.0
