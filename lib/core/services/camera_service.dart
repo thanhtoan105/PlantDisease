@@ -210,35 +210,6 @@ class CameraService {
     }
   }
 
-  /// Switch camera (front/back)
-  static Future<bool> switchCamera() async {
-    if (_cameras == null || _cameras!.length < 2) {
-      return false;
-    }
-
-    try {
-      final currentCamera = _controller!.description;
-      final newCamera = _cameras!.firstWhere(
-        (camera) => camera.lensDirection != currentCamera.lensDirection,
-      );
-
-      await _controller!.dispose();
-
-      _controller = CameraController(
-        newCamera,
-        ResolutionPreset.medium, // Consistent with initialization
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-
-      await _controller!.initialize();
-      return true;
-    } catch (e) {
-      debugPrint('❌ Failed to switch camera: $e');
-      return false;
-    }
-  }
-
   /// Set flash mode
   static Future<void> setFlashMode(FlashMode mode) async {
     if (isInitialized) {

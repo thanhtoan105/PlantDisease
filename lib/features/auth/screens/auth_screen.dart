@@ -17,6 +17,26 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isSignIn = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Check for URL parameters to determine which tab to show
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final router = GoRouter.of(context);
+      final tab = router.routeInformationProvider.value.uri.queryParameters['tab'];
+
+      if (tab == 'signup' && _isSignIn) {
+        setState(() {
+          _isSignIn = false;
+        });
+      } else if (tab == 'signin' && !_isSignIn) {
+        setState(() {
+          _isSignIn = true;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightGray,

@@ -26,7 +26,6 @@ class _AiScanScreenState extends State<AiScanScreen>
   bool _cameraInitialized = false;
   bool _hasPermission = false;
   FlashMode _flashMode = FlashMode.off;
-  bool _isBackCamera = true;
 
   // AI and analysis
   bool _tensorflowInitialized = false;
@@ -289,27 +288,6 @@ class _AiScanScreenState extends State<AiScanScreen>
     HapticFeedback.selectionClick();
   }
 
-  Future<void> _switchCamera() async {
-    if (!_cameraInitialized) return;
-
-    setState(() {
-      _isBackCamera = !_isBackCamera;
-    });
-
-    final success = await CameraService.switchCamera();
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to switch camera')),
-      );
-      // Revert the state if switching failed
-      setState(() {
-        _isBackCamera = !_isBackCamera;
-      });
-    }
-
-    HapticFeedback.selectionClick();
-  }
-
   Future<void> _analyzeImage(String imagePath,
       {Map<String, dynamic>? locationData}) async {
     setState(() {
@@ -536,131 +514,163 @@ class _AiScanScreenState extends State<AiScanScreen>
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 20,
-                top: 20,
-                left: 20,
-                right: 20,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Gallery button
-                  GestureDetector(
-                    onTap: _pickFromGallery,
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.photo_library,
-                        color: Colors.white,
-                        size: 28,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Picture Tips Box
+                GestureDetector(
+                  onTap: () {
+                    // Navigation to picture tips screen would go here
+                    // Currently disabled/empty as requested
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Picture Tips coming soon')),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.6),
+                        width: 1,
                       ),
                     ),
-                  ),
-
-                  // Capture button (center) - large circular button
-                  GestureDetector(
-                    onTap: _tensorflowInitialized &&
-                            _cameraInitialized &&
-                            !_isAnalyzing &&
-                            !_isCapturing
-                        ? _captureImage
-                        : null,
-                    child: AnimatedBuilder(
-                      animation: _pulseAnimation,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _isCapturing ? 0.9 : 1.0,
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: _tensorflowInitialized &&
-                                      _cameraInitialized &&
-                                      !_isAnalyzing &&
-                                      !_isCapturing
-                                  ? AppColors.primaryGreen
-                                  : Colors.grey,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 4,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryGreen
-                                      .withValues(alpha: 0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: _isCapturing || _isAnalyzing
-                                ? const Center(
-                                    child: SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.camera_alt,
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.photo_camera,
+                          color: Colors.white70,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Picture Tips',
+                          style: AppTypography.labelMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white70,
+                          size: 14,
+                        ),
+                      ],
                     ),
                   ),
-
-                  // Camera switcher button
-                  GestureDetector(
-                    onTap: _cameraInitialized ? _switchCamera : null,
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 2,
+                ),
+                Container(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).padding.bottom + 20,
+                    top: 20,
+                    left: 20,
+                    right: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.7),
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Gallery button
+                      GestureDetector(
+                        onTap: _pickFromGallery,
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.photo_library,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                       ),
-                      child: Icon(
-                        Icons.flip_camera_ios,
-                        color:
-                            _cameraInitialized ? Colors.white : Colors.white54,
-                        size: 28,
+
+                      // Capture button (center) - large circular button
+                      GestureDetector(
+                        onTap: _tensorflowInitialized &&
+                                _cameraInitialized &&
+                                !_isAnalyzing &&
+                                !_isCapturing
+                            ? _captureImage
+                            : null,
+                        child: AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: _isCapturing ? 0.9 : 1.0,
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: _tensorflowInitialized &&
+                                          _cameraInitialized &&
+                                          !_isAnalyzing &&
+                                          !_isCapturing
+                                      ? AppColors.primaryGreen
+                                      : Colors.grey,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryGreen
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 20,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: _isCapturing || _isAnalyzing
+                                    ? const Center(
+                                        child: SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 32,
+                                      ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
+
+                      // Placeholder to maintain spacing (replaced camera switcher)
+                      const SizedBox(width: 60, height: 60),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
