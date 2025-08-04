@@ -248,7 +248,7 @@ class AuthProvider extends ChangeNotifier {
     } else if (error.contains('Too many requests')) {
       return 'Too many attempts. Please try again later.';
     } else if (error.contains('User not found')) {
-      return 'No account found with this email address.';
+      return 'Account not found. You need to create an account first.';
     } else if (error.contains('Invalid email')) {
       return 'Please enter a valid email address.';
     } else if (error.contains('Password should be at least')) {

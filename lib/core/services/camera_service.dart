@@ -7,19 +7,19 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:gal/gal.dart';
 import 'package:image_cropper/image_cropper.dart';
+import '../config/ai_model_config.dart';
 
 class CameraService {
   static CameraController? _controller;
   static List<CameraDescription>? _cameras;
   static bool _isInitialized = false;
 
-  // Configuration constants
+  // Configuration constants from centralized config
   /// The model input image size (width and height in pixels)
-  /// Change this single value to update the processing size throughout the app
-  static const int MODEL_INPUT_SIZE = 128;
+  static const int MODEL_INPUT_SIZE = AIModelConfig.inputImageSize;
 
   /// Image quality for JPEG compression (0-100)
-  static const int IMAGE_QUALITY = 85;
+  static const int IMAGE_QUALITY = AIModelConfig.imageQuality;
 
   // 🎯 FEATURE TOGGLE: Comment this line to disable gallery saving
   static const bool _enableGallerySaving = true;
@@ -163,7 +163,7 @@ class CameraService {
         throw Exception('Failed to decode image');
       }
 
-      // Resize image to model input size (matching React Native: 128x128)
+      // Resize image to model input size (224x224)
       final resizedImage = img.copyResize(
         originalImage,
         width: MODEL_INPUT_SIZE,

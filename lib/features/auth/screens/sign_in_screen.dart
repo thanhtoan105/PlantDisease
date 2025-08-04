@@ -202,8 +202,11 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       } else {
         if (mounted) {
+          final errorMsg = result['error'];
+
+          // Show error message without special handling
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'])),
+            SnackBar(content: Text(errorMsg)),
           );
         }
       }

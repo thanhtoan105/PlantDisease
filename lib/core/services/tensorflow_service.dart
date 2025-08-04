@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
+import '../config/ai_model_config.dart';
 
 class TensorFlowService {
   static Interpreter? _interpreter;
@@ -12,11 +13,11 @@ class TensorFlowService {
   static List<String>? _labels;
   static String? _initializationError;
 
-  // Model configuration matching React Native
-  static const int modelInputSize = 128;
-  static const int modelChannels = 3;
-  static const String modelPath = 'assets/models/tomato_model_final.tflite';
-  static const String labelsPath = 'assets/models/labels.txt';
+  // Model configuration from centralized config
+  static const int modelInputSize = AIModelConfig.inputImageSize;
+  static const int modelChannels = AIModelConfig.modelChannels;
+  static const String modelPath = AIModelConfig.modelPath;
+  static const String labelsPath = AIModelConfig.labelsPath;
 
   /// Initialize TensorFlow Lite model
   static Future<bool> initialize() async {
