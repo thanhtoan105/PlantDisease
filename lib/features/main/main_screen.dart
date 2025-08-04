@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../home/screens/home_screen.dart';
-import '../ai_scan/screens/ai_scan_screen.dart';
+import '../ai_scan/screens/disease_scanner_screen.dart';
 import '../profile/screens/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _screens = [
       HomeScreen(onNavigateToAIScan: () => _switchToTab(1)),
-      const AiScanScreen(),
+      const DiseaseScannerScreen(),
       const ProfileScreen(),
     ];
   }

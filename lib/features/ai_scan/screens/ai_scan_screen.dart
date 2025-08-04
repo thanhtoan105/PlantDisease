@@ -459,7 +459,41 @@ class _AiScanScreenState extends State<AiScanScreen>
             ),
           ),
 
-          // Top Controls (Flash and Camera Switch)
+          // Top Controls (Back Button, Flash and Camera Switch)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 20,
+            left: 20,
+            right: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Back button
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+              ],
+            ),
+          ),
+
+          // Flash Control
           Positioned(
             top: MediaQuery.of(context).padding.top + 80,
             left: 20,
@@ -517,53 +551,6 @@ class _AiScanScreenState extends State<AiScanScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Picture Tips Box
-                GestureDetector(
-                  onTap: () {
-                    // Navigation to picture tips screen would go here
-                    // Currently disabled/empty as requested
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Picture Tips coming soon')),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.6),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.photo_camera,
-                          color: Colors.white70,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Picture Tips',
-                          style: AppTypography.labelMedium.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white70,
-                          size: 14,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 Container(
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).padding.bottom + 20,

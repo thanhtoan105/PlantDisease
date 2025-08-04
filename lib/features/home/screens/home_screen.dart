@@ -121,13 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'AI Plant Disease Scanner',
+                    'AI Leaf Disease Scanner',
                     style: AppTypography.headlineMedium.copyWith(
                       color: AppColors.white,
                     ),
                   ),
                   Text(
-                    'Tap to scan your plant for diseases',
+                    'Tap to scan your plant leaf',
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.white.withOpacity(0.8),
                     ),
