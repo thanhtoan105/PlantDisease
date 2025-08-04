@@ -37,53 +37,56 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightGray,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppDimensions.spacingLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Plant Disease Detection',
-                style: AppTypography.headlineLarge,
-              ),
-
-              const SizedBox(height: AppDimensions.spacingLg),
-
-              // Search bar
-              CustomSearchBar(
-                placeholder: 'Search plants, diseases...',
-                enabled: false,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SearchScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // AI Scan button
-              _buildAIScanButton(),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // Weather widget
-              Consumer<WeatherProvider>(
-                builder: (context, weatherProvider, child) {
-                  return const WeatherWidget();
-                },
-              ),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // Crop library
-              _buildCropLibrary(),
-            ],
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryGreen,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Plant Care',
+          style: AppTypography.headlineMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimensions.spacingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search bar
+            CustomSearchBar(
+              placeholder: 'Search plants, diseases...',
+              enabled: false,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SearchScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: AppDimensions.spacingXl),
+
+            // AI Scan button
+            _buildAIScanButton(),
+
+            const SizedBox(height: AppDimensions.spacingXl),
+
+            // Weather widget
+            Consumer<WeatherProvider>(
+              builder: (context, weatherProvider, child) {
+                return const WeatherWidget();
+              },
+            ),
+
+            const SizedBox(height: AppDimensions.spacingXl),
+
+            // Crop library
+            _buildCropLibrary(),
+          ],
         ),
       ),
     );
@@ -106,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius:
-                    BorderRadius.circular(AppDimensions.borderRadiusLarge),
+                BorderRadius.circular(AppDimensions.borderRadiusLarge),
               ),
               child: const Icon(
                 Icons.camera_alt,
@@ -194,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             if (displayCrops.isEmpty) {
               return CustomCard(
-                child: Container(
+                child: SizedBox(
                   height: 100,
                   child: Center(
                     child: Column(
@@ -237,8 +240,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       emoji: crop['emoji'],
                       diseaseCount: crop['diseaseCount'],
                       onTap: () {
-                        context.push('${RouteNames.cropDetails}/${crop['id']}',
-                            extra: crop);
+                        context.push(
+                            '${RouteNames.cropDetails}/${crop['id']}',
+                            extra: crop
+                        );
                       },
                     ),
                   );

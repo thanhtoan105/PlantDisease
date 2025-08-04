@@ -2,12 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../../core/providers/scan_history_provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/plant_service.dart';
 import '../models/scan_history.dart';
 import 'scan_history_item.dart';
 
-class ScanHistoryScreen extends StatelessWidget {
+class ScanHistoryScreen extends StatefulWidget {
   const ScanHistoryScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ScanHistoryScreen> createState() => _ScanHistoryScreenState();
+}
+
+class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch data when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchScanHistory();
+    });
+  }
+
+  Future<void> _fetchScanHistory() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.isAuthenticated && authProvider.user?.id != null) {
+      await Provider.of<ScanHistoryProvider>(context, listen: false)
+          .fetchScanHistory(authProvider.user!.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

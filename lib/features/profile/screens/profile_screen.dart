@@ -9,8 +9,6 @@ import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../widgets/profile_option_card.dart';
 import '../../../navigation/route_names.dart';
-import '../../../core/providers/scan_history_provider.dart';
-import '../../ai_scan/screens/scan_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -19,49 +17,42 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightGray,
-      body: SafeArea(
-        child: Consumer<AuthProvider>(
-          builder: (context, authProvider, child) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppDimensions.spacingLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Text(
-                    'Profile',
-                    style: AppTypography.headlineLarge,
-                  ),
-
-                  const SizedBox(height: AppDimensions.spacingLg),
-
-                  // User Information
-                  _buildUserInformation(context, authProvider),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // Account Actions
-                  _buildAccountActions(context, authProvider),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // Settings
-                  _buildSettings(),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // App Information
-                  _buildAppInformation(context),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // Sign In/Logout Button
-                  _buildAuthButton(context, authProvider),
-                ],
-              ),
-            );
-          },
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryGreen,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Setting',
+          style: AppTypography.headlineMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        centerTitle: true,
+      ),
+      body: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          return Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User Information
+                _buildUserInformation(context, authProvider),
+
+                const SizedBox(height: AppDimensions.spacingLg),
+
+                // Combined Settings and App Info
+                _buildCombinedOptions(context),
+
+                const Spacer(),
+
+                // Sign In/Logout Button
+                _buildAuthButton(context, authProvider),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -143,67 +134,10 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountActions(BuildContext context, AuthProvider authProvider) {
+  Widget _buildCombinedOptions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Account',
-          style: AppTypography.headlineMedium,
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
-        ProfileOptionCard(
-          icon: Icons.person,
-          title: 'Profile Details',
-          subtitle: 'View and edit your profile information',
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile details coming soon')),
-            );
-          },
-        ),
-        ProfileOptionCard(
-          icon: Icons.history,
-          title: 'Scan History',
-          subtitle: 'View your previous plant scans',
-          onTap: () async {
-            final userId = authProvider.user?.id;
-            if (userId != null) {
-              await Provider.of<ScanHistoryProvider>(context, listen: false)
-                  .fetchScanHistory(userId);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ScanHistoryScreen(),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please sign in to view scan history.')),
-              );
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Settings',
-          style: AppTypography.headlineMedium,
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
-        ProfileOptionCard(
-          icon: Icons.security,
-          title: 'Privacy & Security',
-          subtitle: 'Control your privacy settings',
-          onTap: () {
-            // TODO: Navigate to privacy settings
-          },
-        ),
         ProfileOptionCard(
           icon: Icons.language,
           title: 'Language',
@@ -220,19 +154,6 @@ class ProfileScreen extends StatelessWidget {
             // TODO: Navigate to theme settings
           },
         ),
-      ],
-    );
-  }
-
-  Widget _buildAppInformation(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'App Information',
-          style: AppTypography.headlineMedium,
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
         ProfileOptionCard(
           icon: Icons.info,
           title: 'About',

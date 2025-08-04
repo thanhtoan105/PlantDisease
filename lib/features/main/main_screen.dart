@@ -95,12 +95,12 @@ class _MainScreenState extends State<MainScreen> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.document_scanner),
                 activeIcon: Icon(Icons.document_scanner),
-                label: 'AI Scan',
+                label: 'Scan',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
                 activeIcon: Icon(Icons.person),
-                label: 'Profile',
+                label: 'Setting',
               ),
             ],
           ),
