@@ -7,6 +7,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../widgets/profile_option_card.dart';
 import '../../../navigation/route_names.dart';
 
@@ -17,18 +18,9 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightGray,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
-        elevation: 0,
+      appBar: CustomAppBar(
+        title: 'Setting',
         automaticallyImplyLeading: false,
-        title: Text(
-          'Setting',
-          style: AppTypography.headlineMedium.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {

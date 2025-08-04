@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 
 class CropImageScreen extends StatefulWidget {
   final String imagePath;
@@ -94,53 +95,45 @@ class _CropImageScreenState extends State<CropImageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
-        title: const Text('Crop Image', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: CustomAppBar(
+        title: 'Crop Image',
+        onLeadingPressed: () => Navigator.pop(context),
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
             onPressed: _cropImage,
           ),
         ],
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-        ),
       ),
-      body: Stack(
-        children: [
-          // Image display
-          Positioned.fill(
-            child: InteractiveViewer(
-              child: Center(
-                child: Image.file(
-                  _imageFile,
-                  fit: BoxFit.contain,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Image display
+            Positioned.fill(
+              child: InteractiveViewer(
+                child: Center(
+                  child: Image.file(
+                    _imageFile,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // Cropping overlay will be provided by the image_cropper package
+            // Cropping overlay will be provided by the image_cropper package
 
-          // Loading indicator when cropping
-          if (_isCropping)
-            Container(
-              color: Colors.black.withValues(alpha: 128),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primaryGreen,
+            // Loading indicator when cropping
+            if (_isCropping)
+              Container(
+                color: Colors.black.withValues(alpha: 128),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryGreen,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

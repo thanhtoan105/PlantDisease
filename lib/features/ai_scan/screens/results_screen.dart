@@ -8,6 +8,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 
 class ResultsScreen extends StatefulWidget {
   final String imagePath;
@@ -31,6 +32,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
   bool _isLoadingDiseaseDetails = false;
   bool _isSaving = false;
   Map<String, dynamic>? _locationData;
+
+  // Add missing properties to fix compilation errors
+  bool get isDemoResult => widget.analysisResult['isDemoResult'] == true;
+  Map<String, dynamic>? get topPrediction => widget.analysisResult['topPrediction'];
+  bool get isHealthy => topPrediction == null || topPrediction!['className'] == 'healthy';
 
   @override
   void initState() {
@@ -117,23 +123,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final topPrediction = widget.analysisResult['topPrediction'];
-    final isHealthy = widget.analysisResult['isHealthy'] ?? false;
-    final isDemoResult = widget.analysisResult['isDemoResult'] ?? false;
-
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
-      appBar: AppBar(
-        title: Text(
-          'Analysis Results',
-          style: AppTypography.headlineMedium.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: AppColors.primaryGreen,
-        elevation: 0,
-        centerTitle: true,
+      appBar: CustomAppBar(
+        title: 'Analysis Results',
       ),
       body: Column(
         children: [

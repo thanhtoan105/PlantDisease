@@ -12,6 +12,7 @@ import '../../../navigation/route_names.dart';
 import '../widgets/weather_widget.dart';
 import '../widgets/crop_card.dart';
 import 'search_screen.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToAIScan;
@@ -36,19 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
-        elevation: 0,
+      appBar: CustomAppBar(
+        title: 'Plant Care',
         automaticallyImplyLeading: false,
-        title: Text(
-          'Plant Care',
-          style: AppTypography.headlineMedium.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.spacingLg),

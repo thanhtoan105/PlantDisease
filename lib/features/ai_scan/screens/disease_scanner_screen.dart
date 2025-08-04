@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import 'ai_scan_screen.dart';
 import 'scan_history_screen.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 
 class DiseaseScannerScreen extends StatefulWidget {
   const DiseaseScannerScreen({super.key});
@@ -91,18 +92,9 @@ class _DiseaseScannerScreenState extends State<DiseaseScannerScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
-        elevation: 0,
+      appBar: CustomAppBar(
+        title: 'Disease Scanner',
         automaticallyImplyLeading: false,
-        title: Text(
-          'Disease Scanner',
-          style: AppTypography.headlineMedium.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.white),
