@@ -38,7 +38,7 @@ class AppRouter {
       }
       
       // Check if authentication is needed
-      if (!authProvider.isAuthenticated && !authProvider.isGuestMode) {
+      if (!authProvider.isAuthenticated) {
         debugPrint('🔐 Redirecting to auth');
         if (state.uri.path != RouteNames.auth) {
           return RouteNames.auth;

@@ -7,7 +7,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthProvider extends ChangeNotifier {
   bool _isLoading = true;
   bool _isAuthenticated = false;
-  bool _isGuestMode = false;
   User? _user;
   Session? _session;
   String? _error;
@@ -17,7 +16,6 @@ class AuthProvider extends ChangeNotifier {
   // Getters
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _isAuthenticated;
-  bool get isGuestMode => false;
   User? get user => _user;
   Session? get session => _session;
   String? get error => _error;
@@ -67,12 +65,10 @@ class AuthProvider extends ChangeNotifier {
       // Check onboarding status and previous auth state
       final prefs = await SharedPreferences.getInstance();
       final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-      final isGuestMode = false; // Always disable guest mode
       final wasAuthenticated = prefs.getBool('was_authenticated') ?? false;
 
       debugPrint('🔍 Auth initialization:');
       debugPrint('  - Onboarding completed: $onboardingCompleted');
-      debugPrint('  - Guest mode: $isGuestMode');
       debugPrint('  - Was authenticated: $wasAuthenticated');
 
       // Add a small delay to ensure Supabase is fully initialized
@@ -98,7 +94,6 @@ class AuthProvider extends ChangeNotifier {
 
       return {
         'onboardingCompleted': onboardingCompleted,
-        'isGuestMode': false, // Always disable guest mode
         'wasAuthenticated': wasAuthenticated,
         'isAuthenticated': isAuthenticated,
         'user': user,
@@ -108,7 +103,6 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('Error in background initialization: $e');
       return {
         'onboardingCompleted': false,
-        'isGuestMode': false, // Always disable guest mode
         'wasAuthenticated': false,
         'isAuthenticated': false,
         'user': null,
@@ -120,7 +114,6 @@ class AuthProvider extends ChangeNotifier {
   /// Update state from background initialization results
   void _updateStateFromBackground(Map<String, dynamic> result) {
     _onboardingCompleted = result['onboardingCompleted'] ?? false;
-    _isGuestMode = false; // Always disable guest mode
     _isAuthenticated = result['isAuthenticated'] ?? false;
     _user = result['user'];
     _session = result['session'];
@@ -275,21 +268,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> skipAuth() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('guest_mode', true);
-    await prefs.setBool('onboarding_completed', true);
-    _isGuestMode = true;
-    _onboardingCompleted = true;
-    notifyListeners();
-  }
-
   Future<void> resetOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('onboarding_completed');
-    await prefs.remove('guest_mode');
     _onboardingCompleted = false;
-    _isGuestMode = false;
     notifyListeners();
   }
 
@@ -328,7 +310,6 @@ class AuthProvider extends ChangeNotifier {
     _user = null;
     _session = null;
     _isAuthenticated = false;
-    _isGuestMode = false;
     _error = null;
     notifyListeners();
   }
@@ -349,7 +330,7 @@ class AuthProvider extends ChangeNotifier {
 
   /// Check if user should skip onboarding (either completed or was previously authenticated)
   bool get shouldSkipOnboarding {
-    return _onboardingCompleted || _isAuthenticated || _isGuestMode;
+    return _onboardingCompleted || _isAuthenticated;
   }
 
   Future<void> devAutoLogin() async {
