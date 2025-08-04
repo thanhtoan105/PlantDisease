@@ -41,8 +41,8 @@ class _CropImageScreenState extends State<CropImageScreen> {
             backgroundColor: Colors.black,
             activeControlsWidgetColor: AppColors.primaryGreen,
             cropFrameColor: AppColors.primaryGreen,
-            cropGridColor: Colors.white.withOpacity(0.5),
-            dimmedLayerColor: Colors.black.withOpacity(0.6),
+            cropGridColor: Colors.white.withValues(alpha: 128), // Using withValues instead of withOpacity
+            dimmedLayerColor: Colors.black.withValues(alpha: 153), // Using withValues instead of withOpacity
             statusBarColor: const Color(0xFF1B5E20), // Using a direct color value instead of shade900
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
@@ -97,6 +97,7 @@ class _CropImageScreenState extends State<CropImageScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryGreen,
         title: const Text('Crop Image', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -132,7 +133,7 @@ class _CropImageScreenState extends State<CropImageScreen> {
           // Loading indicator when cropping
           if (_isCropping)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 128),
               child: const Center(
                 child: CircularProgressIndicator(
                   color: AppColors.primaryGreen,

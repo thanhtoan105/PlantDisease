@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../../../core/providers/scan_history_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/plant_service.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import '../models/scan_history.dart';
 import 'scan_history_item.dart';
 
@@ -36,7 +38,16 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan History'),
+        backgroundColor: AppColors.primaryGreen,
+        elevation: 0,
+        title: Text(
+          'Scan History',
+          style: AppTypography.headlineMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Consumer<ScanHistoryProvider>(
         builder: (context, provider, child) {

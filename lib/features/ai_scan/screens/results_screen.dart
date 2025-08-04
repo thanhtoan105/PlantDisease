@@ -124,10 +124,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Scaffold(
       backgroundColor: AppColors.lightGray,
       appBar: AppBar(
-        title: const Text('Analysis Results'),
+        title: Text(
+          'Analysis Results',
+          style: AppTypography.headlineMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: AppColors.primaryGreen,
-        foregroundColor: AppColors.white,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Column(
         children: [
