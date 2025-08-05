@@ -35,6 +35,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Enable ProGuard/R8 and include our custom rules
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -44,15 +52,6 @@ flutter {
 }
 
 dependencies {
-    // Use NEWEST TensorFlow Lite version (2.17.0) to support newer model operations
-    // This fixes the "FULLY_CONNECTED version 12" compatibility issue
-    val tfliteVersion = "2.17.0"
-    implementation("org.tensorflow:tensorflow-lite:$tfliteVersion") {
-        exclude(group = "org.tensorflow", module = "tensorflow-lite")
-    }
-    implementation("org.tensorflow:tensorflow-lite-gpu:$tfliteVersion") {
-        exclude(group = "org.tensorflow", module = "tensorflow-lite-gpu")
-    }
-    implementation("org.tensorflow:tensorflow-lite-api:$tfliteVersion")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    // Let tflite_flutter plugin handle all TensorFlow Lite dependencies
+    // No Google Play Core dependencies needed since we're using standard Flutter app
 }

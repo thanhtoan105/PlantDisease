@@ -12,6 +12,8 @@ class TensorFlowService {
   static bool _isInitialized = false;
   static List<String>? _labels;
   static String? _initializationError;
+  static bool _isUsingGPU = false;
+  static int _optimalThreadCount = 2;
 
   // Model configuration from centralized config
   static const int modelInputSize = AIModelConfig.inputImageSize;
@@ -19,20 +21,21 @@ class TensorFlowService {
   static const String modelPath = AIModelConfig.modelPath;
   static const String labelsPath = AIModelConfig.labelsPath;
 
-  /// Initialize TensorFlow Lite model
+  /// Initialize TensorFlow Lite model with optimized CPU/GPU detection
   static Future<bool> initialize() async {
     try {
       debugPrint('🔬 Initializing TensorFlow Lite model...');
       _isInitialized = true;
       _initializationError = null;
 
+      // Detect optimal hardware configuration first
+      await _detectOptimalConfiguration();
+
       // Check if model file exists first with detailed debugging
       try {
         debugPrint('🔍 Attempting to load model from: $modelPath');
-        final modelData =
-            await rootBundle.load(modelPath);
-        debugPrint(
-            '📊 Model file found, size: ${modelData.lengthInBytes} bytes');
+        final modelData = await rootBundle.load(modelPath);
+        debugPrint('📊 Model file found, size: ${modelData.lengthInBytes} bytes');
 
         // Verify the model data is valid
         if (modelData.lengthInBytes < 1000) {
@@ -43,66 +46,37 @@ class TensorFlowService {
       } catch (e) {
         debugPrint('❌ Model file loading failed: $e');
         debugPrint('🔍 Error type: ${e.runtimeType}');
-        debugPrint(
-            '⚠️ Model file not found or corrupted. Please ensure tomato_model_final.tflite is in assets/models/');
+        debugPrint('⚠️ Model file not found or corrupted. Please ensure tomato_model_final.tflite is in assets/models/');
         debugPrint('📖 See assets/models/README.md for setup instructions');
 
         // Try to list available assets for debugging
         try {
-          final manifestContent =
-              await rootBundle.loadString('AssetManifest.json');
+          final manifestContent = await rootBundle.loadString('AssetManifest.json');
           debugPrint('📋 Available assets: $manifestContent');
         } catch (manifestError) {
           debugPrint('⚠️ Could not load asset manifest: $manifestError');
         }
 
-        _initializationError =
-            'Model file not found. Please rebuild the app after ensuring the model file is in assets/models/';
+        _initializationError = 'Model file not found. Please rebuild the app after ensuring the model file is in assets/models/';
         _isModelLoaded = false;
         await _loadLabels(); // Still load labels for UI
         return true; // Return true to allow app to continue
       }
 
-      // Create interpreter options for better compatibility
-      final options = InterpreterOptions();
-
-      // Try to use GPU delegate if available (optional)
-      try {
-        if (Platform.isAndroid) {
-          options.addDelegate(GpuDelegateV2());
-          debugPrint('🚀 GPU delegate added for Android');
-        }
-      } catch (e) {
-        debugPrint('⚠️ GPU delegate not available, using CPU: $e');
-      }
-
-      // Set number of threads for CPU execution
-      options.threads = 4;
-
-      // Load the model with options
-      try {
-        _interpreter = await Interpreter.fromAsset(
-          modelPath,
-          options: options,
-        );
-        debugPrint('✅ Interpreter created with GPU delegate');
-      } catch (e) {
-        debugPrint('⚠️ GPU delegate failed, trying CPU only: $e');
-        // Fallback to CPU-only execution
-        final cpuOptions = InterpreterOptions();
-        cpuOptions.threads = 2;
-        _interpreter = await Interpreter.fromAsset(
-          modelPath,
-          options: cpuOptions,
-        );
-        debugPrint('✅ Interpreter created with CPU only');
-      }
+      // Initialize interpreter with optimized configuration
+      await _initializeInterpreter();
 
       // Load labels if available
       await _loadLabels();
 
+      // If no labels were loaded from file, generate generic ones based on model output
+      if (_labels == null) {
+        _generateGenericLabels();
+      }
+
       _isModelLoaded = true;
       debugPrint('✅ TensorFlow model loaded successfully');
+      debugPrint('🚀 Using ${_isUsingGPU ? 'GPU' : 'CPU'} with $_optimalThreadCount threads');
 
       // Print model info
       _printModelInfo();
@@ -118,23 +92,127 @@ class TensorFlowService {
     }
   }
 
+  /// Detect optimal hardware configuration for the device
+  static Future<void> _detectOptimalConfiguration() async {
+    try {
+      // Detect CPU cores for optimal thread count
+      _optimalThreadCount = Platform.numberOfProcessors;
+
+      // Cap thread count based on device performance
+      if (_optimalThreadCount > 4) {
+        _optimalThreadCount = 4; // Most mobile GPUs work best with 4 threads max
+      } else if (_optimalThreadCount < 2) {
+        _optimalThreadCount = 2; // Minimum for decent performance
+      }
+
+      debugPrint('🔧 Detected $_optimalThreadCount CPU cores, using $_optimalThreadCount threads');
+
+      // Check if we're running on a high-performance device
+      final isHighPerformanceDevice = _optimalThreadCount >= 4;
+
+      if (isHighPerformanceDevice && Platform.isAndroid) {
+        debugPrint('📱 High-performance Android device detected, GPU delegate preferred');
+      } else {
+        debugPrint('📱 Standard device detected, CPU optimization preferred');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Hardware detection failed, using default configuration: $e');
+      _optimalThreadCount = 2;
+    }
+  }
+
+  /// Initialize interpreter with optimized GPU/CPU configuration
+  static Future<void> _initializeInterpreter() async {
+    // Strategy: Try GPU first on capable devices, then fallback to optimized CPU
+
+    // First, try GPU delegate on Android devices
+    if (Platform.isAndroid && _optimalThreadCount >= 3) {
+      try {
+        debugPrint('🚀 Attempting GPU initialization...');
+        final gpuOptions = InterpreterOptions();
+
+        // Configure GPU delegate with simplified settings
+        final gpuDelegate = GpuDelegateV2(
+          options: GpuDelegateOptionsV2(
+            isPrecisionLossAllowed: false, // Keep precision for medical/agricultural use
+          ),
+        );
+
+        gpuOptions.addDelegate(gpuDelegate);
+        gpuOptions.threads = 1; // GPU delegate typically uses 1 thread
+
+        _interpreter = await Interpreter.fromAsset(modelPath, options: gpuOptions);
+        _isUsingGPU = true;
+
+        debugPrint('✅ GPU delegate initialized successfully');
+        return;
+      } catch (e) {
+        debugPrint('⚠️ GPU delegate initialization failed: $e');
+        debugPrint('🔄 Falling back to optimized CPU execution...');
+      }
+    }
+
+    // CPU-only execution with optimized settings
+    try {
+      debugPrint('🖥️ Initializing optimized CPU execution...');
+      final cpuOptions = InterpreterOptions();
+
+      // Optimize CPU execution
+      cpuOptions.threads = _optimalThreadCount;
+
+      _interpreter = await Interpreter.fromAsset(modelPath, options: cpuOptions);
+      _isUsingGPU = false;
+
+      debugPrint('✅ Optimized CPU execution initialized with $_optimalThreadCount threads');
+    } catch (e) {
+      // Final fallback with minimal settings
+      debugPrint('⚠️ Optimized CPU failed, using basic CPU configuration: $e');
+      final basicOptions = InterpreterOptions();
+      basicOptions.threads = 2;
+
+      _interpreter = await Interpreter.fromAsset(modelPath, options: basicOptions);
+      _isUsingGPU = false;
+
+      debugPrint('✅ Basic CPU execution initialized');
+    }
+  }
+
   /// Load model labels
   static Future<void> _loadLabels() async {
     try {
-      final labelsData =
-          await rootBundle.loadString(labelsPath);
-      _labels =
-          labelsData.split('\n').where((label) => label.isNotEmpty).toList();
-      debugPrint('✅ Loaded ${_labels!.length} labels');
+      final labelsData = await rootBundle.loadString(labelsPath);
+      _labels = labelsData.split('\n').where((label) => label.isNotEmpty).toList();
+      debugPrint('✅ Loaded ${_labels!.length} labels from file');
     } catch (e) {
-      debugPrint('⚠️ Labels file not found, using default labels');
-      // Default labels for apple diseases (matching React Native)
-      _labels = [
-        'Apple___Apple_scab',
-        'Apple___Black_rot',
-        'Apple___Cedar_apple_rust',
-        'Apple___healthy',
-      ];
+      debugPrint('⚠️ Labels file not found, will generate generic labels after model loads: $e');
+      _labels = null; // Will be generated after model loads
+    }
+  }
+
+  /// Generate generic labels based on model output dimensions
+  static void _generateGenericLabels() {
+    if (_interpreter == null) {
+      debugPrint('⚠️ Cannot generate labels: interpreter not available');
+      return;
+    }
+
+    try {
+      // Get the number of output classes from the model
+      final outputTensor = _interpreter!.getOutputTensor(0);
+      final outputShape = outputTensor.shape;
+
+      // For classification models, the last dimension is usually the number of classes
+      final numClasses = outputShape.last;
+
+      // Generate generic labels: Class_0, Class_1, Class_2, etc.
+      _labels = List.generate(numClasses, (index) => 'Class_$index');
+
+      debugPrint('📋 Generated ${_labels!.length} generic labels based on model output shape: $outputShape');
+      debugPrint('🏷️ Labels: ${_labels!.join(', ')}');
+    } catch (e) {
+      debugPrint('❌ Failed to generate generic labels: $e');
+      // Fallback to minimal generic labels
+      _labels = ['Class_0', 'Class_1'];
     }
   }
 
@@ -289,6 +367,31 @@ class TensorFlowService {
     }
   }
 
+  /// Dispose resources and cleanup
+  static Future<void> dispose() async {
+    try {
+      _interpreter?.close();
+      _interpreter = null;
+      _isModelLoaded = false;
+      _isInitialized = false;
+      _isUsingGPU = false;
+      debugPrint('🧹 TensorFlow resources disposed');
+    } catch (e) {
+      debugPrint('⚠️ Error disposing TensorFlow resources: $e');
+    }
+  }
+
+  /// Get performance information
+  static Map<String, dynamic> getPerformanceInfo() {
+    return {
+      'isUsingGPU': _isUsingGPU,
+      'threadCount': _optimalThreadCount,
+      'isModelLoaded': _isModelLoaded,
+      'processorCount': Platform.numberOfProcessors,
+      'platform': Platform.operatingSystem,
+    };
+  }
+
   /// Preprocess image for model input
   static Future<Float32List?> _preprocessImage(String imagePath) async {
     try {
@@ -333,25 +436,41 @@ class TensorFlowService {
     }
   }
 
-  /// Run model inference
+  /// Optimized inference execution
   static Future<List<double>> _runInference(Float32List inputData) async {
-    // Reshape input data for the model
-    final input =
-        inputData.reshape([1, modelInputSize, modelInputSize, modelChannels]);
+    try {
+      // Prepare input tensor with proper shape
+      final input = inputData.reshape([1, modelInputSize, modelInputSize, modelChannels]);
 
-    // Prepare output tensor
-    final outputShape = _interpreter!.getOutputTensor(0).shape;
-    final output = List.filled(outputShape.reduce((a, b) => a * b), 0.0)
-        .reshape(outputShape);
+      // Prepare output tensor
+      final outputShape = _interpreter!.getOutputTensor(0).shape;
+      final outputSize = outputShape.reduce((a, b) => a * b);
+      final output = List.filled(outputSize, 0.0).reshape(outputShape);
 
-    // Run inference
-    _interpreter!.run(input, output);
+      // Run inference with performance monitoring
+      final stopwatch = Stopwatch()..start();
+      _interpreter!.run(input, output);
+      stopwatch.stop();
 
-    // Extract results
-    final results = output[0] as List<double>;
-    debugPrint('🔬 Raw inference results: $results');
+      // Log performance metrics
+      final inferenceTime = stopwatch.elapsedMilliseconds;
+      debugPrint('⚡ Inference completed in ${inferenceTime}ms using ${_isUsingGPU ? 'GPU' : 'CPU'}');
 
-    return results;
+      // Extract and validate results
+      final results = output[0] as List<double>;
+
+      // Validate output
+      if (results.any((value) => value.isNaN || value.isInfinite)) {
+        debugPrint('⚠️ Invalid inference results detected');
+        throw Exception('Invalid inference output');
+      }
+
+      debugPrint('🔬 Inference results: ${results.take(5).toList()}... (showing first 5)');
+      return results;
+    } catch (e) {
+      debugPrint('❌ Inference execution failed: $e');
+      rethrow;
+    }
   }
 
   /// Post-process model results
@@ -432,44 +551,57 @@ class TensorFlowService {
 
   /// Generate demo results when model is not available
   static Map<String, dynamic> _generateDemoResults(String imagePath) {
-    // Simulate analysis based on image name or random selection
-    final fileName = imagePath.split('/').last.toLowerCase();
+    // Use actual labels if available, otherwise generate generic ones
+    List<String> availableLabels;
 
-    // Default to healthy with some randomness
-    String predictedClass = 'Apple___healthy';
-    double confidence = 0.85;
-
-    // Check filename for disease indicators
-    if (fileName.contains('scab')) {
-      predictedClass = 'Apple___Apple_scab';
-      confidence = 0.78;
-    } else if (fileName.contains('rot') || fileName.contains('black')) {
-      predictedClass = 'Apple___Black_rot';
-      confidence = 0.82;
-    } else if (fileName.contains('rust') || fileName.contains('cedar')) {
-      predictedClass = 'Apple___Cedar_apple_rust';
-      confidence = 0.75;
+    if (_labels != null && _labels!.isNotEmpty) {
+      // Use the actual labels from the model
+      availableLabels = _labels!;
+    } else {
+      // Generate generic labels for demo (simulating a typical classification model)
+      availableLabels = List.generate(5, (index) => 'Class_$index');
     }
 
-    // Create demo predictions
-    final predictions = [
-      {
-        'label': predictedClass,
-        'confidence': confidence,
-        'displayName': _formatLabel(predictedClass),
-      },
-      {
-        'label': 'Apple___healthy',
-        'confidence': predictedClass == 'Apple___healthy' ? 0.15 : 0.92,
-        'displayName': 'Healthy',
-      },
-    ];
+    final predictions = <Map<String, dynamic>>[];
 
-    // Sort by confidence
+    // Create predictions for all available labels with pseudo-random but realistic confidences
+    for (int i = 0; i < availableLabels.length; i++) {
+      final label = availableLabels[i];
+      
+      // Generate deterministic pseudo-random confidence based on image path and label index
+      final seed = (imagePath.hashCode + label.hashCode + i) % 100;
+      final baseConfidence = (seed / 100.0) * 0.8 + 0.1; // Range: 0.1 to 0.9
+      
+      // Apply some variation to make it more realistic
+      final variation = ((seed * 3) % 20 - 10) / 100.0; // ±10% variation
+      final confidence = (baseConfidence + variation).clamp(0.05, 0.95);
+
+      predictions.add({
+        'label': label,
+        'confidence': confidence,
+        'displayName': _formatLabel(label),
+      });
+    }
+
+    // Sort by confidence (descending) to simulate real model behavior
     predictions.sort((a, b) =>
         (b['confidence'] as double).compareTo(a['confidence'] as double));
 
     final topPrediction = predictions.first;
+
+    // Build detectedDiseases list
+    final detectedDiseases = predictions.map((pred) => {
+      'disease': pred['displayName'],
+      'confidence': pred['confidence'],
+      'label': pred['label'],
+    }).toList();
+
+    // Determine if the top prediction suggests a healthy state
+    // This is generic - looks for keywords that might indicate health
+    final topLabel = (topPrediction['label'] as String).toLowerCase();
+    final isHealthy = topLabel.contains('healthy') ||
+                     topLabel.contains('normal') ||
+                     topLabel.contains('class_0'); // Often class 0 is healthy in many models
 
     return {
       'success': true,
@@ -477,23 +609,12 @@ class TensorFlowService {
         'predictions': predictions,
         'topPrediction': topPrediction,
         'confidence': topPrediction['confidence'],
-        'isHealthy':
-            (topPrediction['label'] as String?)?.contains('healthy') ?? false,
-        'diseaseDetected':
-            !((topPrediction['label'] as String?)?.contains('healthy') ?? true),
-        'isDemoResult': true,
+        'isHealthy': isHealthy,
+        'diseaseDetected': !isHealthy,
+        'detectedDiseases': detectedDiseases,
+        'isDemoResult': true, // Important: mark this as demo data
       },
       'analysisMethod': 'demo_fallback',
     };
-  }
-
-  /// Dispose resources
-  static void dispose() {
-    _interpreter?.close();
-    _interpreter = null;
-    _isModelLoaded = false;
-    _isInitialized = false;
-    _initializationError = null;
-    _labels = null;
   }
 }

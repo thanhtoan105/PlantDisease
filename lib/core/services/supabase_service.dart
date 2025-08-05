@@ -91,7 +91,7 @@ class SupabaseService {
     }
 
     try {
-      // Get basic crop data
+      // Get basic crop data with JSONB description
       final cropResponse = await _supabase
           .from('crops')
           .select('id, name, scientific_name, description, image_url')
@@ -105,89 +105,32 @@ class SupabaseService {
               'id, class_name, display_name, description, treatment, image_url')
           .eq('crop_id', int.parse(cropId));
 
-      // Get overview data using the database function
-      List<dynamic>? overviewData;
-      try {
-        final overviewResponse = await _supabase
-            .rpc('get_crop_overview', params: {'crop_id': int.parse(cropId)});
-        overviewData = overviewResponse;
-      } catch (overviewError) {
-        debugPrint('Error fetching overview data: $overviewError');
-        overviewData = null;
-      }
-
-      // Get growing tips using the database function
-      List<dynamic>? tipsData;
-      try {
-        final tipsResponse = await _supabase.rpc('get_crop_growing_tips',
-            params: {'crop_id': int.parse(cropId)});
-        tipsData = tipsResponse;
-      } catch (tipsError) {
-        debugPrint('Error fetching tips data: $tipsError');
-        tipsData = null;
-      }
-
       // Transform diseases data
       final diseases = diseasesResponse.map<Map<String, dynamic>>((disease) {
         return {
           'id': disease['id'].toString(),
           'className': disease['class_name'],
           'name': disease['display_name'],
+          'display_name': disease['display_name'],
           'description': disease['description'] ?? 'No description available',
           'treatment':
               disease['treatment'] ?? 'No treatment information available',
           'severity': _getDiseaseServerity(disease['display_name']),
-          'symptoms': _getDefaultSymptoms(disease['display_name']),
           'image_url': disease['image_url'],
         };
       }).toList();
 
-      // Build the result object
+      // Build the result object directly from JSONB description
       final result = {
         'id': cropResponse['id'].toString(),
         'name': cropResponse['name'],
         'scientificName': cropResponse['scientific_name'],
-        'description': _extractDescription(cropResponse['description']),
+        'description': cropResponse['description'], // Keep JSONB structure intact
         'emoji': _getCropEmoji(cropResponse['name']),
         'diseases': diseases,
         'diseaseCount': diseases.length,
         'image_url': cropResponse['image_url'],
       };
-
-      // Add overview data if available
-      if (overviewData != null &&
-          overviewData.isNotEmpty &&
-          overviewData[0]['overview'] != null) {
-        debugPrint('📊 Overview data found for crop: ${cropResponse['name']}');
-        result['overview'] = overviewData[0]['overview'];
-
-        // Extract growing conditions from overview
-        if (result['overview']['growing_conditions'] != null) {
-          debugPrint('🌱 Growing conditions found');
-          result['growingConditions'] = _transformGrowingConditions(
-              result['overview']['growing_conditions']);
-        }
-
-        // Extract seasons from overview
-        if (result['overview']['growing_season'] != null) {
-          debugPrint('📅 Growing seasons found');
-          result['seasons'] =
-              _transformGrowingSeasons(result['overview']['growing_season']);
-        }
-      } else {
-        debugPrint(
-            '❌ No overview data found for crop: ${cropResponse['name']}');
-      }
-
-      // Add growing tips if available
-      if (tipsData != null &&
-          tipsData.isNotEmpty &&
-          tipsData[0]['growing_tips'] != null) {
-        debugPrint('💡 Growing tips found for crop: ${cropResponse['name']}');
-        result['tips'] = _extractTipsFromJSON(tipsData[0]['growing_tips']);
-      } else {
-        debugPrint('❌ No growing tips found for crop: ${cropResponse['name']}');
-      }
 
       return result;
     } catch (error) {

@@ -384,7 +384,9 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                   ),
                   const SizedBox(height: AppDimensions.spacingMd),
                   Text(
-                    crop['description'] ?? 'No description available',
+                    (crop['description'] is Map)
+                        ? (crop['description']['overview'] ?? 'No description available')
+                        : (crop['description'] ?? 'No description available'),
                     style: AppTypography.bodyMedium.copyWith(
                       height: 1.5,
                     ),
@@ -401,24 +403,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
               'basic-info',
               Icons.info,
             ),
-
-            // Growing Conditions - Expandable
-            if (crop['growingConditions'] != null)
-              _buildExpandableSection(
-                'Growing Conditions',
-                _buildGrowingConditionsContent(crop['growingConditions']),
-                'growing-conditions',
-                Icons.eco,
-              ),
-
-            // Growing Season - Expandable
-            if (crop['seasons'] != null)
-              _buildExpandableSection(
-                'Growing Season',
-                _buildGrowingSeasonsContent(crop['seasons']),
-                'growing-season',
-                Icons.schedule,
-              ),
           ],
         ),
       ),
@@ -426,13 +410,17 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   }
 
   Widget _buildQuickStats() {
+    final crop = _cropDetails ?? widget.crop ?? {};
+    final description = crop['description'] as Map<String, dynamic>? ?? {};
+    final growingConditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
+
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             icon: Icons.thermostat,
             iconColor: AppColors.primaryGreen,
-            value: '20-25°C',
+            value: growingConditions['temperature'] ?? 'N/A',
             label: 'Temperature',
           ),
         ),
@@ -441,7 +429,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           child: _buildStatCard(
             icon: Icons.wb_sunny,
             iconColor: AppColors.warning,
-            value: '6-8 hrs',
+            value: growingConditions['sunlight'] ?? 'N/A',
             label: 'Sunlight',
           ),
         ),
@@ -450,7 +438,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           child: _buildStatCard(
             icon: Icons.opacity,
             iconColor: AppColors.info,
-            value: 'Regular',
+            value: growingConditions['waterRequirements'] ?? 'N/A',
             label: 'Watering',
           ),
         ),
@@ -551,13 +539,16 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   }
 
   Widget _buildBasicInfo(Map<String, dynamic> crop) {
+    final description = crop['description'] as Map<String, dynamic>? ?? {};
+    final basicInfo = description['basicInfo'] as Map<String, dynamic>? ?? {};
+
     final info = {
-      'Family': crop['family'],
-      'Origin': crop['origin'],
-      'Tree Type': crop['treeType'],
-      'Mature Height': crop['matureHeight'],
-      'Mature Width': crop['matureWidth'],
-      'Lifespan': crop['lifespan'],
+      'Family': basicInfo['family'],
+      'Origin': basicInfo['origin'],
+      'Tree Type': basicInfo['treeType'],
+      'Mature Height': basicInfo['matureHeight'],
+      'Mature Width': basicInfo['matureWidth'],
+      'Lifespan': basicInfo['lifespan'],
     };
 
     return Column(
@@ -567,7 +558,10 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     );
   }
 
-  Widget _buildGrowingConditionsContent(Map<String, dynamic> conditions) {
+  Widget _buildGrowingConditionsContent(Map<String, dynamic> crop) {
+    final description = crop['description'] as Map<String, dynamic>? ?? {};
+    final conditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
+
     final info = {
       'Climate': conditions['climate'],
       'Hardiness Zones': conditions['hardinessZones'],
@@ -586,7 +580,10 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     );
   }
 
-  Widget _buildGrowingSeasonsContent(Map<String, dynamic> seasons) {
+  Widget _buildGrowingSeasonsContent(Map<String, dynamic> crop) {
+    final description = crop['description'] as Map<String, dynamic>? ?? {};
+    final seasons = description['seasons'] as Map<String, dynamic>? ?? {};
+
     final info = {
       'Planting Time': seasons['plantingTime'],
       'Blooming Period': seasons['bloomingPeriod'],
@@ -630,26 +627,87 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   }
 
   Widget _buildTipsTab() {
-    final tips = _cropDetails?['growing_tips'] as List<dynamic>? ?? [];
+    final crop = _cropDetails ?? widget.crop ?? {};
+    final description = crop['description'] as Map<String, dynamic>? ?? {};
+    final growingConditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
+    final seasons = description['seasons'] as Map<String, dynamic>? ?? {};
 
-    if (tips.isEmpty) {
-      return const Center(
-        child: Text('No growing tips available.'),
-      );
-    }
-
-    return ListView.builder(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
-      itemCount: tips.length,
-      itemBuilder: (context, index) {
-        final tip = tips[index] as Map<String, dynamic>;
-        return _buildExpandableSection(
-          tip['title'] ?? 'Tip',
-          Text(tip['description'] ?? 'No description'),
-          'tip-$index',
-          Icons.eco,
-        );
-      },
+      child: Column(
+        children: [
+          // Growing Conditions Card
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Growing Conditions',
+                  style: AppTypography.headlineSmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spacingMd),
+                _buildGrowingConditionsInfo(growingConditions),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingLg),
+
+          // Growing Season Card
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Growing Season',
+                  style: AppTypography.headlineSmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spacingMd),
+                _buildGrowingSeasonsInfo(seasons),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrowingConditionsInfo(Map<String, dynamic> conditions) {
+    final info = {
+      'Climate': conditions['climate'],
+      'Hardiness Zones': conditions['hardinessZones'],
+      'Temperature': conditions['temperature'],
+      'Sunlight': conditions['sunlight'],
+      'Soil Type': conditions['soilType'],
+      'Soil pH': conditions['soilPh'],
+      'Water Requirements': conditions['waterRequirements'],
+      'Spacing': conditions['spacing'],
+    };
+
+    return Column(
+      children: info.entries.map((entry) {
+        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
+      }).toList(),
+    );
+  }
+
+  Widget _buildGrowingSeasonsInfo(Map<String, dynamic> seasons) {
+    final info = {
+      'Planting Time': seasons['plantingTime'],
+      'Blooming Period': seasons['bloomingPeriod'],
+      'Fruit Development': seasons['fruitDevelopment'],
+      'Harvest Time': seasons['harvestTime'],
+      'First Harvest': seasons['firstHarvest'],
+      'Dormancy': seasons['dormancy'],
+    };
+
+    return Column(
+      children: info.entries.map((entry) {
+        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
+      }).toList(),
     );
   }
 

@@ -215,11 +215,11 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
         tabs: const [
           Tab(
             icon: Icon(Icons.info),
-            text: 'Cause',
+            text: 'Description',
           ),
           Tab(
             icon: Icon(Icons.medical_services),
-            text: 'Treatment Tips',
+            text: 'Treatment',
           ),
         ],
       ),
@@ -244,7 +244,7 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
                 ),
                 const SizedBox(width: AppDimensions.spacingSm),
                 Text(
-                  'Disease Cause',
+                  'Information',
                   style: AppTypography.headlineSmall.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -257,36 +257,6 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
                   'Cause information not available for this disease.',
               style: AppTypography.bodyMedium,
             ),
-
-            // Additional symptoms if available
-            if (disease['symptoms'] != null) ...[
-              const SizedBox(height: AppDimensions.spacingLg),
-              Text(
-                'Common Symptoms',
-                style: AppTypography.headlineSmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.spacingMd),
-              ...((disease['symptoms'] as List?) ?? []).map<Widget>((symptom) {
-                return Padding(
-                  padding:
-                      const EdgeInsets.only(bottom: AppDimensions.spacingXs),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('• ', style: TextStyle(fontSize: 16)),
-                      Expanded(
-                        child: Text(
-                          symptom.toString(),
-                          style: AppTypography.bodyMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ],
           ],
         ),
       ),
