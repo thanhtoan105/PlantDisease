@@ -586,7 +586,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
 
     final info = {
       'Planting Time': seasons['plantingTime'],
-      'Blooming Period': seasons['bloomingPeriod'],
+      'Blooming': seasons['bloomingPeriod'],
       'Fruit Development': seasons['fruitDevelopment'],
       'Harvest Time': seasons['harvestTime'],
       'First Harvest': seasons['firstHarvest'],
@@ -697,7 +697,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   Widget _buildGrowingSeasonsInfo(Map<String, dynamic> seasons) {
     final info = {
       'Planting Time': seasons['plantingTime'],
-      'Blooming Period': seasons['bloomingPeriod'],
+      'Blooming': seasons['bloomingPeriod'],
       'Fruit Development': seasons['fruitDevelopment'],
       'Harvest Time': seasons['harvestTime'],
       'First Harvest': seasons['firstHarvest'],

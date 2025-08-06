@@ -96,7 +96,8 @@ class _CropImageScreenState extends State<CropImageScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: CustomAppBar(
-        title: 'Crop Image',
+        title: 'Crop Plant Image',
+        centerTitle: true,
         onLeadingPressed: () => Navigator.pop(context),
         actions: [
           IconButton(

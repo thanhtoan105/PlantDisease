@@ -31,6 +31,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Map<String, dynamic>? _diseaseDetails;
   bool _isLoadingDiseaseDetails = false;
   bool _isSaving = false;
+  bool _isSaved = false; // New variable to track if the result has been saved
   Map<String, dynamic>? _locationData;
 
   // Add missing properties to fix compilation errors
@@ -110,6 +111,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Result saved successfully!')),
       );
+      setState(() {
+        _isSaved = true; // Update saved state
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save result: $e')),
@@ -184,11 +188,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
             child: SafeArea(
               child: CustomButton(
-                text: _isSaving ? 'Saving Results...' : 'Save Disease Detection',
-                onPressed: _isSaving ? null : _saveResult,
+                text: _isSaving
+                    ? 'Saving Results...'
+                    : (_isSaved
+                        ? '✓ The result has been saved'
+                        : 'Save Disease Detection'),
+                onPressed: (_isSaving || _isSaved) ? null : _saveResult,
                 type: ButtonType.primary,
                 icon: Icon(
-                  _isSaving ? Icons.hourglass_empty : Icons.bookmark,
+                  _isSaving
+                      ? Icons.hourglass_empty
+                      : (_isSaved
+                          ? Icons.check_circle
+                          : Icons.bookmark),
                   color: AppColors.white,
                 ),
               ),
@@ -233,11 +245,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget _buildImageCard() {
     return CustomCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Analyzed Image',
             style: AppTypography.headlineMedium,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppDimensions.spacingLg),
           ClipRRect(
