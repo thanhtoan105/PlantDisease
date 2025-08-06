@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../utils/auth_utils.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _isLoading = true;
@@ -24,15 +25,10 @@ class AuthProvider extends ChangeNotifier {
 
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  static const String _devEmail = 'ronalhung05@gmail.com';
-  static const String _devPassword = 'ronalhung05@gmail.com';
-
   AuthProvider() {
     // Initialize auth in background to prevent main thread blocking
     _initializeAuthAsync();
     _setupAuthListener();
-    // DEV: Always skip onboarding and auto-login
-    devAutoLogin();
   }
 
   /// Initialize auth in background thread to prevent main thread blocking
@@ -157,99 +153,65 @@ class AuthProvider extends ChangeNotifier {
     String password, {
     Map<String, dynamic>? userData,
   }) async {
-    try {
-      _setLoading(true);
-      _clearError();
+    return AuthUtils.executeAuthOperation(
+      operation: () async {
+        final response = await _supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: {
+            'phone': userData?['phone'],
+          },
+        );
 
-      final response = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {
-          'phone': userData?['phone'],
-        },
-      );
+        if (response.user != null) {
+          return {
+            'success': true,
+            'message': 'Account created successfully! Please check your email for verification.',
+          };
+        }
 
-      if (response.user != null) {
-        return {
-          'success': true,
-          'message':
-              'Account created successfully! Please check your email for verification.',
-        };
-      }
-
-      return {'success': false, 'error': 'Failed to create account'};
-    } catch (e) {
-      final errorMessage = _parseAuthError(e.toString());
-      _setError(errorMessage);
-      return {'success': false, 'error': errorMessage};
-    } finally {
-      _setLoading(false);
-    }
+        return {'success': false, 'error': 'Failed to create account'};
+      },
+      setLoading: _setLoading,
+      clearError: _clearError,
+      setError: _setError,
+    );
   }
 
   Future<Map<String, dynamic>> signIn(String email, String password) async {
-    try {
-      _setLoading(true);
-      _clearError();
+    return AuthUtils.executeAuthOperation(
+      operation: () async {
+        final response = await _supabase.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
 
-      final response = await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+        if (response.session != null) {
+          return {'success': true, 'message': 'Signed in successfully!'};
+        }
 
-      if (response.session != null) {
-        return {'success': true, 'message': 'Signed in successfully!'};
-
-      }
-
-      return {'success': false, 'error': 'Failed to sign in'};
-    } catch (e) {
-      final errorMessage = _parseAuthError(e.toString());
-      _setError(errorMessage);
-      return {'success': false, 'error': errorMessage};
-    } finally {
-      _setLoading(false);
-    }
+        return {'success': false, 'error': 'Failed to sign in'};
+      },
+      setLoading: _setLoading,
+      clearError: _clearError,
+      setError: _setError,
+    );
   }
 
   Future<Map<String, dynamic>> resetPassword(String email) async {
-    try {
-      _setLoading(true);
-      _clearError();
+    return AuthUtils.executeAuthOperation(
+      operation: () async {
+        await _supabase.auth.resetPasswordForEmail(email);
 
-      await _supabase.auth.resetPasswordForEmail(email);
-
-      return {
-        'success': true,
-        'message': 'Password reset email sent! Please check your inbox.',
-      };
-    } catch (e) {
-      final errorMessage = _parseAuthError(e.toString());
-      _setError(errorMessage);
-      return {'success': false, 'error': errorMessage};
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Parse authentication errors to provide user-friendly messages
-  String _parseAuthError(String error) {
-    if (error.contains('Invalid login credentials')) {
-      return 'Invalid email or password. Please try again.';
-    } else if (error.contains('Email not confirmed')) {
-      return 'Please check your email and click the confirmation link.';
-    } else if (error.contains('Too many requests')) {
-      return 'Too many attempts. Please try again later.';
-    } else if (error.contains('User not found')) {
-      return 'Account not found. You need to create an account first.';
-    } else if (error.contains('Invalid email')) {
-      return 'Please enter a valid email address.';
-    } else if (error.contains('Password should be at least')) {
-      return 'Password must be at least 6 characters long.';
-    } else if (error.contains('User already registered')) {
-      return 'An account with this email already exists.';
-    }
-    return error;
+        return {
+          'success': true,
+          'message': 'Password reset email sent! Please check your inbox.',
+        };
+      },
+      setLoading: _setLoading,
+      clearError: _clearError,
+      setError: _setError,
+    );
   }
 
   Future<void> signOut() async {
@@ -257,7 +219,7 @@ class AuthProvider extends ChangeNotifier {
       await _supabase.auth.signOut();
       _logout();
     } catch (e) {
-      _setError(e.toString());
+      _setError(AuthUtils.parseAuthError(e.toString()));
     }
   }
 
@@ -331,32 +293,5 @@ class AuthProvider extends ChangeNotifier {
   /// Check if user should skip onboarding (either completed or was previously authenticated)
   bool get shouldSkipOnboarding {
     return _onboardingCompleted || _isAuthenticated;
-  }
-
-  Future<void> devAutoLogin() async {
-    // Mark onboarding as completed
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
-    _onboardingCompleted = true;
-    notifyListeners();
-
-    // If not authenticated, sign in with dev credentials
-    if (!_isAuthenticated) {
-      try {
-        final response = await _supabase.auth.signInWithPassword(
-          email: _devEmail,
-          password: _devPassword,
-        );
-        if (response.session != null) {
-          _isAuthenticated = true;
-          _user = response.user;
-          _session = response.session;
-          await _markAsAuthenticated();
-          notifyListeners();
-        }
-      } catch (e) {
-        _setError('Dev auto-login failed: \\n$e');
-      }
-    }
   }
 }
