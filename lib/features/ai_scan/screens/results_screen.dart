@@ -191,18 +191,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 text: _isSaving
                     ? 'Saving Results...'
                     : (_isSaved
-                        ? '✓ The result has been saved'
+                        ? 'The result has been saved'
                         : 'Save Disease Detection'),
                 onPressed: (_isSaving || _isSaved) ? null : _saveResult,
                 type: ButtonType.primary,
-                icon: Icon(
-                  _isSaving
-                      ? Icons.hourglass_empty
-                      : (_isSaved
-                          ? Icons.check_circle
-                          : Icons.bookmark),
-                  color: AppColors.white,
-                ),
+                icon: _isSaved
+                    ? null
+                    : Icon(
+                        _isSaving
+                            ? Icons.hourglass_empty
+                            : Icons.bookmark,
+                        color: AppColors.white,
+                      ),
               ),
             ),
           ),
@@ -244,26 +244,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   Widget _buildImageCard() {
     return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'Analyzed Image',
-            style: AppTypography.headlineMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          ClipRRect(
-            borderRadius:
-                BorderRadius.circular(AppDimensions.borderRadiusMedium),
-            child: Image.file(
-              File(widget.imagePath),
-              width: double.infinity,
-              height: 200,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        child: Image.file(
+          File(widget.imagePath),
+          width: double.infinity,
+          height: 200,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
