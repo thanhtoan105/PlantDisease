@@ -6,6 +6,8 @@ import '../features/auth/screens/onboarding_screen.dart';
 import '../features/auth/screens/auth_screen.dart';
 import '../features/auth/screens/sign_in_screen.dart';
 import '../features/auth/screens/sign_up_screen.dart';
+import '../features/auth/screens/forgot_password_screen.dart';
+import '../features/auth/screens/verify_otp_screen.dart';
 
 import '../features/main/main_screen.dart';
 import '../features/home/screens/home_screen.dart';
@@ -28,6 +30,12 @@ class AppRouter {
         return null; // Show loading screen
       }
       
+      // Allow access to forgot password and OTP verification screens without authentication
+      if (state.uri.path == RouteNames.forgotPassword ||
+          state.uri.path == RouteNames.verifyOtp) {
+        return null;
+      }
+
       // Always redirect to onboarding if not completed
       if (!authProvider.onboardingCompleted) {
         debugPrint('📱 Redirecting to onboarding');
@@ -89,6 +97,17 @@ class AppRouter {
       GoRoute(
         path: RouteNames.signUp,
         builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.verifyOtp,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return VerifyOtpScreen(email: email);
+        },
       ),
       GoRoute(
         path: RouteNames.main,

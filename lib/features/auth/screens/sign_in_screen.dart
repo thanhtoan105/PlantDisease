@@ -7,6 +7,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/utils/exit_confirmation_dialog.dart';
+import '../../../navigation/route_names.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -154,9 +155,7 @@ class _SignInScreenState extends State<SignInScreen> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Forgot password coming soon')),
-          );
+          context.go(RouteNames.forgotPassword);
         },
         child: Text(
           'Forgot Password?',

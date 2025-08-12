@@ -5,7 +5,7 @@ class AuthUtils {
   /// Parse authentication errors to provide user-friendly messages
   static String parseAuthError(String error) {
     if (error.contains('Invalid login credentials')) {
-      return 'Invalid email or password. Please try again.';
+      return 'Invalid password. Please try again.';
     } else if (error.contains('Email not confirmed')) {
       return 'Please check your email and click the confirmation link.';
     } else if (error.contains('Too many requests')) {

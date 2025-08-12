@@ -155,6 +155,18 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     return AuthUtils.executeAuthOperation(
       operation: () async {
+        // First check if email already exists
+        final emailCheckResult = await checkEmailExists(email);
+
+        if (emailCheckResult['success'] && emailCheckResult['exists'] == true) {
+          // Email already exists - don't allow signup
+          return {
+            'success': false,
+            'error': 'The email already created. Please sign in',
+          };
+        }
+
+        // Email doesn't exist, proceed with signup
         final response = await _supabase.auth.signUp(
           email: email,
           password: password,
@@ -181,6 +193,18 @@ class AuthProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> signIn(String email, String password) async {
     return AuthUtils.executeAuthOperation(
       operation: () async {
+        // First check if email exists
+        final emailCheckResult = await checkEmailExists(email);
+
+        if (emailCheckResult['success'] && emailCheckResult['exists'] == false) {
+          // Email doesn't exist - show helpful message
+          return {
+            'success': false,
+            'error': 'Your account has not been created yet. Please sign up first',
+          };
+        }
+
+        // Email exists, proceed with sign in
         final response = await _supabase.auth.signInWithPassword(
           email: email,
           password: password,
@@ -212,6 +236,101 @@ class AuthProvider extends ChangeNotifier {
       clearError: _clearError,
       setError: _setError,
     );
+  }
+
+  /// Check if email exists in Supabase authentication using Edge Function
+  Future<Map<String, dynamic>> checkEmailExists(String email) async {
+    return AuthUtils.executeAuthOperation(
+      operation: () async {
+        try {
+          debugPrint('🔍 Checking email existence using Edge Function for: $email');
+
+          // Call the Edge Function to check email existence
+          final response = await _supabase.functions.invoke(
+            'check-email-exists',
+            body: {'email': email.trim()},
+          );
+
+          // Check if the function call itself failed
+          if (response.data == null) {
+            debugPrint('❌ Edge Function returned null data');
+            // Fallback to password check method if Edge Function fails
+            return await _checkEmailExistsFallback(email);
+          }
+
+          final data = response.data;
+          if (data['success'] == true) {
+            final exists = data['exists'] ?? false;
+            final message = data['message'] ??
+                (exists ? 'Email exists in the system' : 'Your account has not been created yet!');
+
+            debugPrint(exists ? '✅ User exists' : '❌ User does not exist');
+
+            return {
+              'success': true,
+              'exists': exists,
+              'message': message,
+            };
+          } else {
+            debugPrint('⚠️ Edge Function returned success: false');
+            // Fallback to password check method
+            return await _checkEmailExistsFallback(email);
+          }
+        } catch (e) {
+          debugPrint('❌ Error calling Edge Function: $e');
+          // Fallback to password check method if Edge Function is unavailable
+          return await _checkEmailExistsFallback(email);
+        }
+      },
+      setLoading: _setLoading,
+      clearError: _clearError,
+      setError: _setError,
+    );
+  }
+
+  /// Fallback method to check email existence using password attempt
+  Future<Map<String, dynamic>> _checkEmailExistsFallback(String email) async {
+    try {
+      // Try to sign in with a wrong password to get error details
+      await _supabase.auth.signInWithPassword(
+        email: email,
+        password: 'definitely_wrong_password_12345!@#',
+      );
+
+      // If somehow this succeeds, user exists
+      return {
+        'success': true,
+        'exists': true,
+        'message': 'Email exists in the system',
+      };
+    } catch (e) {
+      String errorMessage = e.toString().toLowerCase();
+
+      if (errorMessage.contains('invalid login credentials') ||
+          errorMessage.contains('email not confirmed')) {
+        // User exists but wrong password or unconfirmed email
+        return {
+          'success': true,
+          'exists': true,
+          'message': 'Email exists in the system',
+        };
+      } else if (errorMessage.contains('user not found') ||
+                 errorMessage.contains('email not found')) {
+        // User doesn't exist
+        return {
+          'success': true,
+          'exists': false,
+          'message': 'Your account has not been created yet!',
+        };
+      } else {
+        // For unknown errors, assume user exists
+        return {
+          'success': true,
+          'exists': true,
+          'message': 'Email verification completed',
+        };
+      }
+    }
   }
 
   Future<void> signOut() async {
