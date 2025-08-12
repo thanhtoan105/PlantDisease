@@ -8,6 +8,7 @@ import '../features/auth/screens/sign_in_screen.dart';
 import '../features/auth/screens/sign_up_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/verify_otp_screen.dart';
+import '../features/auth/screens/reset_password_screen.dart';
 
 import '../features/main/main_screen.dart';
 import '../features/home/screens/home_screen.dart';
@@ -32,7 +33,8 @@ class AppRouter {
       
       // Allow access to forgot password and OTP verification screens without authentication
       if (state.uri.path == RouteNames.forgotPassword ||
-          state.uri.path == RouteNames.verifyOtp) {
+          state.uri.path == RouteNames.verifyOtp ||
+          state.uri.path == RouteNames.resetPassword) {
         return null;
       }
 
@@ -107,6 +109,13 @@ class AppRouter {
         builder: (context, state) {
           final email = state.uri.queryParameters['email'] ?? '';
           return VerifyOtpScreen(email: email);
+        },
+      ),
+      GoRoute(
+        path: RouteNames.resetPassword,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return ResetPasswordScreen(email: email);
         },
       ),
       GoRoute(

@@ -273,20 +273,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       // Check if verification was successful
       if (response.user != null && response.session != null) {
         if (mounted) {
-          // OTP verified successfully - show success and redirect
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Code verified! Create password Coming Soon'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-
-          // Redirect to sign in after a short delay
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              context.go(RouteNames.auth);
-            }
-          });
+          // OTP verified successfully - redirect to reset password screen
+          context.go('${RouteNames.resetPassword}?email=${Uri.encodeComponent(widget.email)}');
         }
       } else {
         throw Exception('Verification failed');
