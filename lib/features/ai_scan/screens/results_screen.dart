@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -9,6 +10,7 @@ import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../home/screens/disease_details_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final String imagePath;
@@ -122,6 +124,91 @@ class _ResultsScreenState extends State<ResultsScreen> {
       setState(() {
         _isSaving = false;
       });
+    }
+  }
+
+  void _navigateToDiseaseDetails(Map<String, dynamic>? prediction) async {
+    if (prediction == null) return;
+
+    try {
+      // Get the class name from the AI model prediction
+      final className = prediction['className'] ?? '';
+      debugPrint('🔍 Fetching detailed data for class: $className');
+
+      // Fetch detailed disease information from Supabase using the class name
+      List<Map<String, dynamic>> diseaseResults = [];
+      if (className.isNotEmpty) {
+        diseaseResults = await SupabaseService.searchDiseases(className);
+        debugPrint('📊 Found ${diseaseResults.length} disease records in database');
+      }
+
+      // Use the first matching result or create fallback data
+      Map<String, dynamic> diseaseData;
+      if (diseaseResults.isNotEmpty) {
+        final dbDisease = diseaseResults.first;
+        diseaseData = {
+          'id': dbDisease['id'],
+          'class_name': dbDisease['className'],
+          'display_name': dbDisease['name'],
+          'description': dbDisease['description'],
+          'treatment': dbDisease['treatment'],
+          'crop_name': dbDisease['cropName'],
+          'crop_scientific_name': dbDisease['cropScientificName'],
+          'confidence': prediction['confidence'] ?? 0.0,
+          'ai_prediction': prediction, // Include original AI prediction
+        };
+        debugPrint('✅ Using database disease: ${diseaseData['display_name']}');
+      } else {
+        // Fallback data when no database match is found
+        diseaseData = {
+          'class_name': className,
+          'display_name': prediction['displayName'] ?? className,
+          'description': 'This disease was detected by our AI model. For detailed information about this condition, please consult with a plant pathologist or agricultural expert.',
+          'treatment': 'Treatment recommendations are not available in our database for this specific condition. We recommend consulting with local agricultural experts or plant pathologists for appropriate treatment options.',
+          'confidence': prediction['confidence'] ?? 0.0,
+          'ai_prediction': prediction,
+        };
+        debugPrint('⚠️ Using fallback data for: ${diseaseData['display_name']}');
+      }
+
+      debugPrint('➡️ Navigating to disease details with complete data');
+
+      // Navigate to disease details screen with rich data
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DiseaseDetailsScreen(disease: diseaseData),
+          ),
+        );
+      }
+    } catch (error) {
+      debugPrint('❌ Error fetching disease details: $error');
+
+      // Show error message and navigate with basic data
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not load detailed information: ${error.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+
+        // Still navigate with basic prediction data
+        final fallbackData = {
+          'class_name': prediction['className'] ?? '',
+          'display_name': prediction['displayName'] ?? prediction['className'] ?? '',
+          'description': 'Disease information could not be loaded from the database.',
+          'treatment': 'Please consult with a plant pathologist or agricultural expert.',
+          'confidence': prediction['confidence'] ?? 0.0,
+          'ai_prediction': prediction,
+        };
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DiseaseDetailsScreen(disease: fallbackData),
+          ),
+        );
+      }
     }
   }
 
@@ -438,9 +525,51 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Recommendations',
-            style: AppTypography.headlineMedium,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recommendations',
+                style: AppTypography.headlineMedium,
+              ),
+              // Add "View More" button for disease cases
+              if (!isHealthy && topPrediction != null)
+                GestureDetector(
+                  onTap: () => _navigateToDiseaseDetails(topPrediction),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.primaryGreen,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View More',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 12,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: AppDimensions.spacingLg),
           if (isHealthy) ...[
