@@ -115,9 +115,7 @@ class ProfileScreen extends StatelessWidget {
             CustomButton(
               text: 'Edit Profile',
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit profile coming soon')),
-                );
+                context.push(RouteNames.editProfile);
               },
               type: ButtonType.secondary,
             ),

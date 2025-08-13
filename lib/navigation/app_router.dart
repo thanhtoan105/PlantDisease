@@ -16,6 +16,7 @@ import '../features/home/screens/crop_details_screen.dart';
 import '../features/home/screens/disease_details_screen.dart';
 import '../features/ai_scan/screens/ai_scan_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
+import '../features/profile/screens/edit_profile_screen.dart';
 import '../shared/widgets/loading_spinner.dart';
 import 'route_names.dart';
 
@@ -155,6 +156,10 @@ class AppRouter {
           final disease = state.extra as Map<String, dynamic>? ?? {};
           return DiseaseDetailsScreen(disease: disease);
         },
+      ),
+      GoRoute(
+        path: RouteNames.editProfile,
+        builder: (context, state) => const EditProfileScreen(),
       ),
     ],
   );

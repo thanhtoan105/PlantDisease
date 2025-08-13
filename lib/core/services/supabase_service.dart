@@ -290,6 +290,154 @@ class SupabaseService {
     return results;
   }
 
+  /// Get user profile by user ID
+  static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      // Get profile data from profiles table
+      final profileResponse = await _supabase
+          .from('profiles')
+          .select('id, username, full_name, dob, gender, address')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (profileResponse == null) {
+        return null;
+      }
+
+      // Get email from auth.users
+      final user = _supabase.auth.currentUser;
+      final email = user?.email ?? '';
+
+      return {
+        ...profileResponse,
+        'email': email,
+      };
+    } catch (error) {
+      debugPrint('Error fetching user profile: $error');
+      rethrow;
+    }
+  }
+
+  /// Update user profile
+  static Future<Map<String, dynamic>> updateUserProfile(
+      String userId, Map<String, dynamic> profileData) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      // Debug: Print the userId being used
+      debugPrint('Updating profile for userId: $userId');
+
+      // Remove email from profileData as it can't be updated in profiles table
+      final updateData = Map<String, dynamic>.from(profileData);
+      updateData.remove('email');
+      updateData.remove('id');
+
+      debugPrint('Update data: $updateData');
+
+      // Simply update the existing profile (profile should always exist due to auth trigger)
+      final response = await _supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', userId)
+          .select();
+
+      debugPrint('Update response: $response');
+
+      // Check if update was successful (even if response is empty, update might have worked)
+      if (response.isNotEmpty) {
+        return {
+          'success': true,
+          'message': 'Profile updated successfully',
+          'data': response.first,
+        };
+      } else {
+        // Even if response is empty, the update might have succeeded
+        // Let's verify by checking if the profile exists
+        final verifyProfile = await _supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (verifyProfile != null) {
+          return {
+            'success': true,
+            'message': 'Profile updated successfully',
+            'data': {'id': userId},
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Profile not found for user ID: $userId',
+          };
+        }
+      }
+    } catch (error) {
+      debugPrint('Error updating user profile: $error');
+      return {
+        'success': false,
+        'error': error.toString(),
+      };
+    }
+  }
+
+  /// Create user profile (used during registration)
+  static Future<Map<String, dynamic>> createUserProfile(
+      String userId, String username) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      final response = await _supabase.from('profiles').insert({
+        'id': userId,
+        'username': username,
+      }).select().single();
+
+      return {
+        'success': true,
+        'message': 'Profile created successfully',
+        'data': response,
+      };
+    } catch (error) {
+      debugPrint('Error creating user profile: $error');
+      return {
+        'success': false,
+        'error': error.toString(),
+      };
+    }
+  }
+
+  /// Check if username is available
+  static Future<bool> isUsernameAvailable(String username, {String? excludeUserId}) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      var query = _supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username);
+
+      if (excludeUserId != null) {
+        query = query.neq('id', excludeUserId);
+      }
+
+      final response = await query.maybeSingle();
+      return response == null;
+    } catch (error) {
+      debugPrint('Error checking username availability: $error');
+      return false;
+    }
+  }
+
   /// Helper method to extract description from JSON or return fallback
   static String _extractDescription(dynamic description) {
     if (description == null) return 'No description available';

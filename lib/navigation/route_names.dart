@@ -28,6 +28,7 @@ class RouteNames {
 
   // Profile stack routes
   static const String profileDetails = '/profile-details';
+  static const String editProfile = '/edit-profile';
   static const String databaseSetup = '/database-setup';
   static const String databaseTest = '/database-test';
 
