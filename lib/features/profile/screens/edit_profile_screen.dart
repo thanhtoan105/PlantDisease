@@ -18,7 +18,6 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -26,7 +25,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedGender;
   DateTime? _selectedDate;
   String _userEmail = '';
-  bool _isLoading = false;
   bool _isLoadingProfile = true;
 
   final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
@@ -95,16 +93,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.primaryGreen,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -160,7 +148,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           : Padding(
               padding: EdgeInsets.all(AppDimensions.spacingMd),
               child: Form(
-                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -183,16 +170,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Text(
-                'Personal Information',
-                style: AppTypography.headlineSmall.copyWith(
-                  color: AppColors.darkGray,
-                ),
-              ),
-            ),
-            SizedBox(height: AppDimensions.spacingMd),
-
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -465,11 +442,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _buildSaveButton() {
     return CustomButton(
-      text: _isLoading ? 'Saving...' : 'Save Changes',
-      onPressed: _isLoading ? null : _saveProfile,
+      text: 'Save Changes',
+      onPressed: _saveProfile,
       type: ButtonType.primary,
-      isLoading: _isLoading,
-      disabled: _isLoading,
     );
   }
 }
