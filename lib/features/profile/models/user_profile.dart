@@ -1,6 +1,5 @@
 class UserProfile {
   final String id;
-  final String username;
   final String? fullName;
   final DateTime? dateOfBirth;
   final String? gender;
@@ -9,7 +8,6 @@ class UserProfile {
 
   UserProfile({
     required this.id,
-    required this.username,
     this.fullName,
     this.dateOfBirth,
     this.gender,
@@ -20,7 +18,6 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id'],
-      username: json['username'],
       fullName: json['full_name'],
       dateOfBirth: json['dob'] != null ? DateTime.parse(json['dob']) : null,
       gender: json['gender'],
@@ -32,7 +29,6 @@ class UserProfile {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'username': username,
       'full_name': fullName,
       'dob': dateOfBirth?.toIso8601String().split('T')[0], // Format as date only
       'gender': gender,
@@ -42,7 +38,6 @@ class UserProfile {
 
   UserProfile copyWith({
     String? id,
-    String? username,
     String? fullName,
     DateTime? dateOfBirth,
     String? gender,
@@ -51,7 +46,6 @@ class UserProfile {
   }) {
     return UserProfile(
       id: id ?? this.id,
-      username: username ?? this.username,
       fullName: fullName ?? this.fullName,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,

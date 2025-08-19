@@ -300,7 +300,7 @@ class SupabaseService {
       // Get profile data from profiles table
       final profileResponse = await _supabase
           .from('profiles')
-          .select('id, username, full_name, dob, gender, address')
+          .select('id, full_name, dob, gender, address')
           .eq('id', userId)
           .maybeSingle();
 

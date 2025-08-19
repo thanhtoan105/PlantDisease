@@ -18,7 +18,6 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _usernameController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _addressController = TextEditingController();
 
@@ -37,7 +36,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
     _fullNameController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -57,7 +55,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (profileData != null) {
         setState(() {
-          _usernameController.text = profileData['username'] ?? '';
           _fullNameController.text = profileData['full_name'] ?? '';
           _addressController.text = profileData['address'] ?? '';
           _selectedGender = profileData['gender'];
@@ -178,10 +175,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildEmailField(),
                     SizedBox(height: AppDimensions.spacingMd),
 
-                    // Username Field
-                    _buildUsernameField(),
-                    SizedBox(height: AppDimensions.spacingMd),
-
                     // Full Name Field
                     _buildFullNameField(),
                     SizedBox(height: AppDimensions.spacingMd),
@@ -252,43 +245,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUsernameField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Username *',
-          style: AppTypography.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.darkGray,
-          ),
-        ),
-        SizedBox(height: AppDimensions.spacingSm),
-        TextFormField(
-          controller: _usernameController,
-          decoration: InputDecoration(
-            hintText: 'Enter your username',
-            prefixIcon: const Icon(Icons.person_outline),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-            ),
-            filled: true,
-            fillColor: AppColors.white,
-          ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Username is required';
-            }
-            if (value.trim().length < 3) {
-              return 'Username must be at least 3 characters';
-            }
-            return null;
-          },
         ),
       ],
     );

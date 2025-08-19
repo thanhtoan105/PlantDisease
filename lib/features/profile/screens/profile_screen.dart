@@ -26,22 +26,24 @@ class ProfileScreen extends StatelessWidget {
         builder: (context, authProvider, child) {
           return Padding(
             padding: const EdgeInsets.all(AppDimensions.spacingLg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // User Information
-                _buildUserInformation(context, authProvider),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // User Information
+                  _buildUserInformation(context, authProvider),
 
-                const SizedBox(height: AppDimensions.spacingLg),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
-                // Combined Settings and App Info
-                _buildCombinedOptions(context),
+                  // Combined Settings and App Info
+                  _buildCombinedOptions(context),
 
-                const Spacer(),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
-                // Sign In/Logout Button
-                _buildAuthButton(context, authProvider),
-              ],
+                  // Sign In/Logout Button
+                  _buildAuthButton(context, authProvider),
+                ],
+              ),
             ),
           );
         },
