@@ -166,14 +166,14 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
           color: hasValue
               ? AppColors.primaryGreen
               : isCurrent
-                  ? AppColors.primaryGreen.withOpacity(0.5)
+                  ? AppColors.primaryGreen.withValues(alpha: 0.5)
                   : AppColors.lightGray,
           width: hasValue || isCurrent ? 2 : 1,
         ),
         boxShadow: (hasValue || isCurrent)
             ? [
                 BoxShadow(
-                  color: AppColors.primaryGreen.withOpacity(0.1),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

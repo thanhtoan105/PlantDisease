@@ -36,7 +36,7 @@ class ProfileOptionCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withOpacity(0.1),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
                     borderRadius:
                         BorderRadius.circular(AppDimensions.borderRadiusMedium),
                   ),

@@ -5,7 +5,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../shared/widgets/custom_button.dart';
-import '../../../shared/utils/exit_confirmation_dialog.dart';
 import '../../../navigation/route_names.dart';
 import '../../../shared/utils/custom_snackbars.dart';
 
