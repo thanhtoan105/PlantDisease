@@ -9,6 +9,7 @@ import '../../../core/services/supabase_service.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/custom_card.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -81,22 +82,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     // Show coming soon message instead of actual save logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('This function is coming soon'),
-        backgroundColor: AppColors.primaryGreen,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbars.showInfo(
+      context: context,
+      message: 'This function is coming soon',
     );
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbars.showError(
+      context: context,
+      message: message,
     );
   }
 

@@ -1,23 +1,13 @@
 import 'package:flutter/material.dart';
+import 'custom_dialogs.dart';
 
 Future<bool> showExitConfirmationDialog(BuildContext context) async {
-  final shouldExit = await showDialog<bool>(
+  final shouldExit = await CustomDialogs.showConfirmDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Exit App'),
-      content: const Text('Do you really want to exit the app?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Exit'),
-        ),
-      ],
-    ),
+    title: 'Exit App',
+    message: 'Do you really want to exit the app?',
+    confirmText: 'Exit',
+    cancelText: 'Cancel',
   );
   return shouldExit ?? false;
 }
-

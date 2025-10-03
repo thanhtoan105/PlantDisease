@@ -8,6 +8,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/utils/exit_confirmation_dialog.dart';
 import '../../../navigation/route_names.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -194,8 +195,9 @@ class _SignInScreenState extends State<SignInScreen> {
       );
       if (result['success']) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'])),
+          CustomSnackbars.showSuccess(
+            context: context,
+            message: result['message'],
           );
           // No manual navigation here
         }
@@ -204,15 +206,17 @@ class _SignInScreenState extends State<SignInScreen> {
           final errorMsg = result['error'];
 
           // Show error message without special handling
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg)),
+          CustomSnackbars.showError(
+            context: context,
+            message: errorMsg,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign in failed: $e')),
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Sign in failed: $e',
         );
       }
     } finally {

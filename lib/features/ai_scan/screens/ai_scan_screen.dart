@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/services/camera_service.dart';
 import '../../../core/services/tensorflow_service.dart';
 import '../../../core/services/weather_service.dart';
+import '../../../shared/utils/custom_dialogs.dart';
 
 import 'results_screen.dart';
 import 'crop_image_screen.dart';
@@ -336,25 +337,13 @@ class _AiScanScreenState extends State<AiScanScreen>
   }
 
   void _showModelFileDialog() {
-    showDialog(
+    CustomDialogs.showInfoDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('AI Model Required'),
-          content: const Text(
-            'The AI model file is missing. To use plant disease detection, please:\n\n'
-            '1. Add the tomato_model_final.tflite file to assets/models/\n'
-            '2. Restart the app\n\n'
-            'The app can still be used for other features.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
+      title: 'AI Model Required',
+      message: 'The AI model file is missing. To use plant disease detection, please:\n\n'
+          '1. Add the tomato_model_final.tflite file to assets/models/\n'
+          '2. Restart the app\n\n'
+          'The app can still be used for other features.',
     );
   }
 

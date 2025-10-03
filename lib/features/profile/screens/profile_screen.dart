@@ -8,6 +8,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/utils/custom_dialogs.dart';
 import '../widgets/profile_option_card.dart';
 import '../../../navigation/route_names.dart';
 
@@ -180,22 +181,12 @@ class ProfileScreen extends StatelessWidget {
       onPressed: () async {
         if (authProvider.isAuthenticated) {
           // Show logout confirmation
-          final shouldLogout = await showDialog<bool>(
+          final shouldLogout = await CustomDialogs.showConfirmDialog(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Logout'),
-              content: const Text('Are you sure you want to logout?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Logout'),
-                ),
-              ],
-            ),
+            title: 'Logout',
+            message: 'Are you sure you want to logout?',
+            confirmText: 'Logout',
+            cancelText: 'Cancel',
           );
 
           if (shouldLogout == true) {

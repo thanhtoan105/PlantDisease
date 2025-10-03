@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 import '../../../navigation/route_names.dart';
 
 class VerifyOtpScreen extends StatefulWidget {
@@ -320,11 +321,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     _focusNode.requestFocus();
 
     // Show resend message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Verification code resent to your email'),
-        backgroundColor: AppColors.success,
-      ),
+    CustomSnackbars.showSuccess(
+      context: context,
+      message: 'Verification code resent to your email',
     );
   }
 }

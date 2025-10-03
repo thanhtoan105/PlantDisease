@@ -13,6 +13,7 @@ import '../widgets/weather_widget.dart';
 import '../widgets/crop_card.dart';
 import 'search_screen.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToAIScan;
@@ -158,8 +159,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   return GestureDetector(
                     onTap: () {
                       // TODO: Navigate to full crops library screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Full crops library coming soon')),
+                      CustomSnackbars.showInfo(
+                        context: context,
+                        message: 'Full crops library coming soon',
                       );
                     },
                     child: Text(

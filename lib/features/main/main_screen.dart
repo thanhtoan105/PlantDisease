@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../shared/utils/custom_dialogs.dart';
 import '../home/screens/home_screen.dart';
 import '../ai_scan/screens/disease_scanner_screen.dart';
 import '../profile/screens/profile_screen.dart';
@@ -37,22 +38,12 @@ class _MainScreenState extends State<MainScreen> {
     return WillPopScope(
       onWillPop: () async {
         // Only prompt if at root (no navigation stack to pop)
-        final shouldExit = await showDialog<bool>(
+        final shouldExit = await CustomDialogs.showConfirmDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Exit App'),
-            content: const Text('Do you really want to exit the app?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Exit'),
-              ),
-            ],
-          ),
+          title: 'Exit App',
+          message: 'Do you really want to exit the app?',
+          confirmText: 'Exit',
+          cancelText: 'Cancel',
         );
         return shouldExit ?? false;
       },

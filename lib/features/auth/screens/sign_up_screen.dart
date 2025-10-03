@@ -7,6 +7,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/utils/exit_confirmation_dialog.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -252,8 +253,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to the terms')),
+      CustomSnackbars.showWarning(
+        context: context,
+        message: 'Please agree to the terms',
       );
       return;
     }
@@ -271,23 +273,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (result['success']) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'])),
+          CustomSnackbars.showSuccess(
+            context: context,
+            message: result['message'],
           );
           // Navigate to main app
           context.go('/');
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'])),
+          CustomSnackbars.showError(
+            context: context,
+            message: result['error'],
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign up failed: $e')),
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Sign up failed: $e',
         );
       }
     } finally {

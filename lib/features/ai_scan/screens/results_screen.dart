@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../home/screens/disease_details_screen.dart';
@@ -186,11 +187,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
       // Show error message and navigate with basic data
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not load detailed information: ${error.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Could not load detailed information: ${error.toString()}',
         );
 
         // Still navigate with basic prediction data

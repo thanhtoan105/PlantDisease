@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/utils/custom_dialogs.dart';
 import 'ai_scan_screen.dart';
 import 'scan_history_screen.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
@@ -59,32 +60,9 @@ class _DiseaseScannerScreenState extends State<DiseaseScannerScreen>
   }
 
   void _showComingSoonDialog(String feature) {
-    showDialog(
+    CustomDialogs.showComingSoonDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Coming Soon',
-          style: AppTypography.headlineMedium.copyWith(
-            color: AppColors.primaryGreen,
-          ),
-        ),
-        content: Text(
-          '$feature feature is coming soon! Stay tuned for updates.',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'OK',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+      feature: feature,
     );
   }
 
@@ -408,32 +386,11 @@ class _DiseaseScannerScreenState extends State<DiseaseScannerScreen>
   }
 
   void _showInfoDialog() {
-    showDialog(
+    CustomDialogs.showInfoDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'About Disease Scanner',
-          style: AppTypography.headlineMedium.copyWith(
-            color: AppColors.primaryGreen,
-          ),
-        ),
-        content: Text(
-          'This is an AI-powered scanner to detect diseases on plant.',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Got it',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+      title: 'About Disease Scanner',
+      message: 'This is an AI-powered scanner to detect diseases on plant.',
+      buttonText: 'Got it',
     );
   }
 }

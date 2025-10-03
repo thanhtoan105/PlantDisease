@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 import '../../../navigation/route_names.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -172,43 +173,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             }
           } else {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(resetResult['message'] ?? 'Failed to send verification code'),
-                  backgroundColor: AppColors.error,
-                ),
+              CustomSnackbars.showError(
+                context: context,
+                message: resetResult['message'] ?? 'Failed to send verification code',
               );
             }
           }
         } else {
           // Email doesn't exist
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(emailCheckResult['message'] ?? 'Your account has not been created yet!'),
-                backgroundColor: AppColors.error,
-              ),
+            CustomSnackbars.showError(
+              context: context,
+              message: emailCheckResult['message'] ?? 'Your account has not been created yet!',
             );
           }
         }
       } else {
         // Error checking email
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(emailCheckResult['message'] ?? 'Failed to verify email'),
-              backgroundColor: AppColors.error,
-            ),
+          CustomSnackbars.showError(
+            context: context,
+            message: emailCheckResult['message'] ?? 'Failed to verify email',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Your account has not been created yet!'),
-            backgroundColor: AppColors.error,
-          ),
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Your account has not been created yet!',
         );
       }
     } finally {

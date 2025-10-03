@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class ScanHistory {
   final int id;
@@ -66,7 +67,7 @@ class ScanHistory {
         }
       }
     } catch (e) {
-      print('Error parsing detected_diseases: $e');
+      debugPrint('Error parsing detected_diseases: $e');
       if (json['detected_diseases'] != null) {
         detectedDiseases = [json['detected_diseases'].toString()];
       }
@@ -100,7 +101,7 @@ class ScanHistory {
         locationData = jsonDecode(rawLocationData);
       }
     } catch (e) {
-      print('Error parsing location_data: $e');
+      debugPrint('Error parsing location_data: $e');
       // Create a basic location object from the error message if possible
       if (json['location_data'] != null) {
         String locText = json['location_data'].toString();

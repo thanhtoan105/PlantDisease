@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/weather_provider.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class WeatherWidget extends StatelessWidget {
   const WeatherWidget({super.key});
@@ -18,8 +19,9 @@ class WeatherWidget extends StatelessWidget {
               // Retry loading weather data
               weatherProvider.refreshWeatherData();
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Weather details coming soon')),
+              CustomSnackbars.showInfo(
+                context: context,
+                message: 'Weather details coming soon',
               );
             }
           },

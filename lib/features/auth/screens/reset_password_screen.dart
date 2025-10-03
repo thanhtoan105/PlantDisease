@@ -7,6 +7,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/utils/exit_confirmation_dialog.dart';
 import '../../../navigation/route_names.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
@@ -212,11 +213,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
       if (mounted) {
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The password has been reset!'),
-            backgroundColor: AppColors.success,
-          ),
+        CustomSnackbars.showSuccess(
+          context: context,
+          message: 'The password has been reset!',
         );
 
         // Navigate back to auth screen after a short delay
@@ -229,11 +228,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     } catch (e) {
       if (mounted) {
         // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to reset password: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Failed to reset password: ${e.toString()}',
         );
       }
     } finally {
