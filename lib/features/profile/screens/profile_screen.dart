@@ -152,7 +152,7 @@ class ProfileScreen extends StatelessWidget {
           title: 'About',
           subtitle: 'Learn more about this app',
           onTap: () {
-            // TODO: Navigate to about screen
+            context.push(RouteNames.about);
           },
         ),
         ProfileOptionCard(
@@ -160,7 +160,7 @@ class ProfileScreen extends StatelessWidget {
           title: 'Help & Support',
           subtitle: 'Get help and contact support',
           onTap: () {
-            // TODO: Navigate to help screen
+            context.push(RouteNames.helpSupport);
           },
         ),
         ProfileOptionCard(

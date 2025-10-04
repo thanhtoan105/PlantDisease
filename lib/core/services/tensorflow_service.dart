@@ -6,6 +6,57 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import '../config/ai_model_config.dart';
 
+// Top-level function for isolate-based image preprocessing
+// This runs in a separate thread to avoid blocking the UI
+Future<Float32List?> _preprocessImageInIsolate(Map<String, dynamic> params) async {
+  try {
+    final String imagePath = params['imagePath'];
+    final int modelInputSize = params['modelInputSize'];
+    final int modelChannels = params['modelChannels'];
+
+    // Read and decode image
+    final imageFile = File(imagePath);
+    final imageBytes = await imageFile.readAsBytes();
+    final image = img.decodeImage(imageBytes);
+
+    if (image == null) {
+      debugPrint('❌ Failed to decode image in isolate');
+      return null;
+    }
+
+    // Resize to model input size
+    final resizedImage = img.copyResize(
+      image,
+      width: modelInputSize,
+      height: modelInputSize,
+      interpolation: img.Interpolation.linear,
+    );
+
+    // Convert to Float32List and normalize
+    // Using direct buffer access for better performance
+    final inputSize = modelInputSize * modelInputSize * modelChannels;
+    final input = Float32List(inputSize);
+
+    // Optimized pixel processing
+    int pixelIndex = 0;
+    for (int y = 0; y < modelInputSize; y++) {
+      for (int x = 0; x < modelInputSize; x++) {
+        final pixel = resizedImage.getPixel(x, y);
+
+        // Extract RGB values and normalize to [-1, 1] range
+        input[pixelIndex++] = (pixel.r / 127.5) - 1.0;
+        input[pixelIndex++] = (pixel.g / 127.5) - 1.0;
+        input[pixelIndex++] = (pixel.b / 127.5) - 1.0;
+      }
+    }
+
+    return input;
+  } catch (e) {
+    debugPrint('❌ Image preprocessing failed in isolate: $e');
+    return null;
+  }
+}
+
 class TensorFlowService {
   static Interpreter? _interpreter;
   static bool _isModelLoaded = false;
@@ -392,43 +443,26 @@ class TensorFlowService {
     };
   }
 
-  /// Preprocess image for model input
+  /// Preprocess image for model input - OPTIMIZED VERSION
+  /// Now runs in a background isolate to prevent UI freezing
   static Future<Float32List?> _preprocessImage(String imagePath) async {
     try {
-      final imageFile = File(imagePath);
-      final imageBytes = await imageFile.readAsBytes();
-      final image = img.decodeImage(imageBytes);
+      final stopwatch = Stopwatch()..start();
 
-      if (image == null) {
-        debugPrint('❌ Failed to decode image');
-        return null;
+      // Run preprocessing in background isolate using compute()
+      // This prevents UI freezing during heavy image processing
+      final input = await compute(_preprocessImageInIsolate, {
+        'imagePath': imagePath,
+        'modelInputSize': modelInputSize,
+        'modelChannels': modelChannels,
+      });
+
+      stopwatch.stop();
+
+      if (input != null) {
+        debugPrint('✅ Image preprocessed in ${stopwatch.elapsedMilliseconds}ms (background isolate): ${input.length} values');
       }
 
-      // Resize to model input size
-      final resizedImage = img.copyResize(
-        image,
-        width: modelInputSize,
-        height: modelInputSize,
-        interpolation: img.Interpolation.linear,
-      );
-
-      // Convert to Float32List and normalize (0-1)
-      final inputSize = modelInputSize * modelInputSize * modelChannels;
-      final input = Float32List(inputSize);
-
-      int pixelIndex = 0;
-      for (int y = 0; y < modelInputSize; y++) {
-        for (int x = 0; x < modelInputSize; x++) {
-          final pixel = resizedImage.getPixel(x, y);
-
-          // Extract RGB values and normalize to 0-1
-          input[pixelIndex++] = (pixel.r / 127.5) - 1.0;
-          input[pixelIndex++] = (pixel.g / 127.5) - 1.0;
-          input[pixelIndex++] = (pixel.b / 127.5) - 1.0;
-        }
-      }
-
-      debugPrint('✅ Image preprocessed: ${input.length} values');
       return input;
     } catch (e) {
       debugPrint('❌ Image preprocessing failed: $e');

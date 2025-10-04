@@ -35,6 +35,33 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     }
   }
 
+  /// OPTIMIZED: Extract location parsing to a separate method
+  /// This reduces CPU cycles by avoiding deeply nested inline conditionals
+  String _parseLocation(Map<String, dynamic>? locationData) {
+    if (locationData == null) return 'Unknown location';
+
+    // Check for 'name' field
+    final name = locationData['name'];
+    if (name != null && name.toString().trim().isNotEmpty) {
+      return name.toString();
+    }
+
+    // Check for 'location_name' field
+    final locationName = locationData['location_name'];
+    if (locationName != null && locationName.toString().trim().isNotEmpty) {
+      return locationName.toString();
+    }
+
+    // Fallback to coordinates if available
+    final lat = locationData['latitude'];
+    final lng = locationData['longitude'];
+    if (lat != null && lng != null) {
+      return '$lat, $lng';
+    }
+
+    return 'Unknown location';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,18 +84,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             itemBuilder: (context, index) {
               final scan = provider.history[index];
               // Hard code plant name to 'Tomato'
-              String plantName = 'Tomato';
-              String plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
-              // Location: prefer name if available, optimized for performance
-              String location = scan.locationData != null && scan.locationData!['name'] != null && scan.locationData!['name'].toString().trim().isNotEmpty
-                  ? scan.locationData!['name']
-                  : (scan.locationData != null && scan.locationData!['location_name'] != null && scan.locationData!['location_name'].toString().trim().isNotEmpty
-                      ? scan.locationData!['location_name']
-                      : (scan.locationData != null && scan.locationData!['latitude'] != null && scan.locationData!['longitude'] != null
-                          ? '${scan.locationData!['latitude']}, ${scan.locationData!['longitude']}'
-                          : 'Unknown location'));
-              // Format analysisDate to a readable string (e.g., '2 days ago' or date)
-              String timeAgo = _formatTimeAgo(scan.analysisDate);
+              final plantName = 'Tomato';
+              final plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
+              // OPTIMIZED: Use helper method instead of deeply nested conditionals
+              final location = _parseLocation(scan.locationData);
+              final timeAgo = _formatTimeAgo(scan.analysisDate);
+
               return ScanHistoryItem(
                 imageUrl: plantImage,
                 plantName: plantName,

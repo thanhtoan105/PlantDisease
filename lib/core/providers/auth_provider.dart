@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,14 +33,11 @@ class AuthProvider extends ChangeNotifier {
   /// Initialize auth in background thread to prevent main thread blocking
   Future<void> _initializeAuthAsync() async {
     try {
-      debugPrint('🔄 Starting auth initialization in background...');
-      
-      // Use compute to run heavy operations in background
-      final result = await compute(_performInitializationInBackground, null);
-      
-      // Update state on main thread
-      _updateStateFromBackground(result);
-      
+      debugPrint('🔄 Starting auth initialization...');
+
+      // Perform initialization on main thread (Supabase session needs main thread)
+      await _performInitialization();
+
       debugPrint('✅ Auth initialization completed successfully');
     } catch (e) {
       debugPrint('❌ Auth initialization error: $e');
@@ -53,10 +49,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Background initialization function
-  static Future<Map<String, dynamic>> _performInitializationInBackground(dynamic _) async {
+  /// Perform initialization on main thread
+  Future<void> _performInitialization() async {
     try {
-      debugPrint('🔄 Performing initialization in background...');
+      debugPrint('🔄 Performing initialization...');
 
       // Check onboarding status and previous auth state
       final prefs = await SharedPreferences.getInstance();
@@ -67,61 +63,48 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('  - Onboarding completed: $onboardingCompleted');
       debugPrint('  - Was authenticated: $wasAuthenticated');
 
-      // Add a small delay to ensure Supabase is fully initialized
-      await Future.delayed(const Duration(milliseconds: 50));
-
-      // Check current session
-      final supabase = Supabase.instance.client;
-      final session = supabase.auth.currentSession;
-      bool isAuthenticated = false;
-      User? user;
-      Session? currentSession;
+      // Check current session (must be on main thread)
+      final session = _supabase.auth.currentSession;
 
       if (session != null) {
-        // If a session exists, assume the user is authenticated.
-        // The Supabase client will handle token refreshing automatically.
-        isAuthenticated = true;
-        user = session.user;
-        currentSession = session;
-        debugPrint('✅ Existing session restored successfully from local storage');
+        // If a session exists, restore the user state
+        _isAuthenticated = true;
+        _user = session.user;
+        _session = session;
+        _onboardingCompleted = true; // User with session should skip onboarding
+
+        // Ensure onboarding is marked as completed
+        if (!onboardingCompleted) {
+          await prefs.setBool('onboarding_completed', true);
+        }
+
+        debugPrint('✅ Existing session restored successfully');
+        debugPrint('  - User: ${session.user.email}');
       } else {
         debugPrint('ℹ️ No existing session found');
+        _isAuthenticated = false;
+        _user = null;
+        _session = null;
+        _onboardingCompleted = onboardingCompleted;
+
+        // If user was previously authenticated, they should skip onboarding
+        if (wasAuthenticated && !onboardingCompleted) {
+          debugPrint('📝 User was previously authenticated, marking onboarding as completed');
+          await prefs.setBool('onboarding_completed', true);
+          _onboardingCompleted = true;
+        }
       }
 
-      return {
-        'onboardingCompleted': onboardingCompleted,
-        'wasAuthenticated': wasAuthenticated,
-        'isAuthenticated': isAuthenticated,
-        'user': user,
-        'session': currentSession,
-      };
+      debugPrint('✅ Initialization state updated');
+      notifyListeners();
     } catch (e) {
-      debugPrint('Error in background initialization: $e');
-      return {
-        'onboardingCompleted': false,
-        'wasAuthenticated': false,
-        'isAuthenticated': false,
-        'user': null,
-        'session': null,
-      };
+      debugPrint('❌ Error in initialization: $e');
+      _onboardingCompleted = false;
+      _isAuthenticated = false;
+      _user = null;
+      _session = null;
+      rethrow;
     }
-  }
-
-  /// Update state from background initialization results
-  void _updateStateFromBackground(Map<String, dynamic> result) {
-    _onboardingCompleted = result['onboardingCompleted'] ?? false;
-    _isAuthenticated = result['isAuthenticated'] ?? false;
-    _user = result['user'];
-    _session = result['session'];
-
-    // If user was previously authenticated but no session exists,
-    // they should still skip onboarding but go to auth screen
-    if (result['wasAuthenticated'] == true && !_isAuthenticated && !_onboardingCompleted) {
-      debugPrint('📝 User was previously authenticated, marking onboarding as completed');
-      completeOnboarding();
-    }
-
-    debugPrint('✅ Background initialization state updated');
   }
 
   void _setupAuthListener() {

@@ -17,6 +17,8 @@ import '../features/home/screens/disease_details_screen.dart';
 import '../features/ai_scan/screens/ai_scan_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/edit_profile_screen.dart';
+import '../features/profile/screens/about_screen.dart';
+import '../features/profile/screens/help_support_screen.dart';
 import '../shared/widgets/loading_spinner.dart';
 import 'route_names.dart';
 
@@ -160,6 +162,14 @@ class AppRouter {
       GoRoute(
         path: RouteNames.editProfile,
         builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.about,
+        builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/help-support',
+        builder: (context, state) => const HelpSupportScreen(),
       ),
     ],
   );
