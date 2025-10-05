@@ -80,11 +80,68 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // Show coming soon message instead of actual save logic
-    CustomSnackbars.showInfo(
-      context: context,
-      message: 'This function is coming soon',
-    );
+    try {
+      // Validate inputs
+      final fullName = _fullNameController.text.trim();
+
+      if (fullName.isEmpty) {
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Please enter your full name',
+        );
+        return;
+      }
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primaryGreen,
+          ),
+        ),
+      );
+
+      // Get user ID
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.user?.id;
+
+      if (userId == null) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showErrorMessage('User not found');
+        return;
+      }
+
+      // Update profile in Supabase
+      await SupabaseService.updateUserProfile(
+        userId: userId,
+        fullName: fullName,
+        dateOfBirth: _selectedDate,
+        gender: _selectedGender,
+        address: _addressController.text.trim(),
+      );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show success message
+        CustomSnackbars.showSuccess(
+          context: context,
+          message: 'Profile updated successfully',
+        );
+
+        // Go back to previous screen
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      // Close loading dialog if still open
+      if (mounted) {
+        Navigator.of(context).pop();
+        _showErrorMessage('Failed to update profile: $error');
+      }
+    }
   }
 
   void _showErrorMessage(String message) {

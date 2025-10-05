@@ -321,6 +321,51 @@ class SupabaseService {
       rethrow;
     }
   }
+
+  /// Update user profile
+  static Future<void> updateUserProfile({
+    required String userId,
+    String? fullName,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
+  }) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      final updateData = <String, dynamic>{};
+
+      if (fullName != null) {
+        updateData['full_name'] = fullName;
+      }
+
+      if (dateOfBirth != null) {
+        updateData['dob'] = dateOfBirth.toIso8601String().split('T')[0];
+      }
+
+      if (gender != null) {
+        updateData['gender'] = gender;
+      }
+
+      if (address != null) {
+        updateData['address'] = address;
+      }
+
+      // Update the profile in the database
+      await _supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', userId);
+
+      debugPrint('✅ Profile updated successfully');
+    } catch (error) {
+      debugPrint('❌ Error updating user profile: $error');
+      rethrow;
+    }
+  }
+
   /// Helper method to extract description from JSON or return fallback
   static String _extractDescription(dynamic description) {
     if (description == null) return 'No description available';
