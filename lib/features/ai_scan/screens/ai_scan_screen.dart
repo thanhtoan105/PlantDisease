@@ -44,6 +44,7 @@ class _AiScanScreenState extends State<AiScanScreen>
   @override
   void initState() {
     super.initState();
+    _flashMode = FlashMode.off; // Always reset flash to OFF when entering this screen
     _initializeAnimations();
     _checkCameraPermission();
     _initializeServices();
@@ -181,8 +182,9 @@ class _AiScanScreenState extends State<AiScanScreen>
         ],
       );
 
-      // If user canceled cropping
+      // If user canceled cropping, reset flash and return
       if (croppedFile == null) {
+        if (mounted) setState(() => _flashMode = FlashMode.off);
         return;
       }
 
@@ -198,6 +200,7 @@ class _AiScanScreenState extends State<AiScanScreen>
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _flashMode = FlashMode.off); // Reset flash on error too
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Image processing error: $e')),
         );
