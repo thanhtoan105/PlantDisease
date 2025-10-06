@@ -344,7 +344,7 @@ class _AiScanScreenState extends State<AiScanScreen>
       context: context,
       title: 'AI Model Required',
       message: 'The AI model file is missing. To use plant disease detection, please:\n\n'
-          '1. Add the tomato_model_final.tflite file to assets/models/\n'
+          '1. Add the model.tflite file to assets/models/\n'
           '2. Restart the app\n\n'
           'The app can still be used for other features.',
     );

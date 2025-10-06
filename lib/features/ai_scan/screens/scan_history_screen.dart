@@ -3,9 +3,6 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../../core/providers/scan_history_provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/services/plant_service.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../models/scan_history.dart';
 import 'scan_history_item.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
@@ -91,6 +88,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
               final timeAgo = _formatTimeAgo(scan.analysisDate);
 
               return ScanHistoryItem(
+                scanId: scan.id,
                 imageUrl: plantImage,
                 plantName: plantName,
                 location: location,

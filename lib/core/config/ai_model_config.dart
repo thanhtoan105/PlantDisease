@@ -13,7 +13,7 @@ class AIModelConfig {
   static const int modelChannels = 3;
 
   /// Path to TensorFlow Lite model file
-  static const String modelPath = 'assets/models/tomato_model_final.tflite';
+  static const String modelPath = 'assets/models/model.tflite';
 
   /// Path to model labels file
   static const String labelsPath = 'assets/models/labels.txt';
