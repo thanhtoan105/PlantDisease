@@ -1,23 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/scan_history.dart';
 import 'scan_history_detail_screen.dart';
 
 class ScanHistoryItem extends StatelessWidget {
-  final int scanId;
   final String imageUrl;
   final String plantName;
   final String location;
   final String timeAgo;
   final String detectedDiseasesJson;
+  final ScanHistory scanHistory;
 
   const ScanHistoryItem({
     super.key,
-    required this.scanId,
     required this.imageUrl,
     required this.plantName,
     required this.location,
     required this.timeAgo,
     required this.detectedDiseasesJson,
+    required this.scanHistory,
   });
 
   @override
@@ -44,7 +45,7 @@ class ScanHistoryItem extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => ScanHistoryDetailScreen(
-                scanId: scanId,
+                scanHistory: scanHistory,
               ),
             ),
           );
@@ -59,7 +60,7 @@ class ScanHistoryItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Hero(
-                    tag: 'scan_image_$scanId',
+                    tag: 'scan_image_${scanHistory.id}',
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(

@@ -88,12 +88,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
               final timeAgo = _formatTimeAgo(scan.analysisDate);
 
               return ScanHistoryItem(
-                scanId: scan.id,
                 imageUrl: plantImage,
                 plantName: plantName,
                 location: location,
                 timeAgo: timeAgo,
                 detectedDiseasesJson: jsonEncode(scan.detectedDiseases),
+                scanHistory: scan,
               );
             },
           );

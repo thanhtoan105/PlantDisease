@@ -290,27 +290,6 @@ class SupabaseService {
     return results;
   }
 
-  /// Fetch a single scan history record by ID
-  /// Used for lazy loading in detail screen
-  static Future<Map<String, dynamic>> getScanHistoryById(int scanId) async {
-    if (!isConfigured()) {
-      throw Exception('Supabase not configured');
-    }
-
-    try {
-      final response = await _supabase
-          .from('analysis_results')
-          .select()
-          .eq('id', scanId)
-          .single();
-
-      return response as Map<String, dynamic>;
-    } catch (error) {
-      debugPrint('Error fetching scan history by ID: $error');
-      rethrow;
-    }
-  }
-
   /// Get user profile by user ID
   static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     if (!isConfigured()) {

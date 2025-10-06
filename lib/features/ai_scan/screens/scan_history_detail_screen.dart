@@ -2,58 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
-import '../../../core/services/supabase_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../models/scan_history.dart';
 
-/// Scan History Detail Screen with lazy loading
-/// Fetches scan data only when screen is opened for better performance
+/// Scan History Detail Screen
+/// Displays detailed information about a specific scan
 class ScanHistoryDetailScreen extends StatefulWidget {
-  final int scanId;
+  final ScanHistory scanHistory;
 
   const ScanHistoryDetailScreen({
-    Key? key,
-    required this.scanId,
-  }) : super(key: key);
+    super.key,
+    required this.scanHistory,
+  });
 
   @override
   State<ScanHistoryDetailScreen> createState() => _ScanHistoryDetailScreenState();
 }
 
 class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
-  ScanHistory? _scanData;
-  bool _isLoading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadScanDetails();
-  }
-
-  /// Lazy load scan details from Supabase
-  Future<void> _loadScanDetails() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-
-      final data = await SupabaseService.getScanHistoryById(widget.scanId);
-
-      setState(() {
-        _scanData = ScanHistory.fromJson(data);
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load scan details: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,69 +28,26 @@ class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
       appBar: CustomAppBar(
         title: 'Scan Details',
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryGreen,
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
+      body: Padding(
+        padding: const EdgeInsets.all(AppDimensions.spacingMd),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadScanDetails,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-              ),
-              child: const Text('Retry'),
-            ),
+            _buildPlantNameHeading(),
+            const SizedBox(height: AppDimensions.spacingMd),
+            _buildPlantImage(),
+            const SizedBox(height: AppDimensions.spacingMd),
+            _buildMetadataSection(),
+            const SizedBox(height: AppDimensions.spacingMd),
+            Expanded(child: _buildTopPredictionsSection()),
           ],
         ),
-      );
-    }
-
-    if (_scanData == null) {
-      return const Center(
-        child: Text('No data available'),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.spacingMd),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPlantNameHeading(),
-          const SizedBox(height: AppDimensions.spacingMd),
-          _buildPlantImage(),
-          const SizedBox(height: AppDimensions.spacingMd),
-          _buildMetadataSection(),
-          const SizedBox(height: AppDimensions.spacingMd),
-          Expanded(child: _buildTopPredictionsSection()),
-        ],
       ),
     );
   }
 
   Widget _buildPlantNameHeading() {
-    final plantName = _extractPlantNameFromDisease(_scanData!.firstLabel);
+    final plantName = _extractPlantNameFromDisease(widget.scanHistory.firstLabel);
 
     return Text(
       plantName,
@@ -147,7 +71,7 @@ class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
           borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
         ),
         child: Image.network(
-          _scanData!.imageUrl,
+          widget.scanHistory.imageUrl,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Container(
             color: Colors.grey[200],
@@ -181,9 +105,9 @@ class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
   }
 
   Widget _buildMetadataSection() {
-    final coordinates = _getCoordinates(_scanData!.locationData);
-    final formattedTime = _getFormattedDateTime(_scanData!.analysisDate);
-    final confidencePercentage = '${(_scanData!.firstConfidence * 100).toStringAsFixed(1)}%';
+    final coordinates = _getCoordinates(widget.scanHistory.locationData);
+    final formattedTime = _getFormattedDateTime(widget.scanHistory.analysisDate);
+    final confidencePercentage = '${(widget.scanHistory.firstConfidence * 100).toStringAsFixed(1)}%';
 
     return CustomCard(
       padding: AppDimensions.spacingSm,
@@ -284,7 +208,7 @@ class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
               height: 70,
               color: Colors.grey[200],
               child: Image.network(
-                _scanData!.imageUrl,
+                widget.scanHistory.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   color: Colors.grey[300],
@@ -381,7 +305,7 @@ class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
   List<Map<String, dynamic>> _getTopPredictions() {
     final predictions = <Map<String, dynamic>>[];
 
-    for (var disease in _scanData!.detectedDiseases) {
+    for (var disease in widget.scanHistory.detectedDiseases) {
       String label = '';
       double confidence = 0.0;
 
