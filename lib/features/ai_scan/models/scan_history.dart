@@ -90,36 +90,22 @@ class ScanHistory {
     Map<String, dynamic>? locationData;
     try {
       if (json['location_data'] != null) {
-        var rawLocationData = json['location_data'].toString();
-        // Check if it starts with '{' - if not, try to format it
-        if (!rawLocationData.trim().startsWith('{')) {
-          // Try to make it a proper JSON - if it's a key-value format
-          if (rawLocationData.contains(':')) {
-            rawLocationData = '{' + rawLocationData + '}';
-          }
+        final rawLocationData = json['location_data'];
+
+        // If it's already a Map, use it directly
+        if (rawLocationData is Map<String, dynamic>) {
+          locationData = rawLocationData;
+        } else if (rawLocationData is Map) {
+          locationData = Map<String, dynamic>.from(rawLocationData);
+        } else if (rawLocationData is String) {
+          // Only parse from string if it's actually a string
+          locationData = jsonDecode(rawLocationData) as Map<String, dynamic>;
         }
-        locationData = jsonDecode(rawLocationData);
       }
     } catch (e) {
       debugPrint('Error parsing location_data: $e');
-      // Create a basic location object from the error message if possible
-      if (json['location_data'] != null) {
-        String locText = json['location_data'].toString();
-        locationData = {'raw_data': locText};
-
-        // Try to extract latitude and longitude using regex
-        RegExp latRegex = RegExp(r'latitude: ([\d\.]+)');
-        RegExp lonRegex = RegExp(r'longitude: ([\d\.]+)');
-
-        var latMatch = latRegex.firstMatch(locText);
-        var lonMatch = lonRegex.firstMatch(locText);
-
-        if (latMatch != null && lonMatch != null) {
-          locationData['latitude'] = double.tryParse(latMatch.group(1) ?? '0') ?? 0;
-          locationData['longitude'] = double.tryParse(lonMatch.group(1) ?? '0') ?? 0;
-          locationData['address'] = 'Location data available';
-        }
-      }
+      debugPrint('Raw location_data: ${json['location_data']}');
+      locationData = null;
     }
 
     return ScanHistory(

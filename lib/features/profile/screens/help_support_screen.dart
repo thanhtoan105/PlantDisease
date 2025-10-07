@@ -23,11 +23,6 @@ class HelpSupportScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
-            _buildHeader(),
-
-            const SizedBox(height: AppDimensions.spacingXl),
-
             // Contact Us Section
             _buildContactSection(context),
 
@@ -35,59 +30,8 @@ class HelpSupportScreen extends StatelessWidget {
 
             // Feedback Section
             _buildFeedbackSection(context),
-
-            const SizedBox(height: AppDimensions.spacingLg),
-
-            // FAQ Section
-            _buildFAQSection(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Center(
-      child: Column(
-        children: [
-          // Support Icon
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen,
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusXlarge),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.support_agent,
-              size: 60,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          Text(
-            'How can we help you?',
-            style: AppTypography.headlineLarge.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryGreen,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacingSm),
-          Text(
-            'We\'re here to assist you with any questions or issues',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.mediumGray,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
@@ -279,101 +223,6 @@ class HelpSupportScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
                 ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFAQSection() {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppDimensions.spacingSm),
-                decoration: BoxDecoration(
-                  color: AppColors.successGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-                ),
-                child: const Icon(
-                  Icons.help_outline,
-                  color: AppColors.successGreen,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacingMd),
-              Text(
-                'Frequently Asked Questions',
-                style: AppTypography.headlineSmall.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          _buildFAQItem(
-            question: 'How accurate is the disease detection?',
-            answer: 'Our AI model has been trained on thousands of plant disease images and achieves high accuracy in identifying common plant diseases.',
-          ),
-          _buildFAQItem(
-            question: 'Can I use the app offline?',
-            answer: 'The disease detection feature requires an internet connection. However, you can view your scan history offline.',
-          ),
-          _buildFAQItem(
-            question: 'How do I save my scan results?',
-            answer: 'All your scans are automatically saved to your account. You can access them anytime from the AI Scan screen.',
-            isLast: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFAQItem({
-    required String question,
-    required String answer,
-    bool isLast = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isLast ? 0 : AppDimensions.spacingMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.question_answer,
-                size: 20,
-                color: AppColors.primaryGreen,
-              ),
-              const SizedBox(width: AppDimensions.spacingSm),
-              Expanded(
-                child: Text(
-                  question,
-                  style: AppTypography.bodyMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.darkNavy,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacingSm),
-          Padding(
-            padding: const EdgeInsets.only(left: 28),
-            child: Text(
-              answer,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.mediumGray,
-                height: 1.5,
               ),
             ),
           ),

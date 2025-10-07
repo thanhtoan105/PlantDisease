@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:convert';
 import '../../../core/providers/scan_history_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../models/scan_history.dart';
@@ -35,17 +34,26 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   /// OPTIMIZED: Extract location parsing to a separate method
   /// This reduces CPU cycles by avoiding deeply nested inline conditionals
   String _parseLocation(Map<String, dynamic>? locationData) {
-    if (locationData == null) return 'Unknown location';
+    if (locationData == null) {
+      debugPrint('Location data is null');
+      return 'Unknown location';
+    }
+
+    // Debug: Print the entire location data
+    debugPrint('Location data: $locationData');
 
     // Check for 'name' field
     final name = locationData['name'];
+    debugPrint('Name field: $name');
     if (name != null && name.toString().trim().isNotEmpty) {
+      debugPrint('Returning name: ${name.toString()}');
       return name.toString();
     }
 
     // Check for 'location_name' field
     final locationName = locationData['location_name'];
     if (locationName != null && locationName.toString().trim().isNotEmpty) {
+      debugPrint('Returning location_name: ${locationName.toString()}');
       return locationName.toString();
     }
 
@@ -53,9 +61,11 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final lat = locationData['latitude'];
     final lng = locationData['longitude'];
     if (lat != null && lng != null) {
+      debugPrint('Returning coordinates: $lat, $lng');
       return '$lat, $lng';
     }
 
+    debugPrint('Returning unknown location');
     return 'Unknown location';
   }
 
@@ -80,10 +90,21 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             itemCount: provider.history.length,
             itemBuilder: (context, index) {
               final scan = provider.history[index];
-              // Hard code plant name to 'Tomato'
+              
+              // Extract disease info
+              String diseaseResult = '';
+              double confidenceScore = 0.0;
+              
+              if (scan.detectedDiseases.isNotEmpty) {
+                final firstDisease = scan.detectedDiseases[0];
+                if (firstDisease is Map) {
+                  diseaseResult = firstDisease['disease']?.toString().trim() ?? '';
+                  confidenceScore = (firstDisease['confidence'] as num?)?.toDouble() ?? 0.0;
+                }
+              }
+              
               final plantName = 'Tomato';
               final plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
-              // OPTIMIZED: Use helper method instead of deeply nested conditionals
               final location = _parseLocation(scan.locationData);
               final timeAgo = _formatTimeAgo(scan.analysisDate);
 
@@ -92,8 +113,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                 plantName: plantName,
                 location: location,
                 timeAgo: timeAgo,
-                detectedDiseasesJson: jsonEncode(scan.detectedDiseases),
-                scanHistory: scan,
+                diseaseResult: diseaseResult,
+                confidenceScore: confidenceScore,
               );
             },
           );

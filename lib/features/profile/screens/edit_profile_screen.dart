@@ -26,7 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _userEmail = '';
   bool _isLoadingProfile = true;
 
-  final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
 
   @override
   void initState() {

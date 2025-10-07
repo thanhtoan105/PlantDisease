@@ -21,18 +21,13 @@ class AboutScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // App Logo and Name
+            // App Logo and Name (smaller)
             _buildAppHeader(),
-
-            const SizedBox(height: AppDimensions.spacingXl),
-
-            // App Description
-            _buildAppDescription(),
 
             const SizedBox(height: AppDimensions.spacingLg),
 
-            // Features Section
-            _buildFeaturesSection(),
+            // App Description
+            _buildAppDescription(),
 
             const SizedBox(height: AppDimensions.spacingLg),
 
@@ -48,39 +43,42 @@ class AboutScreen extends StatelessWidget {
     return Center(
       child: Column(
         children: [
-          // App Icon
+          // App Icon (using app-icon.png, bigger)
           Container(
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen,
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusXlarge),
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusLarge),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.eco,
-              size: 60,
-              color: AppColors.white,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusLarge),
+              child: Image.asset(
+                'assets/app-icon.png',
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          const SizedBox(height: AppDimensions.spacingLg),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
-            'PlantCare AI',
-            style: AppTypography.headlineLarge.copyWith(
+            'PlantCare',
+            style: AppTypography.headlineMedium.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.primaryGreen,
             ),
           ),
-          const SizedBox(height: AppDimensions.spacingSm),
+          const SizedBox(height: 4),
           Text(
             'Smart Plant Disease Detection',
-            style: AppTypography.bodyMedium.copyWith(
+            style: AppTypography.bodySmall.copyWith(
               color: AppColors.mediumGray,
             ),
           ),
@@ -105,132 +103,26 @@ class AboutScreen extends StatelessWidget {
                 child: const Icon(
                   Icons.info_outline,
                   color: AppColors.primaryGreen,
-                  size: 24,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: AppDimensions.spacingMd),
               Text(
                 'About This App',
-                style: AppTypography.headlineSmall.copyWith(
+                style: AppTypography.bodyLarge.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppDimensions.spacingLg),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'PlantCare AI is an innovative application designed for plant disease detection and monitoring. '
             'Using advanced artificial intelligence and machine learning technology, the app helps farmers, '
             'gardeners, and plant enthusiasts identify diseases early and take appropriate action to protect their crops.',
             style: AppTypography.bodyMedium.copyWith(
-              height: 1.6,
+              height: 1.5,
               color: AppColors.darkNavy,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturesSection() {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppDimensions.spacingSm),
-                decoration: BoxDecoration(
-                  color: AppColors.successGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-                ),
-                child: const Icon(
-                  Icons.stars,
-                  color: AppColors.successGreen,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacingMd),
-              Text(
-                'Key Features',
-                style: AppTypography.headlineSmall.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          _buildFeatureItem(
-            icon: Icons.camera_alt,
-            title: 'AI-Powered Detection',
-            description: 'Instantly identify plant diseases using your camera',
-          ),
-          _buildFeatureItem(
-            icon: Icons.history,
-            title: 'Scan History',
-            description: 'Track and review your previous scans',
-          ),
-          _buildFeatureItem(
-            icon: Icons.book,
-            title: 'Disease Database',
-            description: 'Comprehensive information about various plant diseases',
-          ),
-          _buildFeatureItem(
-            icon: Icons.medical_services,
-            title: 'Treatment Guidance',
-            description: 'Get recommended treatments and prevention tips',
-            isLast: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureItem({
-    required IconData icon,
-    required String title,
-    required String description,
-    bool isLast = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isLast ? 0 : AppDimensions.spacingMd,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: AppColors.primaryGreen,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppDimensions.spacingMd),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.bodyLarge.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.mediumGray,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
