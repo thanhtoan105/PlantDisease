@@ -271,17 +271,29 @@ class SupabaseService {
   /// Fetch all scan history for the current user
   static Future<List<Map<String, dynamic>>> getUserScanHistory({
     required String userId,
+    int? limit,
+    int? offset,
   }) async {
     if (userId.isEmpty) {
       throw Exception('User ID cannot be null or empty');
     }
 
-    // Get analysis results without trying to join with crops
-    final response = await _supabase
+    // Get analysis results with pagination support
+    var query = _supabase
         .from('analysis_results')
         .select()
         .eq('user_id', userId)
         .order('analysis_date', ascending: false);
+
+    // Apply pagination if specified
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+    if (offset != null) {
+      query = query.range(offset, offset + (limit ?? 10) - 1);
+    }
+
+    final response = await query;
 
     // Convert response to a properly typed list
     final results = List<Map<String, dynamic>>.from(response);
