@@ -42,9 +42,16 @@ class PlantService {
   }
 
   /// Search all content (crops and diseases)
+  /// Runs both searches in parallel for optimal performance
   static Future<Map<String, dynamic>> searchAll(String searchTerm) async {
-    final cropsResult = await searchCrops(searchTerm);
-    final diseasesResult = await searchDiseases(searchTerm);
+    // Run both searches concurrently instead of sequentially
+    final results = await Future.wait([
+      searchCrops(searchTerm),
+      searchDiseases(searchTerm),
+    ]);
+
+    final cropsResult = results[0];
+    final diseasesResult = results[1];
 
     final allResults = <Map<String, dynamic>>[];
 
@@ -53,8 +60,7 @@ class PlantService {
     }
 
     if (diseasesResult['success']) {
-      allResults
-          .addAll(List<Map<String, dynamic>>.from(diseasesResult['data']));
+      allResults.addAll(List<Map<String, dynamic>>.from(diseasesResult['data']));
     }
 
     return {

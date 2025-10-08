@@ -22,7 +22,7 @@ class CameraService {
   static const int IMAGE_QUALITY = AIModelConfig.imageQuality;
 
   // 🎯 FEATURE TOGGLE: Comment this line to disable gallery saving
-  static const bool _enableGallerySaving = true;
+  static const bool _enableGallerySaving = false;
 
   /// Initialize camera service
   static Future<bool> initialize() async {
@@ -99,10 +99,10 @@ class CameraService {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: imagePath,
         compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 90,
+        compressQuality: 100,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Crop Plant Image',
+            toolbarTitle: 'Crop Image',
             toolbarColor: const Color(0xFF2E7D32),
             toolbarWidgetColor: Colors.white,
             backgroundColor: Colors.black,
@@ -122,7 +122,7 @@ class CameraService {
             ],
           ),
           IOSUiSettings(
-            title: 'Crop Plant Image',
+            title: 'Crop Image',
             aspectRatioLockEnabled: false,
             resetAspectRatioEnabled: true,
             aspectRatioPickerButtonHidden: false,
