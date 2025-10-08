@@ -109,39 +109,6 @@ class WeatherService {
     }
   }
 
-  /// Get weather forecast for coordinates using One Call API 3.0
-  static Future<Map<String, dynamic>> getWeatherForecast(
-    double latitude,
-    double longitude,
-  ) async {
-    try {
-      final url = Uri.parse(
-        '$_baseUrl/onecall?lat=$latitude&lon=$longitude&appid=$_apiKey&units=metric&exclude=minutely,alerts',
-      );
-
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'success': true,
-          'data': _processOneCallForecastData(data),
-        };
-      } else {
-        return {
-          'success': false,
-          'error': 'Failed to fetch forecast data: ${response.statusCode}',
-        };
-      }
-    } catch (e) {
-      debugPrint('Forecast API error: $e');
-      return {
-        'success': false,
-        'error': e.toString(),
-      };
-    }
-  }
-
   /// Get current location with progressive timeout and fallback
   static Future<Map<String, dynamic>> getCurrentLocation() async {
     try {
@@ -313,10 +280,6 @@ class WeatherService {
         'icon': '03d',
         'humidity': 65,
         'windSpeed': 5.2,
-        'pressure': 1012,
-        'visibility': 10000,
-        'sunrise': DateTime.now().subtract(const Duration(hours: 6)),
-        'sunset': DateTime.now().add(const Duration(hours: 6)),
         'location': 'Sample Location',
         'country': 'Sample Country',
         'timestamp': DateTime.now(),
@@ -375,70 +338,9 @@ class WeatherService {
       'icon': current['weather'][0]['icon'],
       'humidity': current['humidity'],
       'windSpeed': (current['wind_speed'] as num).toDouble(),
-      'pressure': current['pressure'],
-      'visibility': current['visibility'] ?? 10000,
-      'uvIndex': current['uvi'] ?? 0,
-      'cloudiness': current['clouds'] ?? 0,
-      'sunrise': DateTime.fromMillisecondsSinceEpoch(current['sunrise'] * 1000),
-      'sunset': DateTime.fromMillisecondsSinceEpoch(current['sunset'] * 1000),
-      'location':
-          'Current Location', // One Call API doesn't provide location name
-      'country': '', // One Call API doesn't provide country
       'timestamp': DateTime.now(),
       'latitude': data['lat'],
       'longitude': data['lon'],
-    };
-  }
-
-  /// Process forecast data from One Call API 3.0
-  static Map<String, dynamic> _processOneCallForecastData(
-      Map<String, dynamic> data) {
-    final hourlyForecasts =
-        (data['hourly'] as List? ?? []).take(48).map((item) {
-      return {
-        'timestamp': DateTime.fromMillisecondsSinceEpoch(item['dt'] * 1000),
-        'temperature': (item['temp'] as num).round(),
-        'feelsLike': (item['feels_like'] as num).round(),
-        'description': item['weather'][0]['description'],
-        'icon': item['weather'][0]['icon'],
-        'humidity': item['humidity'],
-        'windSpeed': (item['wind_speed'] as num).toDouble(),
-        'pressure': item['pressure'],
-        'pop': ((item['pop'] as num? ?? 0) * 100)
-            .round(), // Probability of precipitation
-        'uvIndex': item['uvi'] ?? 0,
-        'cloudiness': item['clouds'] ?? 0,
-      };
-    }).toList();
-
-    final dailyForecasts = (data['daily'] as List? ?? []).take(8).map((item) {
-      return {
-        'timestamp': DateTime.fromMillisecondsSinceEpoch(item['dt'] * 1000),
-        'temperature': (item['temp']['day'] as num).round(),
-        'tempMin': (item['temp']['min'] as num).round(),
-        'tempMax': (item['temp']['max'] as num).round(),
-        'feelsLike': (item['feels_like']['day'] as num).round(),
-        'description': item['weather'][0]['description'],
-        'icon': item['weather'][0]['icon'],
-        'humidity': item['humidity'],
-        'windSpeed': (item['wind_speed'] as num).toDouble(),
-        'pressure': item['pressure'],
-        'pop': ((item['pop'] as num? ?? 0) * 100).round(),
-        'uvIndex': item['uvi'] ?? 0,
-        'cloudiness': item['clouds'] ?? 0,
-        'sunrise': DateTime.fromMillisecondsSinceEpoch(item['sunrise'] * 1000),
-        'sunset': DateTime.fromMillisecondsSinceEpoch(item['sunset'] * 1000),
-      };
-    }).toList();
-
-    return {
-      'location': {
-        'latitude': data['lat'],
-        'longitude': data['lon'],
-        'timezone': data['timezone'],
-      },
-      'hourlyForecasts': hourlyForecasts,
-      'dailyForecasts': dailyForecasts,
     };
   }
 }

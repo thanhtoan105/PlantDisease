@@ -432,17 +432,6 @@ class TensorFlowService {
     }
   }
 
-  /// Get performance information
-  static Map<String, dynamic> getPerformanceInfo() {
-    return {
-      'isUsingGPU': _isUsingGPU,
-      'threadCount': _optimalThreadCount,
-      'isModelLoaded': _isModelLoaded,
-      'processorCount': Platform.numberOfProcessors,
-      'platform': Platform.operatingSystem,
-    };
-  }
-
   /// Preprocess image for model input - OPTIMIZED VERSION
   /// Now runs in a background isolate to prevent UI freezing
   static Future<Float32List?> _preprocessImage(String imagePath) async {
