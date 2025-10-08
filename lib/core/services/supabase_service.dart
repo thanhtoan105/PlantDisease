@@ -48,36 +48,20 @@ class SupabaseService {
     }
 
     try {
-      // First get all crops
-      final cropsResponse = await _supabase
-          .from('crops')
-          .select('id, name, scientific_name, description, image_url')
-          .order('name');
+      // Use database function for efficient single query instead of N+1 queries
+      final response = await _supabase.rpc('get_all_crops_with_counts');
 
-      // Get disease counts for each crop
-      final List<Map<String, dynamic>> cropsWithCounts = [];
-
-      for (final crop in cropsResponse) {
-        // Get disease count for this crop
-        final diseaseCountResponse = await _supabase
-            .from('diseases')
-            .select('id')
-            .eq('crop_id', crop['id']);
-
-        final diseaseCount = diseaseCountResponse.length;
-
-        cropsWithCounts.add({
+      return response.map<Map<String, dynamic>>((crop) {
+        return {
           'id': crop['id'].toString(),
           'name': crop['name'],
           'scientificName': crop['scientific_name'],
           'description': _extractDescription(crop['description']),
           'emoji': _getCropEmoji(crop['name']),
-          'diseaseCount': diseaseCount,
+          'diseaseCount': crop['disease_count'] ?? 0,
           'image_url': crop['image_url'],
-        });
-      }
-
-      return cropsWithCounts;
+        };
+      }).toList();
     } catch (error) {
       debugPrint('Error fetching crops: $error');
       rethrow;
@@ -111,11 +95,9 @@ class SupabaseService {
           'id': disease['id'].toString(),
           'className': disease['class_name'],
           'name': disease['display_name'],
-          'display_name': disease['display_name'],
           'description': disease['description'] ?? 'No description available',
           'treatment':
               disease['treatment'] ?? 'No treatment information available',
-          'severity': _getDiseaseServerity(disease['display_name']),
           'image_url': disease['image_url'],
         };
       }).toList();
@@ -217,7 +199,7 @@ class SupabaseService {
     final response = await bucket.upload(storagePath, file);
     // Fix: response is a String if successful, else throws
     // So just check if response is not empty
-    if (response == null || response.isEmpty) {
+    if (response.isEmpty) {
       throw Exception('Image upload failed: No response from Supabase Storage');
     }
     // Get public URL
@@ -443,84 +425,5 @@ class SupabaseService {
     };
 
     return emojiMap[cropName] ?? '🌱';
-  }
-
-  /// Transform growing conditions from JSON to Map
-  static Map<String, dynamic> _transformGrowingConditions(dynamic conditions) {
-    if (conditions == null) return {};
-    if (conditions is Map<String, dynamic>) return conditions;
-    if (conditions is Map) {
-      return Map<String, dynamic>.from(conditions);
-    }
-    return {};
-  }
-
-  /// Transform growing seasons from JSON to Map
-  static Map<String, dynamic> _transformGrowingSeasons(dynamic seasons) {
-    if (seasons == null) return {};
-    if (seasons is Map<String, dynamic>) return seasons;
-    if (seasons is Map) {
-      return Map<String, dynamic>.from(seasons);
-    }
-    return {};
-  }
-
-  /// Extract tips from JSON data
-  static List<String> _extractTipsFromJSON(dynamic tipsData) {
-    if (tipsData == null) return [];
-
-    if (tipsData is List) {
-      return tipsData.map((tip) => tip.toString()).toList();
-    }
-
-    if (tipsData is Map) {
-      // If it's a map, try to extract tips from common keys
-      final tips = <String>[];
-      for (final value in tipsData.values) {
-        if (value is String) {
-          tips.add(value);
-        } else if (value is List) {
-          tips.addAll(value.map((tip) => tip.toString()));
-        }
-      }
-      return tips;
-    }
-
-    return [tipsData.toString()];
-  }
-
-  /// Helper method to get disease severity
-  static String _getDiseaseServerity(String diseaseName) {
-    final severityMap = {
-      'Apple Scab': 'Medium',
-      'Apple Black Rot': 'High',
-      'Cedar Apple Rust': 'Medium',
-      'Healthy': 'None',
-    };
-
-    return severityMap[diseaseName] ?? 'Medium';
-  }
-
-  /// Helper method to get default symptoms
-  static List<String> _getDefaultSymptoms(String diseaseName) {
-    final symptomsMap = {
-      'Apple Scab': [
-        'Olive-green or brown spots on leaves',
-        'Black scabby lesions on fruit',
-        'Premature leaf drop',
-      ],
-      'Apple Black Rot': [
-        'Frogeye spots on leaves',
-        'Black firm rot on fruit',
-        'Cankers on branches',
-      ],
-      'Cedar Apple Rust': [
-        'Yellow spots on leaves',
-        'Orange spore masses',
-        'Leaf distortion',
-      ],
-    };
-
-    return symptomsMap[diseaseName] ?? ['Symptoms vary by disease stage'];
   }
 }
