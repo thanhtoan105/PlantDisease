@@ -18,6 +18,20 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  // Constants
+  static const List<String> _popularSearches = [
+    'Apple',
+    'Tomato',
+    'Durian',
+    'Plant care tips',
+    'Pest control',
+    'Blight',
+    'Algal',
+    'Colletotrichum',
+    'Rhizoctonia',
+  ];
+
+  // State variables
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   List<Map<String, dynamic>> _searchResults = [];
@@ -33,6 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _performSearch(String query) async {
     if (query.trim().isEmpty) {
       setState(() {
+        _searchQuery = '';
         _searchResults = [];
         _searchError = null;
       });
@@ -46,7 +61,6 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      // Always search all since filter tabs are removed
       final result = await PlantService.searchAll(query.trim());
 
       if (mounted) {
@@ -71,81 +85,37 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  void _clearSearch() {
+    setState(() {
+      _searchQuery = '';
+      _searchResults = [];
+      _searchError = null;
+      _searchController.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: const CustomAppBar(
-        title: 'Search',
+    return PopScope(
+      canPop: _searchQuery.isEmpty,
+      onPopInvoked: (didPop) {
+        if (!didPop && _searchQuery.isNotEmpty) {
+          _clearSearch();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: const CustomAppBar(
+          title: 'Search',
+        ),
+        body: _searchQuery.isEmpty
+            ? _buildSearchSuggestions()
+            : _buildSearchResults(),
       ),
-      body: _searchQuery.isEmpty
-          ? _buildSearchSuggestions()
-          : _buildSearchResults(),
     );
   }
 
   Widget _buildSearchResults() {
-    if (_isSearching) {
-      return Column(
-        children: [
-          // Search bar at top
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.spacingLg),
-            child: CustomSearchBar(
-              placeholder: 'Search plants, diseases...',
-              controller: _searchController,
-              onChanged: (value) {
-                _performSearch(value);
-              },
-            ),
-          ),
-          const Expanded(
-            child: Center(
-              child: LoadingSpinner(size: 48),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (_searchError != null) {
-      return Column(
-        children: [
-          // Search bar at top
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.spacingLg),
-            child: CustomSearchBar(
-              placeholder: 'Search plants, diseases...',
-              controller: _searchController,
-              onChanged: (value) {
-                _performSearch(value);
-              },
-            ),
-          ),
-          Expanded(child: _buildErrorState()),
-        ],
-      );
-    }
-
-    if (_searchResults.isEmpty) {
-      return Column(
-        children: [
-          // Search bar at top
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.spacingLg),
-            child: CustomSearchBar(
-              placeholder: 'Search plants, diseases...',
-              controller: _searchController,
-              onChanged: (value) {
-                _performSearch(value);
-              },
-            ),
-          ),
-          Expanded(child: _buildNoResults()),
-        ],
-      );
-    }
-
     return Column(
       children: [
         // Search bar at top
@@ -154,14 +124,33 @@ class _SearchScreenState extends State<SearchScreen> {
           child: CustomSearchBar(
             placeholder: 'Search plants, diseases...',
             controller: _searchController,
-            onChanged: (value) {
-              _performSearch(value);
-            },
+            onChanged: _performSearch,
           ),
         ),
-        Expanded(child: _buildResultsList()),
+        // Content based on state
+        Expanded(
+          child: _buildSearchContent(),
+        ),
       ],
     );
+  }
+
+  Widget _buildSearchContent() {
+    if (_isSearching) {
+      return const Center(
+        child: LoadingSpinner(size: 48),
+      );
+    }
+
+    if (_searchError != null) {
+      return _buildErrorState();
+    }
+
+    if (_searchResults.isEmpty) {
+      return _buildNoResults();
+    }
+
+    return _buildResultsList();
   }
 
   Widget _buildSearchSuggestions() {
@@ -170,17 +159,15 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search bar - exactly like home screen
+          // Search bar
           CustomSearchBar(
             placeholder: 'Search plants, diseases...',
             controller: _searchController,
-            onChanged: (value) {
-              _performSearch(value);
-            },
+            onChanged: _performSearch,
           ),
-
           const SizedBox(height: AppDimensions.spacingXl),
 
+          // Popular searches section
           Text(
             'Popular Searches',
             style: AppTypography.headlineMedium.copyWith(
@@ -193,12 +180,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Wrap(
             spacing: AppDimensions.spacingSm,
             runSpacing: AppDimensions.spacingSm,
-            children: [
-              'Apple diseases',
-              'Tomato diseases',
-              'Plant care tips',
-              'Pest control',
-            ].map((suggestion) {
+            children: _popularSearches.map((suggestion) {
               return ActionChip(
                 label: Text(suggestion),
                 onPressed: () {
@@ -212,79 +194,6 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               );
             }).toList(),
-          ),
-
-          const SizedBox(height: AppDimensions.spacingXl),
-
-          // Browse Categories
-          Text(
-            'Browse Categories',
-            style: AppTypography.headlineMedium.copyWith(
-              color: AppColors.darkNavy,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-
-          _buildCategoryCard(
-              '🍎', 'Fruit Trees', 'Apple, Orange, Mango diseases'),
-          _buildCategoryCard(
-              '🥬', 'Vegetables', 'Tomato, Potato, Lettuce care'),
-          _buildCategoryCard('🌾', 'Grains', 'Wheat, Rice, Corn cultivation'),
-          _buildCategoryCard('🌿', 'Herbs', 'Basil, Mint, Oregano growing'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryCard(String emoji, String title, String description) {
-    return CustomCard(
-      margin: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
-      onTap: () {
-        _searchController.text = title;
-        _performSearch(title);
-      },
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.1),
-              borderRadius:
-                  BorderRadius.circular(AppDimensions.borderRadiusMedium),
-            ),
-            child: Center(
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 28),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.spacingLg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkNavy,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mediumGray,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            color: AppColors.mediumGray.withOpacity(0.5),
-            size: 16,
           ),
         ],
       ),
@@ -361,7 +270,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             const SizedBox(height: AppDimensions.spacingSm),
             Text(
-              'Try searching for different keywords or browse our categories',
+              'Try searching for different keywords',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.mediumGray,
               ),
@@ -379,106 +288,108 @@ class _SearchScreenState extends State<SearchScreen> {
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final result = _searchResults[index];
-        final isDisease = result['type'] == 'disease';
+        return _buildResultCard(result);
+      },
+    );
+  }
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
-          child: CustomCard(
-            onTap: () => _handleResultTap(result),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: (isDisease
-                            ? AppColors.accentOrange
-                            : AppColors.primaryGreen)
-                        .withOpacity(0.1),
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.borderRadiusMedium),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      isDisease ? Icons.bug_report : Icons.eco,
-                      color: isDisease
-                          ? AppColors.accentOrange
-                          : AppColors.primaryGreen,
-                      size: 32,
+  Widget _buildResultCard(Map<String, dynamic> result) {
+    final isDisease = result['type'] == 'disease';
+    final color = isDisease ? AppColors.accentOrange : AppColors.primaryGreen;
+    final icon = isDisease ? Icons.bug_report : Icons.eco;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
+      child: CustomCard(
+        onTap: () => _handleResultTap(result),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon container
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius:
+                    BorderRadius.circular(AppDimensions.borderRadiusMedium),
+              ),
+              child: Icon(icon, color: color, size: 32),
+            ),
+            const SizedBox(width: AppDimensions.spacingLg),
+
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    result['name'] ?? 'Unknown',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.darkNavy,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                const SizedBox(width: AppDimensions.spacingLg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        result['name'] ?? 'Unknown',
-                        style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.darkNavy,
-                          fontWeight: FontWeight.w600,
-                        ),
+
+                  // Crop name for diseases
+                  if (isDisease && result['cropName'] != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Affects: ${result['cropName']}',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.mediumGray,
+                        fontStyle: FontStyle.italic,
                       ),
-                      if (isDisease && result['cropName'] != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'Affects: ${result['cropName']}',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.mediumGray,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppDimensions.spacingXs),
-                      Text(
-                        result['description'] ?? 'No description available',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.mediumGray,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: AppDimensions.spacingSm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppDimensions.spacingSm,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (isDisease
-                                  ? AppColors.accentOrange
-                                  : AppColors.primaryGreen)
-                              .withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(
-                              AppDimensions.borderRadiusSmall),
-                        ),
-                        child: Text(
-                          isDisease ? 'Disease' : 'Crop',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: isDisease
-                                ? AppColors.accentOrange
-                                : AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+
+                  // Description
+                  const SizedBox(height: AppDimensions.spacingXs),
+                  Text(
+                    result['description'] ?? 'No description available',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.mediumGray,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: AppDimensions.spacingMd),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppColors.mediumGray.withOpacity(0.5),
-                  size: 16,
-                ),
-              ],
+
+                  // Type badge
+                  const SizedBox(height: AppDimensions.spacingSm),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.spacingSm,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(
+                          AppDimensions.borderRadiusSmall),
+                    ),
+                    child: Text(
+                      isDisease ? 'Disease' : 'Crop',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+
+            // Arrow
+            const SizedBox(width: AppDimensions.spacingMd),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.mediumGray.withOpacity(0.5),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -486,10 +397,8 @@ class _SearchScreenState extends State<SearchScreen> {
     final isDisease = result['type'] == 'disease';
 
     if (isDisease) {
-      // Navigate to disease details
       context.push('/disease-details', extra: result);
     } else {
-      // Navigate to crop details
       context.push('${RouteNames.cropDetails}/${result['id']}', extra: result);
     }
   }
