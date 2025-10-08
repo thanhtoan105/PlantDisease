@@ -7,6 +7,7 @@ import '../../../core/services/plant_service.dart';
 import '../../../shared/widgets/custom_search_bar.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/loading_spinner.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../navigation/route_names.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -73,57 +74,94 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
-      appBar: AppBar(
-        title: const Text('Search'),
-        backgroundColor: AppColors.primaryGreen,
-        foregroundColor: AppColors.white,
-        elevation: 0,
+      backgroundColor: AppColors.white,
+      appBar: const CustomAppBar(
+        title: 'Search',
       ),
-      body: Column(
+      body: _searchQuery.isEmpty
+          ? _buildSearchSuggestions()
+          : _buildSearchResults(),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_isSearching) {
+      return Column(
         children: [
-          // Search bar
-          Container(
+          // Search bar at top
+          Padding(
             padding: const EdgeInsets.all(AppDimensions.spacingLg),
-            color: AppColors.primaryGreen,
             child: CustomSearchBar(
-              placeholder: 'Search plants, diseases, tips...',
+              placeholder: 'Search plants, diseases...',
               controller: _searchController,
               onChanged: (value) {
                 _performSearch(value);
               },
             ),
           ),
-
-          // Search results
-          Expanded(
-            child: _buildSearchResults(),
+          const Expanded(
+            child: Center(
+              child: LoadingSpinner(size: 48),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResults() {
-    if (_searchQuery.isEmpty) {
-      return _buildSearchSuggestions();
-    }
-
-    if (_isSearching) {
-      return const Center(
-        child: LoadingSpinner(size: 48),
       );
     }
 
     if (_searchError != null) {
-      return _buildErrorState();
+      return Column(
+        children: [
+          // Search bar at top
+          Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            child: CustomSearchBar(
+              placeholder: 'Search plants, diseases...',
+              controller: _searchController,
+              onChanged: (value) {
+                _performSearch(value);
+              },
+            ),
+          ),
+          Expanded(child: _buildErrorState()),
+        ],
+      );
     }
 
     if (_searchResults.isEmpty) {
-      return _buildNoResults();
+      return Column(
+        children: [
+          // Search bar at top
+          Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            child: CustomSearchBar(
+              placeholder: 'Search plants, diseases...',
+              controller: _searchController,
+              onChanged: (value) {
+                _performSearch(value);
+              },
+            ),
+          ),
+          Expanded(child: _buildNoResults()),
+        ],
+      );
     }
 
-    return _buildResultsList();
+    return Column(
+      children: [
+        // Search bar at top
+        Padding(
+          padding: const EdgeInsets.all(AppDimensions.spacingLg),
+          child: CustomSearchBar(
+            placeholder: 'Search plants, diseases...',
+            controller: _searchController,
+            onChanged: (value) {
+              _performSearch(value);
+            },
+          ),
+        ),
+        Expanded(child: _buildResultsList()),
+      ],
+    );
   }
 
   Widget _buildSearchSuggestions() {
@@ -132,9 +170,22 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Search bar - exactly like home screen
+          CustomSearchBar(
+            placeholder: 'Search plants, diseases...',
+            controller: _searchController,
+            onChanged: (value) {
+              _performSearch(value);
+            },
+          ),
+
+          const SizedBox(height: AppDimensions.spacingXl),
+
           Text(
             'Popular Searches',
-            style: AppTypography.headlineMedium,
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.darkNavy,
+            ),
           ),
           const SizedBox(height: AppDimensions.spacingLg),
 
@@ -154,18 +205,23 @@ class _SearchScreenState extends State<SearchScreen> {
                   _searchController.text = suggestion;
                   _performSearch(suggestion);
                 },
-                backgroundColor: AppColors.white,
-                labelStyle: AppTypography.bodyMedium,
+                backgroundColor: AppColors.lightGray,
+                side: BorderSide.none,
+                labelStyle: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.darkNavy,
+                ),
               );
             }).toList(),
           ),
 
           const SizedBox(height: AppDimensions.spacingXl),
 
-          // Recent searches (if any)
+          // Browse Categories
           Text(
             'Browse Categories',
-            style: AppTypography.headlineMedium,
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.darkNavy,
+            ),
           ),
           const SizedBox(height: AppDimensions.spacingLg),
 
@@ -190,8 +246,8 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: AppColors.primaryGreen.withOpacity(0.1),
               borderRadius:
@@ -200,7 +256,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Center(
               child: Text(
                 emoji,
-                style: const TextStyle(fontSize: 24),
+                style: const TextStyle(fontSize: 28),
               ),
             ),
           ),
@@ -211,8 +267,11 @@ class _SearchScreenState extends State<SearchScreen> {
               children: [
                 Text(
                   title,
-                  style: AppTypography.labelLarge,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: AppColors.darkNavy,
+                  ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   description,
                   style: AppTypography.bodySmall.copyWith(
@@ -222,9 +281,9 @@ class _SearchScreenState extends State<SearchScreen> {
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.arrow_forward_ios,
-            color: AppColors.mediumGray,
+            color: AppColors.mediumGray.withOpacity(0.5),
             size: 16,
           ),
         ],
@@ -239,15 +298,25 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.error,
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                size: 40,
+                color: AppColors.error,
+              ),
             ),
             const SizedBox(height: AppDimensions.spacingLg),
             Text(
               'Search Error',
-              style: AppTypography.headlineMedium,
+              style: AppTypography.headlineMedium.copyWith(
+                color: AppColors.darkNavy,
+              ),
             ),
             const SizedBox(height: AppDimensions.spacingSm),
             Text(
@@ -270,16 +339,24 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search_off,
-              size: 64,
-              color: AppColors.mediumGray.withOpacity(0.5),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.lightGray,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search_off,
+                size: 40,
+                color: AppColors.mediumGray.withOpacity(0.6),
+              ),
             ),
             const SizedBox(height: AppDimensions.spacingLg),
             Text(
               'No results found',
               style: AppTypography.headlineMedium.copyWith(
-                color: AppColors.mediumGray,
+                color: AppColors.darkNavy,
               ),
             ),
             const SizedBox(height: AppDimensions.spacingSm),
@@ -298,7 +375,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildResultsList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(AppDimensions.spacingLg),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg),
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final result = _searchResults[index];
@@ -309,12 +386,16 @@ class _SearchScreenState extends State<SearchScreen> {
           child: CustomCard(
             onTap: () => _handleResultTap(result),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withOpacity(0.1),
+                    color: (isDisease
+                            ? AppColors.accentOrange
+                            : AppColors.primaryGreen)
+                        .withOpacity(0.1),
                     borderRadius:
                         BorderRadius.circular(AppDimensions.borderRadiusMedium),
                   ),
@@ -324,7 +405,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       color: isDisease
                           ? AppColors.accentOrange
                           : AppColors.primaryGreen,
-                      size: 28,
+                      size: 32,
                     ),
                   ),
                 ),
@@ -335,9 +416,13 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       Text(
                         result['name'] ?? 'Unknown',
-                        style: AppTypography.labelLarge,
+                        style: AppTypography.labelLarge.copyWith(
+                          color: AppColors.darkNavy,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (isDisease && result['cropName'] != null) ...[
+                        const SizedBox(height: 2),
                         Text(
                           'Affects: ${result['cropName']}',
                           style: AppTypography.bodySmall.copyWith(
@@ -345,8 +430,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             fontStyle: FontStyle.italic,
                           ),
                         ),
-                        const SizedBox(height: AppDimensions.spacingXs),
                       ],
+                      const SizedBox(height: AppDimensions.spacingXs),
                       Text(
                         result['description'] ?? 'No description available',
                         style: AppTypography.bodyMedium.copyWith(
@@ -355,17 +440,17 @@ class _SearchScreenState extends State<SearchScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: AppDimensions.spacingXs),
+                      const SizedBox(height: AppDimensions.spacingSm),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppDimensions.spacingSm,
-                          vertical: 2,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: (isDisease
                                   ? AppColors.accentOrange
                                   : AppColors.primaryGreen)
-                              .withValues(alpha: 0.15),
+                              .withOpacity(0.12),
                           borderRadius: BorderRadius.circular(
                               AppDimensions.borderRadiusSmall),
                         ),
@@ -375,16 +460,18 @@ class _SearchScreenState extends State<SearchScreen> {
                             color: isDisease
                                 ? AppColors.accentOrange
                                 : AppColors.primaryGreen,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
+                const SizedBox(width: AppDimensions.spacingMd),
+                Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.mediumGray,
+                  color: AppColors.mediumGray.withOpacity(0.5),
                   size: 16,
                 ),
               ],
