@@ -4,7 +4,7 @@ import '../services/plant_service.dart';
 class PlantProvider extends ChangeNotifier {
   bool _isLoading = false;
   List<Map<String, dynamic>> _crops = [];
-  List<Map<String, dynamic>> _diseases = [];
+  final List<Map<String, dynamic>> _diseases = [];
   String? _error;
 
   // Getters

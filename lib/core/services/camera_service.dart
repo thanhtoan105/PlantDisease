@@ -15,10 +15,10 @@ class CameraService {
 
   // Configuration constants from centralized config
   /// The model input image size (width and height in pixels)
-  static const int MODEL_INPUT_SIZE = AIModelConfig.inputImageSize;
+  static const int modelInputSize = AIModelConfig.inputImageSize;
 
   /// Image quality for JPEG compression (0-100)
-  static const int IMAGE_QUALITY = AIModelConfig.imageQuality;
+  static const int imageQuality = AIModelConfig.imageQuality;
 
   // 🎯 FEATURE TOGGLE: Comment this line to disable gallery saving
   static const bool _enableGallerySaving = false;
@@ -165,8 +165,8 @@ class CameraService {
       // Resize image to model input size (224x224)
       final resizedImage = img.copyResize(
         originalImage,
-        width: MODEL_INPUT_SIZE,
-        height: MODEL_INPUT_SIZE,
+        width: modelInputSize,
+        height: modelInputSize,
         interpolation: img.Interpolation.linear,
       );
 
@@ -177,7 +177,7 @@ class CameraService {
 
       final processedFile = File(processedImagePath);
       await processedFile
-          .writeAsBytes(img.encodeJpg(resizedImage, quality: IMAGE_QUALITY));
+          .writeAsBytes(img.encodeJpg(resizedImage, quality: imageQuality));
 
       // Save to gallery if enabled
       if (_enableGallerySaving) {

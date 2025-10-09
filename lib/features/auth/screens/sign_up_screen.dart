@@ -36,8 +36,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () => showExitConfirmationDialog(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
+        final shouldExit = await showExitConfirmationDialog(context);
+        if (shouldExit == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: Form(
         key: _formKey,
         child: Column(

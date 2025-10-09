@@ -107,7 +107,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         ),
         const SizedBox(height: 16),
         // Hidden text field that captures the actual input
-        Container(
+        SizedBox(
           width: 0.1,
           height: 0.1,
           child: TextField(

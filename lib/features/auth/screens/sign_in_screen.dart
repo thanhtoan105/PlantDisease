@@ -44,8 +44,16 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () => showExitConfirmationDialog(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
+        final shouldExit = await showExitConfirmationDialog(context);
+        if (shouldExit == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: Selector<AuthProvider, bool>(
         selector: (_, provider) => provider.isAuthenticated,
         builder: (context, isAuthenticated, child) {

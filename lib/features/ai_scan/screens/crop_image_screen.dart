@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
@@ -72,16 +71,18 @@ class _CropImageScreenState extends State<CropImageScreen> {
 
       if (croppedFile != null) {
         // Return the path of the cropped file to the previous screen
-        Navigator.pop(context, croppedFile.path);
+        if (mounted) Navigator.pop(context, croppedFile.path);
       } else {
         // User canceled the cropping
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to crop image: $e')),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to crop image: $e')),
+        );
+        Navigator.pop(context);
+      }
     } finally {
       if (mounted) {
         setState(() {

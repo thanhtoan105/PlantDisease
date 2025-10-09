@@ -32,7 +32,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   bool _isLoading = true;
   String? _error;
   String _activeTab = 'overview';
-  Map<String, bool> _expandedSections = {};
+  final Map<String, bool> _expandedSections = {};
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;

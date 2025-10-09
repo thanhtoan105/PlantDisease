@@ -19,7 +19,7 @@ class DiseaseDetailsScreen extends StatefulWidget {
 
 class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
     with TickerProviderStateMixin {
-  String _activeTab = 'cause';
+  final String _activeTab = 'cause';
   late TabController _tabController;
 
   @override
@@ -94,12 +94,12 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
     final disease = widget.disease;
     final imageUrl = disease['image_url'] as String?;
 
-    return Container(
+    return SizedBox(
       height: 250,
       child: Stack(
         children: [
           // Disease Image
-          Container(
+          SizedBox(
             width: double.infinity,
             height: double.infinity,
             child: imageUrl != null && imageUrl.isNotEmpty

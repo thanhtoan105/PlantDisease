@@ -108,20 +108,26 @@ class _ResultsScreenState extends State<ResultsScreen> {
         locationData: locationData,
         analysisDate: analysisDate,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Result saved successfully!')),
-      );
-      setState(() {
-        _isSaved = true; // Update saved state
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Result saved successfully!')),
+        );
+        setState(() {
+          _isSaved = true; // Update saved state
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save result: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save result: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        _isSaving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 

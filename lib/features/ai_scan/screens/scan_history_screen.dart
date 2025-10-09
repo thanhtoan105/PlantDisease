@@ -7,7 +7,7 @@ import 'scan_history_item.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
-  const ScanHistoryScreen({Key? key}) : super(key: key);
+  const ScanHistoryScreen({super.key});
 
   @override
   State<ScanHistoryScreen> createState() => _ScanHistoryScreenState();

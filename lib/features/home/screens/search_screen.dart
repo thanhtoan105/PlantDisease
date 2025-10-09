@@ -98,7 +98,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: _searchQuery.isEmpty,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
         if (!didPop && _searchQuery.isNotEmpty) {
           _clearSearch();
         }
