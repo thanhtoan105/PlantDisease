@@ -211,7 +211,7 @@ class _SearchScreenState extends State<SearchScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -258,7 +258,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Icon(
                 Icons.search_off,
                 size: 40,
-                color: AppColors.mediumGray.withOpacity(0.6),
+                color: AppColors.mediumGray.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: AppDimensions.spacingLg),
@@ -310,7 +310,7 @@ class _SearchScreenState extends State<SearchScreen> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius:
                     BorderRadius.circular(AppDimensions.borderRadiusMedium),
               ),
@@ -363,7 +363,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(
                           AppDimensions.borderRadiusSmall),
                     ),
@@ -384,7 +384,7 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(width: AppDimensions.spacingMd),
             Icon(
               Icons.arrow_forward_ios,
-              color: AppColors.mediumGray.withOpacity(0.5),
+              color: AppColors.mediumGray.withValues(alpha: 0.5),
               size: 16,
             ),
           ],

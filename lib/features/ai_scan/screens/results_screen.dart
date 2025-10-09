@@ -627,7 +627,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           child: Container(
             padding: const EdgeInsets.all(AppDimensions.spacingSm),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
             ),
             child: Text(
@@ -661,7 +661,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     vertical: AppDimensions.spacingXs,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withOpacity(0.1),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
                   ),
                   child: Text(
@@ -713,7 +713,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
                 ),
                 child: Icon(

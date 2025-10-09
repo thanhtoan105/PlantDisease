@@ -18,7 +18,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final SystemUiOverlayStyle? systemOverlayStyle;
 
   const CustomAppBar({
-    Key? key,
+    super.key,
     required this.title,
     this.centerTitle = true,
     this.actions,
@@ -27,7 +27,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.automaticallyImplyLeading = true,
     this.elevation = 0,
     this.systemOverlayStyle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius:
                 BorderRadius.circular(AppDimensions.borderRadiusLarge),
               ),
@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'Tap to scan your plant leaf',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.white.withOpacity(0.8),
+                      color: AppColors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],

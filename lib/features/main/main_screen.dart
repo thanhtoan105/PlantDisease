@@ -35,9 +35,11 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Only prompt if at root (no navigation stack to pop)
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
         final shouldExit = await CustomDialogs.showConfirmDialog(
           context: context,
           title: 'Exit App',
@@ -45,7 +47,10 @@ class _MainScreenState extends State<MainScreen> {
           confirmText: 'Exit',
           cancelText: 'Cancel',
         );
-        return shouldExit ?? false;
+
+        if (shouldExit == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         body: IndexedStack(

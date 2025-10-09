@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -109,7 +108,7 @@ class CameraService {
             activeControlsWidgetColor: const Color(0xFF4CAF50),
             cropFrameColor: const Color(0xFF4CAF50),
             cropGridColor: const Color(0xFF81C784),
-            dimmedLayerColor: Colors.black.withOpacity(0.6),
+            dimmedLayerColor: Colors.black.withValues(alpha: 0.6),
             statusBarColor: const Color(0xFF1B5E20),
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: false,

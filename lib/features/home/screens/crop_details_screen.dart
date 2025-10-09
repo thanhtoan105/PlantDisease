@@ -178,8 +178,8 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.3),
-              Colors.black.withOpacity(0.7),
+              Colors.black.withValues(alpha: 0.3),
+              Colors.black.withValues(alpha: 0.7),
             ],
           ),
         ),
@@ -199,7 +199,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Icon(
@@ -217,7 +217,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Icon(
@@ -247,7 +247,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                               color: Colors.white,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                   offset: const Offset(0, 1),
                                   blurRadius: 3,
                                 ),
@@ -259,11 +259,11 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                             crop['scientificName'] ??
                                 'Scientific name not available',
                             style: AppTypography.bodyLarge.copyWith(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontStyle: FontStyle.italic,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                   offset: const Offset(0, 1),
                                   blurRadius: 3,
                                 ),
@@ -459,7 +459,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             offset: const Offset(0, 2),
             blurRadius: 4,
           ),
@@ -778,7 +778,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           borderRadius: BorderRadius.circular(AppDimensions.borderRadiusLarge),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               offset: const Offset(0, 2),
               blurRadius: 4,
             ),
