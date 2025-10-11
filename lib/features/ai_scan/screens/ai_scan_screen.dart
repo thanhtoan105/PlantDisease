@@ -383,12 +383,16 @@ class _AiScanScreenState extends State<AiScanScreen>
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _checkCameraPermission,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48.0),
+                child: ElevatedButton(
+                  onPressed: _checkCameraPermission,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  child: const Text('Grant Permission'),
                 ),
-                child: const Text('Grant Permission'),
               ),
             ],
           ),

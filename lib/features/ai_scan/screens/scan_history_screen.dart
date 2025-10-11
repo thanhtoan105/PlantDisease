@@ -149,11 +149,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                     provider.error!,
                     style: const TextStyle(color: Colors.grey),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _fetchInitialData,
-                    child: const Text('Retry'),
-                  ),
                 ],
               ),
             );
