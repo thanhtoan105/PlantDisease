@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -18,7 +19,7 @@ class VerifyOtpScreen extends StatefulWidget {
   State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
 }
 
-class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
+class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingObserver {
   final TextEditingController _otpController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isLoading = false;
@@ -27,6 +28,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   @override
   void initState() {
     super.initState();
+    // Add lifecycle observer to detect app state changes
+    WidgetsBinding.instance.addObserver(this);
     // Auto-focus the input when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
@@ -35,9 +38,24 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
   @override
   void dispose() {
+    // Remove lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
     _otpController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // When app resumes from background, restore keyboard focus
+    if (state == AppLifecycleState.resumed) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && !_focusNode.hasFocus) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -52,17 +70,21 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
           onPressed: () => context.go(RouteNames.forgotPassword),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 48),
-              _buildOtpInput(),
-              const SizedBox(height: AppDimensions.spacingXl),
-              _buildButtons(),
-            ],
+      body: GestureDetector(
+        // Tap anywhere to show keyboard
+        onTap: () => _focusNode.requestFocus(),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 48),
+                _buildOtpInput(),
+                const SizedBox(height: AppDimensions.spacingXl),
+                _buildButtons(),
+              ],
+            ),
           ),
         ),
       ),
@@ -98,107 +120,56 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   }
 
   Widget _buildOtpInput() {
-    return Column(
-      children: [
-        // Visual representation of OTP boxes
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(6, (index) => _buildOtpBox(index)),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: PinCodeTextField(
+        appContext: context,
+        length: 6,
+        controller: _otpController,
+        focusNode: _focusNode,
+        autoFocus: true,
+        keyboardType: TextInputType.number,
+        textInputAction: TextInputAction.done,
+        enableActiveFill: true,
+        autoDisposeControllers: false,
+        animationType: AnimationType.fade,
+        animationDuration: const Duration(milliseconds: 200),
+        pinTheme: PinTheme(
+          shape: PinCodeFieldShape.box,
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+          fieldHeight: 60,
+          fieldWidth: 50,
+          activeFillColor: AppColors.white,
+          selectedFillColor: AppColors.white,
+          inactiveFillColor: AppColors.white,
+          activeColor: AppColors.primaryGreen,
+          selectedColor: AppColors.primaryGreen,
+          inactiveColor: AppColors.lightGray,
+          borderWidth: 2,
+          activeBorderWidth: 2,
+          selectedBorderWidth: 2,
+          inactiveBorderWidth: 1,
         ),
-        const SizedBox(height: 16),
-        // Hidden text field that captures the actual input
-        SizedBox(
-          width: 0.1,
-          height: 0.1,
-          child: TextField(
-            controller: _otpController,
-            focusNode: _focusNode,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            maxLength: 6,
-            style: const TextStyle(color: Colors.transparent),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              counterText: '',
-            ),
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            onChanged: (value) {
-              setState(() {
-                _otpValue = value;
-              });
-            },
-            onSubmitted: (value) {
-              if (value.length == 6) {
-                _handleVerifyOtp();
-              }
-            },
-          ),
+        textStyle: AppTypography.headlineSmall.copyWith(
+          color: AppColors.darkGray,
+          fontWeight: FontWeight.bold,
         ),
-        // Tap area to focus the hidden input
-        GestureDetector(
-          onTap: () {
-            _focusNode.requestFocus();
-          },
-          child: Container(
-            width: double.infinity,
-            height: 60,
-            color: Colors.transparent,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOtpBox(int index) {
-    bool hasValue = index < _otpValue.length;
-    bool isCurrent = index == _otpValue.length;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 50,
-      height: 60,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-        border: Border.all(
-          color: hasValue
-              ? AppColors.primaryGreen
-              : isCurrent
-                  ? AppColors.primaryGreen.withValues(alpha: 0.5)
-                  : AppColors.lightGray,
-          width: hasValue || isCurrent ? 2 : 1,
-        ),
-        boxShadow: (hasValue || isCurrent)
-            ? [
-                BoxShadow(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: Center(
-        child: hasValue
-            ? Text(
-                _otpValue[index],
-                style: AppTypography.headlineSmall.copyWith(
-                  color: AppColors.darkGray,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
-            : isCurrent
-                ? Container(
-                    width: 2,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen,
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  )
-                : null,
+        cursorColor: AppColors.primaryGreen,
+        cursorHeight: 24,
+        onChanged: (value) {
+          setState(() {
+            _otpValue = value;
+          });
+        },
+        onCompleted: (value) {
+          if (value.length == 6) {
+            _handleVerifyOtp();
+          }
+        },
+        beforeTextPaste: (text) {
+          // Allow pasting only if it's 6 digits
+          return text?.length == 6 && RegExp(r'^\d+$').hasMatch(text ?? '');
+        },
       ),
     );
   }

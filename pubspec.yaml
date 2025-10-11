@@ -40,6 +40,7 @@ dependencies:
   # UI & Graphics
   flutter_svg: ^2.0.9
   cached_network_image: ^3.3.0
+  pin_code_fields: ^8.0.1
 
   # Icons & Fonts
   cupertino_icons: ^1.0.6
