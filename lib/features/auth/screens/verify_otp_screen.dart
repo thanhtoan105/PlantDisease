@@ -282,19 +282,47 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingOb
   }
 
   Future<void> _handleResendCode() async {
-    // Clear the OTP input
     setState(() {
-      _otpValue = '';
-      _otpController.clear();
+      _isLoading = true;
     });
 
-    // Focus on the input field
-    _focusNode.requestFocus();
+    try {
+      // Actually resend the OTP via Supabase
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        widget.email,
+      );
 
-    // Show resend message
-    CustomSnackbars.showSuccess(
-      context: context,
-      message: 'Verification code resent to your email',
-    );
+      // Clear the OTP input
+      setState(() {
+        _otpValue = '';
+        _otpController.clear();
+      });
+
+      // Focus on the input field
+      _focusNode.requestFocus();
+
+      if (mounted) {
+        CustomSnackbars.showSuccess(
+          context: context,
+          message: 'Verification code resent to your email',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'Failed to resend code. Please try again after 60 seconds.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }
