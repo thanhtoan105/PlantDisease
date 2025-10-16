@@ -178,7 +178,8 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAuthButton(BuildContext context, AuthProvider authProvider) {
     return CustomButton(
       text: authProvider.isAuthenticated ? 'Logout' : 'Sign In',
-      onPressed: () async {
+      isLoading: authProvider.isLoading,
+      onPressed: authProvider.isLoading ? null : () async {
         if (authProvider.isAuthenticated) {
           // Show logout confirmation
           final shouldLogout = await CustomDialogs.showConfirmDialog(
@@ -189,11 +190,22 @@ class ProfileScreen extends StatelessWidget {
             cancelText: 'Cancel',
           );
 
-          if (shouldLogout == true) {
-            await authProvider.signOut();
-            await authProvider.resetOnboarding();
+          if (shouldLogout == true && context.mounted) {
+            // Perform logout with proper error handling
+            final result = await authProvider.signOut();
+
             if (context.mounted) {
-              context.go(RouteNames.onboarding);
+              if (result['success'] == true) {
+                // Success - navigate to onboarding
+                context.go(RouteNames.onboarding);
+              } else {
+                // Error - show error dialog
+                CustomDialogs.showErrorDialog(
+                  context: context,
+                  title: 'Logout Failed',
+                  error: result['error'] ?? 'Unable to logout. Please try again.',
+                );
+              }
             }
           }
         } else {

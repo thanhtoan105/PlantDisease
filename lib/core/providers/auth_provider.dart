@@ -316,12 +316,79 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signOut() async {
+  /// Sign out user with comprehensive cleanup and error handling
+  Future<Map<String, dynamic>> signOut() async {
+    _setLoading(true);
+
     try {
-      await _supabase.auth.signOut();
+      debugPrint('🔄 Starting sign out process...');
+
+      // Step 1: Sign out from Supabase (with timeout for offline scenarios)
+      try {
+        await _supabase.auth.signOut().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            debugPrint('⚠️ Supabase signOut timed out (offline?), proceeding with local cleanup');
+          },
+        );
+        debugPrint('✅ Supabase sign out successful');
+      } catch (e) {
+        debugPrint('⚠️ Supabase sign out error: $e, proceeding with local cleanup');
+        // Continue with cleanup even if Supabase signOut fails (offline scenario)
+      }
+
+      // Step 2: Clear all local data
+      await _clearAllLocalData();
+
+      // Step 3: Reset auth state
       _logout();
+
+      debugPrint('✅ Sign out completed successfully');
+
+      return {
+        'success': true,
+        'message': 'Signed out successfully',
+      };
     } catch (e) {
-      _setError(AuthUtils.parseAuthError(e.toString()));
+      debugPrint('❌ Sign out error: $e');
+
+      // Even on error, try to clear local state
+      try {
+        await _clearAllLocalData();
+        _logout();
+      } catch (cleanupError) {
+        debugPrint('❌ Cleanup error: $cleanupError');
+      }
+
+      return {
+        'success': false,
+        'error': 'Failed to sign out completely. Please try again.',
+      };
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Clear all local data and cached information
+  Future<void> _clearAllLocalData() async {
+    try {
+      debugPrint('🗑️ Clearing all local data...');
+
+      final prefs = await SharedPreferences.getInstance();
+
+      // Clear specific auth-related keys
+      await Future.wait([
+        prefs.remove('was_authenticated'),
+        prefs.remove('onboarding_completed'),
+        // Add any other app-specific keys you want to clear on logout
+        // prefs.remove('user_preferences'),
+        // prefs.remove('cached_data'),
+      ]);
+
+      debugPrint('✅ Local data cleared successfully');
+    } catch (e) {
+      debugPrint('❌ Error clearing local data: $e');
+      rethrow;
     }
   }
 
@@ -334,7 +401,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> resetOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('onboarding_completed');
+    await prefs.setBool('onboarding_completed', false);
     _onboardingCompleted = false;
     notifyListeners();
   }
