@@ -19,7 +19,6 @@ class DiseaseDetailsScreen extends StatefulWidget {
 
 class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
     with TickerProviderStateMixin {
-  final String _activeTab = 'cause';
   late TabController _tabController;
 
   @override
@@ -231,41 +230,120 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
-      child: CustomCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        children: [
+          // Information Card
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.info,
-                  size: 24,
-                  color: AppColors.primaryGreen,
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.info,
+                      size: 24,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: AppDimensions.spacingSm),
+                    Text(
+                      'Information',
+                      style: AppTypography.headlineSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppDimensions.spacingSm),
+                const SizedBox(height: AppDimensions.spacingMd),
                 Text(
-                  'Information',
-                  style: AppTypography.headlineSmall.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  disease['description'] ??
+                      'Cause information not available for this disease.',
+                  style: AppTypography.bodyMedium,
                 ),
               ],
             ),
-            const SizedBox(height: AppDimensions.spacingMd),
-            Text(
-              disease['description'] ??
-                  'Cause information not available for this disease.',
-              style: AppTypography.bodyMedium,
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          // Prevention Card
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.shield,
+                      size: 24,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: AppDimensions.spacingSm),
+                    Text(
+                      'Prevention',
+                      style: AppTypography.headlineSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.spacingMd),
+                Text(
+                  disease['prevention'] ??
+                      'Prevention information not available for this disease.',
+                  style: AppTypography.bodyMedium,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTreatmentContent() {
     final disease = widget.disease;
+    final treatment = disease['treatment'];
 
+    // Handle treatment as JSONB object
+    if (treatment is Map<String, dynamic> && treatment.isNotEmpty) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimensions.spacingLg),
+        child: Column(
+          children: [
+            // Organic Treatment
+            if (treatment['organic'] != null && treatment['organic'].toString().isNotEmpty)
+              _buildTreatmentCard(
+                'Organic Treatment',
+                treatment['organic'].toString(),
+                Icons.eco,
+                AppColors.successGreen,
+              ),
+
+            // Chemical Treatment
+            if (treatment['chemical'] != null && treatment['chemical'].toString().isNotEmpty) ...[
+              const SizedBox(height: AppDimensions.spacingMd),
+              _buildTreatmentCard(
+                'Chemical Treatment',
+                treatment['chemical'].toString(),
+                Icons.science,
+                AppColors.accentOrange,
+              ),
+            ],
+
+            // Biological Treatment
+            if (treatment['biological'] != null && treatment['biological'].toString().isNotEmpty) ...[
+              const SizedBox(height: AppDimensions.spacingMd),
+              _buildTreatmentCard(
+                'Biological Treatment',
+                treatment['biological'].toString(),
+                Icons.biotech,
+                AppColors.primaryGreen,
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    // Fallback if no treatment data
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
       child: CustomCard(
@@ -290,12 +368,45 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
             ),
             const SizedBox(height: AppDimensions.spacingMd),
             Text(
-              disease['treatment'] ??
-                  'Treatment information not available for this disease.',
+              'Treatment information not available for this disease.',
               style: AppTypography.bodyMedium,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTreatmentCard(String title, String content, IconData icon, Color color) {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: color,
+              ),
+              const SizedBox(width: AppDimensions.spacingSm),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.headlineSmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            content,
+            style: AppTypography.bodyMedium,
+          ),
+        ],
       ),
     );
   }

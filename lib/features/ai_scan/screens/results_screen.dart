@@ -615,7 +615,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget _buildDiseaseRecommendations() {
     final disease = _diseaseDetails!;
     final causes = disease['description'] as String? ?? '';
-    final treatment = disease['treatment'] as String? ?? '';
+    final treatment = disease['treatment']; // JSONB object or null
+    final prevention = disease['prevention'] as String? ?? '';
     final displayName = disease['display_name'] as String? ?? '';
     final className = disease['class_name'] as String? ?? '';
 
@@ -624,7 +625,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     debugPrint('📝 Display name: $displayName');
     debugPrint('🏷️ Class name: $className');
     debugPrint('📄 Description: ${causes.length} characters');
-    debugPrint('💊 Treatment: ${treatment.length} characters');
+    debugPrint('💊 Treatment: $treatment');
+    debugPrint('🛡️ Prevention: ${prevention.length} characters');
 
     return Column(
       children: [
@@ -695,13 +697,56 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ),
 
         // Treatment Section
-        if (treatment.isNotEmpty) ...[
+        if (treatment != null && treatment is Map<String, dynamic> && treatment.isNotEmpty) ...[
+          const SizedBox(height: AppDimensions.spacingMd),
+          _buildTreatmentSections(treatment),
+        ],
+
+        // Prevention Section
+        if (prevention.isNotEmpty) ...[
           const SizedBox(height: AppDimensions.spacingMd),
           _buildDetailSection(
-            'Treatment',
-            treatment,
-            Icons.medical_services_outlined,
+            'Prevention',
+            prevention,
+            Icons.shield_outlined,
+            AppColors.primaryGreen,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTreatmentSections(Map<String, dynamic> treatment) {
+    return Column(
+      children: [
+        // Organic Treatment
+        if (treatment['organic'] != null && treatment['organic'].toString().isNotEmpty)
+          _buildDetailSection(
+            'Organic Treatment',
+            treatment['organic'].toString(),
+            Icons.eco,
             AppColors.successGreen,
+          ),
+
+        // Chemical Treatment
+        if (treatment['chemical'] != null && treatment['chemical'].toString().isNotEmpty) ...[
+          const SizedBox(height: AppDimensions.spacingMd),
+          _buildDetailSection(
+            'Chemical Treatment',
+            treatment['chemical'].toString(),
+            Icons.science,
+            AppColors.accentOrange,
+          ),
+        ],
+
+        // Biological Treatment
+        if (treatment['biological'] != null && treatment['biological'].toString().isNotEmpty) ...[
+          const SizedBox(height: AppDimensions.spacingMd),
+          _buildDetailSection(
+            'Biological Treatment',
+            treatment['biological'].toString(),
+            Icons.biotech,
+            AppColors.primaryGreen,
           ),
         ],
       ],
