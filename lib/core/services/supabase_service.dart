@@ -168,7 +168,7 @@ class SupabaseService {
           'className': disease['class_name'],
           'name': disease['display_name'],
           'description': _extractDescription(disease['description']),
-          'treatment': disease['treatment'] ?? {}, // Keep JSONB structure
+          'treatment': disease['treatment'] ?? {},
           'prevention': disease['prevention'] ?? 'No prevention information available',
           'cropName': disease['crop_name'],
           'cropScientificName': disease['crop_scientific_name'],
