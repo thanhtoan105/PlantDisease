@@ -135,18 +135,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
     if (prediction == null) return;
 
     try {
-      // Get the class name from the AI model prediction
       final className = prediction['className'] ?? '';
-      debugPrint('🔍 Fetching detailed data for class: $className');
 
-      // Fetch detailed disease information from Supabase using the class name
       List<Map<String, dynamic>> diseaseResults = [];
       if (className.isNotEmpty) {
         diseaseResults = await SupabaseService.searchDiseases(className);
-        debugPrint('📊 Found ${diseaseResults.length} disease records in database');
       }
 
-      // Use the first matching result or create fallback data
       Map<String, dynamic> diseaseData;
       if (diseaseResults.isNotEmpty) {
         final dbDisease = diseaseResults.first;
@@ -156,28 +151,24 @@ class _ResultsScreenState extends State<ResultsScreen> {
           'display_name': dbDisease['name'],
           'description': dbDisease['description'],
           'treatment': dbDisease['treatment'],
+          'prevention': dbDisease['prevention'],
           'crop_name': dbDisease['cropName'],
           'crop_scientific_name': dbDisease['cropScientificName'],
           'confidence': prediction['confidence'] ?? 0.0,
-          'ai_prediction': prediction, // Include original AI prediction
+          'ai_prediction': prediction,
         };
-        debugPrint('✅ Using database disease: ${diseaseData['display_name']}');
       } else {
-        // Fallback data when no database match is found
         diseaseData = {
           'class_name': className,
           'display_name': prediction['displayName'] ?? className,
           'description': 'This disease was detected by our AI model. For detailed information about this condition, please consult with a plant pathologist or agricultural expert.',
-          'treatment': 'Treatment recommendations are not available in our database for this specific condition. We recommend consulting with local agricultural experts or plant pathologists for appropriate treatment options.',
+          'treatment': {},
+          'prevention': 'Prevention recommendations are not available in our database for this specific condition.',
           'confidence': prediction['confidence'] ?? 0.0,
           'ai_prediction': prediction,
         };
-        debugPrint('⚠️ Using fallback data for: ${diseaseData['display_name']}');
       }
 
-      debugPrint('➡️ Navigating to disease details with complete data');
-
-      // Navigate to disease details screen with rich data
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -186,21 +177,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
         );
       }
     } catch (error) {
-      debugPrint('❌ Error fetching disease details: $error');
-
-      // Show error message and navigate with basic data
       if (mounted) {
         CustomSnackbars.showError(
           context: context,
           message: 'Could not load detailed information: ${error.toString()}',
         );
 
-        // Still navigate with basic prediction data
         final fallbackData = {
           'class_name': prediction['className'] ?? '',
           'display_name': prediction['displayName'] ?? prediction['className'] ?? '',
           'description': 'Disease information could not be loaded from the database.',
-          'treatment': 'Please consult with a plant pathologist or agricultural expert.',
+          'treatment': {},
+          'prevention': 'Please consult with a plant pathologist or agricultural expert.',
           'confidence': prediction['confidence'] ?? 0.0,
           'ai_prediction': prediction,
         };
@@ -237,8 +225,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
                   const SizedBox(height: AppDimensions.spacingLg),
 
-                  // Main result with improved design
-                  _buildMainResult(topPrediction, isHealthy),
+                  // Detected Diseases List (Top 3)
+                  _buildDetectedDiseasesList(),
 
                   const SizedBox(height: AppDimensions.spacingLg),
 
@@ -250,10 +238,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       _diseaseDetails != null)
                     _buildDiseaseInformation(),
 
-                  // Fallback recommendations for healthy plants or when no disease details
-                  if (isHealthy ||
-                      (!_isLoadingDiseaseDetails && _diseaseDetails == null))
-                    _buildFallbackRecommendations(isHealthy, topPrediction),
 
                   // Add bottom padding to ensure content doesn't get hidden behind button
                   const SizedBox(height: 100),
@@ -338,11 +322,209 @@ class _ResultsScreenState extends State<ResultsScreen> {
         child: Image.file(
           File(widget.imagePath),
           width: double.infinity,
-          height: 200,
+          height: 250,
           fit: BoxFit.cover,
         ),
       ),
     );
+  }
+
+  Widget _buildDetectedDiseasesList() {
+    final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
+
+    // Get top 3 diseases
+    final topDiseases = detectedDiseases.take(3).toList();
+
+    if (topDiseases.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Detected Diseases',
+          style: AppTypography.headlineMedium.copyWith(
+            color: AppColors.darkNavy,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: AppDimensions.spacingMd),
+        ...topDiseases.asMap().entries.map((entry) {
+          final index = entry.key;
+          final disease = entry.value;
+          return _buildDiseaseItem(disease, index);
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildDiseaseItem(Map<String, dynamic> disease, int index) {
+    final diseaseName = disease['disease'] ?? 'Unknown';
+    final confidence = (disease['confidence'] ?? 0.0) as double;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        border: Border.all(
+          color: AppColors.lightGray,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Image/Icon Section
+          Container(
+            width: 80,
+            height: 80,
+            margin: const EdgeInsets.all(AppDimensions.spacingSm),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+              child: Image.file(
+                File(widget.imagePath),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // Disease Info Section
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: AppDimensions.spacingSm,
+                horizontal: AppDimensions.spacingXs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Disease #${index + 1}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.mediumGray,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    diseaseName,
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkNavy,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.mediumGray,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Arrow Button
+          GestureDetector(
+            onTap: () => _navigateToDiseaseDetailsFromList(disease),
+            child: Container(
+              margin: const EdgeInsets.all(AppDimensions.spacingSm),
+              padding: const EdgeInsets.all(AppDimensions.spacingSm),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios,
+                size: 20,
+                color: AppColors.primaryGreen,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _navigateToDiseaseDetailsFromList(Map<String, dynamic> disease) async {
+    try {
+      final label = disease['label'] ?? disease['disease'] ?? '';
+
+      List<Map<String, dynamic>> diseaseResults = [];
+      if (label.isNotEmpty) {
+        diseaseResults = await SupabaseService.searchDiseases(label);
+      }
+
+      Map<String, dynamic> diseaseData;
+      if (diseaseResults.isNotEmpty) {
+        final dbDisease = diseaseResults.first;
+        diseaseData = {
+          'id': dbDisease['id'],
+          'class_name': dbDisease['className'],
+          'display_name': dbDisease['name'],
+          'description': dbDisease['description'],
+          'treatment': dbDisease['treatment'],
+          'prevention': dbDisease['prevention'],
+          'crop_name': dbDisease['cropName'],
+          'crop_scientific_name': dbDisease['cropScientificName'],
+          'confidence': disease['confidence'] ?? 0.0,
+        };
+      } else {
+        diseaseData = {
+          'class_name': label,
+          'display_name': disease['disease'] ?? label,
+          'description': 'This disease was detected by our AI model. For detailed information, please consult with a plant pathologist or agricultural expert.',
+          'treatment': {},
+          'prevention': 'Prevention information not available for this disease.',
+          'confidence': disease['confidence'] ?? 0.0,
+        };
+      }
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DiseaseDetailsScreen(disease: diseaseData),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Could not load detailed information',
+        );
+
+        final fallbackData = {
+          'class_name': disease['label'] ?? '',
+          'display_name': disease['disease'] ?? 'Unknown Disease',
+          'description': 'Disease information could not be loaded from the database.',
+          'treatment': {},
+          'prevention': 'Please consult with a plant pathologist or agricultural expert.',
+          'confidence': disease['confidence'] ?? 0.0,
+        };
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DiseaseDetailsScreen(disease: fallbackData),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildMainResult(
