@@ -56,7 +56,11 @@ class SupabaseService {
           'id': crop['id'].toString(),
           'name': crop['name'],
           'scientificName': crop['scientific_name'],
-          'description': _extractDescription(crop['description']),
+          'overview': crop['overview'] ?? 'No overview available',
+          'temperature': crop['temperature'] ?? 'Not specified',
+          'sunlight': crop['sunlight'] ?? 'Not specified',
+          'watering': crop['watering'] ?? 'Not specified',
+          'growingTips': crop['growing_tips'] ?? {}, // Flat key-value pairs
           'emoji': _getCropEmoji(crop['name']),
           'diseaseCount': crop['disease_count'] ?? 0,
           'image_url': crop['image_url'],
@@ -78,7 +82,7 @@ class SupabaseService {
       // Get crop data with new columns
       final cropResponse = await _supabase
           .from('crops')
-          .select('id, name, scientific_name, overview, temperature, sunlight, watering, description, image_url')
+          .select('id, name, scientific_name, overview, temperature, sunlight, watering, growing_tips, image_url')
           .eq('id', int.parse(cropId))
           .single();
 
@@ -111,7 +115,7 @@ class SupabaseService {
         'temperature': cropResponse['temperature'] ?? 'Not specified',
         'sunlight': cropResponse['sunlight'] ?? 'Not specified',
         'watering': cropResponse['watering'] ?? 'Not specified',
-        'description': cropResponse['description'], // Keep remaining JSONB (seasons, growingConditions)
+        'growingTips': cropResponse['growing_tips'] ?? {}, // Key-value pairs for growing tips
         'emoji': _getCropEmoji(cropResponse['name']),
         'diseases': diseases,
         'diseaseCount': diseases.length,
@@ -145,7 +149,7 @@ class SupabaseService {
           'temperature': crop['temperature'] ?? 'Not specified',
           'sunlight': crop['sunlight'] ?? 'Not specified',
           'watering': crop['watering'] ?? 'Not specified',
-          'description': crop['description'], // Keep remaining JSONB
+          'growingTips': crop['growing_tips'] ?? {}, // Flat key-value pairs
           'emoji': _getCropEmoji(crop['name']),
           'diseaseCount': crop['disease_count'] ?? 0,
           'image_url': crop['image_url'],
@@ -430,7 +434,7 @@ class SupabaseService {
       'Blueberry': '🫐',
       'Soybean': '🫘',
       'Squash': '🎃',
-      'Durian': '🌰',
+      'Durian': '🍈',
     };
 
     return emojiMap[cropName] ?? '🌱';

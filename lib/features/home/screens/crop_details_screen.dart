@@ -75,11 +75,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   }
 
   Future<void> _loadCropDetails() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
     try {
       final plantProvider = context.read<PlantProvider>();
       final details = await plantProvider.getCropDetails(widget.cropId);
@@ -87,17 +82,13 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
       if (mounted) {
         setState(() {
           _cropDetails = details;
-          _isLoading = false;
         });
         _fadeController.forward();
         _slideController.forward();
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
+        debugPrint('Error loading crop details: $e');
       }
     }
   }
@@ -393,14 +384,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
               ),
             ),
             const SizedBox(height: AppDimensions.spacingLg),
-
-            // Basic Information - Expandable
-            _buildExpandableSection(
-              'Basic Information',
-              _buildBasicInfo(crop),
-              'basic-info',
-              Icons.info,
-            ),
           ],
         ),
       ),
@@ -485,223 +468,101 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     );
   }
 
-  Widget _buildExpandableSection(
-    String title,
-    Widget content,
-    String sectionId,
-    IconData icon,
-  ) {
-    final isExpanded = _expandedSections[sectionId] ?? false;
+  Widget _buildTipsTab() {
+    final crop = _cropDetails ?? widget.crop ?? {};
+    final growingTips = crop['growingTips'] as Map<String, dynamic>? ?? {};
 
-    return CustomCard(
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => _toggleSection(sectionId),
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppDimensions.spacingSm),
-              child: Row(
-                children: [
-                  Icon(icon, size: 20, color: AppColors.primaryGreen),
-                  const SizedBox(width: AppDimensions.spacingXs),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.darkNavy,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded ? Icons.expand_less : Icons.expand_more,
-                    size: 24,
-                    color: AppColors.mediumGray,
-                  ),
-                ],
-              ),
+    if (growingTips.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.spacingXl),
+          child: Text(
+            'No growing tips available for this crop.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.mediumGray,
             ),
+            textAlign: TextAlign.center,
           ),
-          if (isExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.only(top: AppDimensions.spacingSm),
-              child: content,
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppDimensions.spacingLg),
+      child: CustomCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.eco,
+                  color: AppColors.primaryGreen,
+                  size: 24,
+                ),
+                const SizedBox(width: AppDimensions.spacingSm),
+                Text(
+                  'Growing Tips',
+                  style: AppTypography.headlineSmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: AppDimensions.spacingLg),
+            // Display all key-value pairs from growing_tips
+            ...growingTips.entries.map((entry) {
+              return _buildInfoRow(
+                _formatLabel(entry.key),
+                entry.value?.toString() ?? 'N/A',
+              );
+            }),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBasicInfo(Map<String, dynamic> crop) {
-    // basicInfo has been removed from the database structure
-    // We now have direct columns for the most important info (temperature, sunlight, watering)
-    // Display a message indicating basic info section is no longer available
-
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.spacingMd),
-      child: Text(
-        'Basic crop information is now displayed in the quick stats above.',
-        style: AppTypography.bodyMedium.copyWith(
-          color: AppColors.mediumGray,
-          fontStyle: FontStyle.italic,
         ),
       ),
     );
   }
 
-  Widget _buildGrowingConditionsContent(Map<String, dynamic> crop) {
-    final description = crop['description'] as Map<String, dynamic>? ?? {};
-    final conditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
+  // Helper method to format keys into readable labels
+  String _formatLabel(String key) {
+    // Convert camelCase or snake_case to Title Case
+    final words = key.replaceAllMapped(
+      RegExp(r'([A-Z])|_'),
+      (match) => ' ${match.group(0)}'.toUpperCase(),
+    ).trim().split(' ');
 
-    // Note: temperature, sunlight, and watering are now direct columns, not in JSON
-    final info = {
-      'Climate': conditions['climate'],
-      'Hardiness Zones': conditions['hardinessZones'],
-      'Temperature': crop['temperature'], // Direct column now
-      'Sunlight': crop['sunlight'], // Direct column now
-      'Soil Type': conditions['soilType'],
-      'Soil pH': conditions['soilPh'],
-      'Water Requirements': crop['watering'], // Direct column now
-      'Spacing': conditions['spacing'],
-    };
-
-    return Column(
-      children: info.entries.map((entry) {
-        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
-      }).toList(),
-    );
-  }
-
-  Widget _buildGrowingSeasonsContent(Map<String, dynamic> crop) {
-    final description = crop['description'] as Map<String, dynamic>? ?? {};
-    final seasons = description['seasons'] as Map<String, dynamic>? ?? {};
-
-    final info = {
-      'Planting Time': seasons['plantingTime'],
-      'Blooming': seasons['bloomingPeriod'],
-      'Fruit Development': seasons['fruitDevelopment'],
-      'Harvest Time': seasons['harvestTime'],
-      'First Harvest': seasons['firstHarvest'],
-      'Dormancy': seasons['dormancy'],
-    };
-
-    return Column(
-      children: info.entries.map((entry) {
-        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
-      }).toList(),
-    );
+    return words
+        .map((word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
   }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.spacingSm),
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 140,
             child: Text(
               label,
               style: AppTypography.labelMedium.copyWith(
                 color: AppColors.mediumGray,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
+          const SizedBox(width: AppDimensions.spacingSm),
           Expanded(
             child: Text(
               value,
-              style: AppTypography.bodyMedium,
+              style: AppTypography.bodyMedium.copyWith(
+                height: 1.4,
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTipsTab() {
-    final crop = _cropDetails ?? widget.crop ?? {};
-    final description = crop['description'] as Map<String, dynamic>? ?? {};
-    final growingConditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
-    final seasons = description['seasons'] as Map<String, dynamic>? ?? {};
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppDimensions.spacingLg),
-      child: Column(
-        children: [
-          // Growing Conditions Card
-          CustomCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Growing Conditions',
-                  style: AppTypography.headlineSmall.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.spacingMd),
-                _buildGrowingConditionsInfo(growingConditions),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-
-          // Growing Season Card
-          CustomCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Growing Season',
-                  style: AppTypography.headlineSmall.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.spacingMd),
-                _buildGrowingSeasonsInfo(seasons),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGrowingConditionsInfo(Map<String, dynamic> conditions) {
-    final info = {
-      'Climate': conditions['climate'],
-      'Hardiness Zones': conditions['hardinessZones'],
-      'Temperature': conditions['temperature'],
-      'Sunlight': conditions['sunlight'],
-      'Soil Type': conditions['soilType'],
-      'Soil pH': conditions['soilPh'],
-      'Water Requirements': conditions['waterRequirements'],
-      'Spacing': conditions['spacing'],
-    };
-
-    return Column(
-      children: info.entries.map((entry) {
-        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
-      }).toList(),
-    );
-  }
-
-  Widget _buildGrowingSeasonsInfo(Map<String, dynamic> seasons) {
-    final info = {
-      'Planting Time': seasons['plantingTime'],
-      'Blooming': seasons['bloomingPeriod'],
-      'Fruit Development': seasons['fruitDevelopment'],
-      'Harvest Time': seasons['harvestTime'],
-      'First Harvest': seasons['firstHarvest'],
-      'Dormancy': seasons['dormancy'],
-    };
-
-    return Column(
-      children: info.entries.map((entry) {
-        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
-      }).toList(),
     );
   }
 
