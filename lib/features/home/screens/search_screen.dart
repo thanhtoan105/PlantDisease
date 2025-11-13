@@ -297,6 +297,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final isDisease = result['type'] == 'disease';
     final color = isDisease ? AppColors.accentOrange : AppColors.primaryGreen;
     final icon = isDisease ? Icons.bug_report : Icons.eco;
+    final imageUrl = result['image_url'] as String?;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
@@ -305,7 +306,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon container
+            // Image or Icon container
             Container(
               width: 64,
               height: 64,
@@ -314,7 +315,32 @@ class _SearchScreenState extends State<SearchScreen> {
                 borderRadius:
                     BorderRadius.circular(AppDimensions.borderRadiusMedium),
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(AppDimensions.borderRadiusMedium),
+                child: imageUrl != null && imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(icon, color: color, size: 32);
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
+                              color: color,
+                            ),
+                          );
+                        },
+                      )
+                    : Icon(icon, color: color, size: 32),
+              ),
             ),
             const SizedBox(width: AppDimensions.spacingLg),
 

@@ -172,6 +172,7 @@ class SupabaseService {
           'prevention': disease['prevention'] ?? 'No prevention information available',
           'cropName': disease['crop_name'],
           'cropScientificName': disease['crop_scientific_name'],
+          'image_url': disease['image_url'], // Add image URL
           'type': 'disease',
         };
       }).toList();
