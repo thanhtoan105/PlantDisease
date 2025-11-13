@@ -384,9 +384,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
                   ),
                   const SizedBox(height: AppDimensions.spacingMd),
                   Text(
-                    (crop['description'] is Map)
-                        ? (crop['description']['overview'] ?? 'No description available')
-                        : (crop['description'] ?? 'No description available'),
+                    crop['overview'] ?? 'No description available',
                     style: AppTypography.bodyMedium.copyWith(
                       height: 1.5,
                     ),
@@ -411,8 +409,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
 
   Widget _buildQuickStats() {
     final crop = _cropDetails ?? widget.crop ?? {};
-    final description = crop['description'] as Map<String, dynamic>? ?? {};
-    final growingConditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
 
     return Row(
       children: [
@@ -420,7 +416,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           child: _buildStatCard(
             icon: Icons.thermostat,
             iconColor: AppColors.primaryGreen,
-            value: growingConditions['temperature'] ?? 'N/A',
+            value: crop['temperature'] ?? 'N/A',
             label: 'Temperature',
           ),
         ),
@@ -429,7 +425,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           child: _buildStatCard(
             icon: Icons.wb_sunny,
             iconColor: AppColors.warning,
-            value: growingConditions['sunlight'] ?? 'N/A',
+            value: crop['sunlight'] ?? 'N/A',
             label: 'Sunlight',
           ),
         ),
@@ -438,7 +434,7 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
           child: _buildStatCard(
             icon: Icons.opacity,
             iconColor: AppColors.info,
-            value: growingConditions['waterRequirements'] ?? 'N/A',
+            value: crop['watering'] ?? 'N/A',
             label: 'Watering',
           ),
         ),
@@ -539,22 +535,19 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   }
 
   Widget _buildBasicInfo(Map<String, dynamic> crop) {
-    final description = crop['description'] as Map<String, dynamic>? ?? {};
-    final basicInfo = description['basicInfo'] as Map<String, dynamic>? ?? {};
+    // basicInfo has been removed from the database structure
+    // We now have direct columns for the most important info (temperature, sunlight, watering)
+    // Display a message indicating basic info section is no longer available
 
-    final info = {
-      'Family': basicInfo['family'],
-      'Origin': basicInfo['origin'],
-      'Tree Type': basicInfo['treeType'],
-      'Mature Height': basicInfo['matureHeight'],
-      'Mature Width': basicInfo['matureWidth'],
-      'Lifespan': basicInfo['lifespan'],
-    };
-
-    return Column(
-      children: info.entries.map((entry) {
-        return _buildInfoRow(entry.key, entry.value ?? 'N/A');
-      }).toList(),
+    return Padding(
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      child: Text(
+        'Basic crop information is now displayed in the quick stats above.',
+        style: AppTypography.bodyMedium.copyWith(
+          color: AppColors.mediumGray,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
     );
   }
 
@@ -562,14 +555,15 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     final description = crop['description'] as Map<String, dynamic>? ?? {};
     final conditions = description['growingConditions'] as Map<String, dynamic>? ?? {};
 
+    // Note: temperature, sunlight, and watering are now direct columns, not in JSON
     final info = {
       'Climate': conditions['climate'],
       'Hardiness Zones': conditions['hardinessZones'],
-      'Temperature': conditions['temperature'],
-      'Sunlight': conditions['sunlight'],
+      'Temperature': crop['temperature'], // Direct column now
+      'Sunlight': crop['sunlight'], // Direct column now
       'Soil Type': conditions['soilType'],
       'Soil pH': conditions['soilPh'],
-      'Water Requirements': conditions['waterRequirements'],
+      'Water Requirements': crop['watering'], // Direct column now
       'Spacing': conditions['spacing'],
     };
 

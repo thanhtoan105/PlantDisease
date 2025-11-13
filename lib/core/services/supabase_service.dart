@@ -75,10 +75,10 @@ class SupabaseService {
     }
 
     try {
-      // Get basic crop data with JSONB description
+      // Get crop data with new columns
       final cropResponse = await _supabase
           .from('crops')
-          .select('id, name, scientific_name, description, image_url')
+          .select('id, name, scientific_name, overview, temperature, sunlight, watering, description, image_url')
           .eq('id', int.parse(cropId))
           .single();
 
@@ -102,12 +102,16 @@ class SupabaseService {
         };
       }).toList();
 
-      // Build the result object directly from JSONB description
+      // Build the result object with new structure
       final result = {
         'id': cropResponse['id'].toString(),
         'name': cropResponse['name'],
         'scientificName': cropResponse['scientific_name'],
-        'description': cropResponse['description'], // Keep JSONB structure intact
+        'overview': cropResponse['overview'] ?? 'No overview available',
+        'temperature': cropResponse['temperature'] ?? 'Not specified',
+        'sunlight': cropResponse['sunlight'] ?? 'Not specified',
+        'watering': cropResponse['watering'] ?? 'Not specified',
+        'description': cropResponse['description'], // Keep remaining JSONB (seasons, growingConditions)
         'emoji': _getCropEmoji(cropResponse['name']),
         'diseases': diseases,
         'diseaseCount': diseases.length,
@@ -137,7 +141,11 @@ class SupabaseService {
           'id': crop['id'].toString(),
           'name': crop['name'],
           'scientificName': crop['scientific_name'],
-          'description': _extractDescription(crop['description']),
+          'overview': crop['overview'] ?? 'No overview available',
+          'temperature': crop['temperature'] ?? 'Not specified',
+          'sunlight': crop['sunlight'] ?? 'Not specified',
+          'watering': crop['watering'] ?? 'Not specified',
+          'description': crop['description'], // Keep remaining JSONB
           'emoji': _getCropEmoji(crop['name']),
           'diseaseCount': crop['disease_count'] ?? 0,
           'image_url': crop['image_url'],
