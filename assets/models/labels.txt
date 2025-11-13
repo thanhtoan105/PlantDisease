@@ -1,6 +1,6 @@
-Leaf_Algal
-Leaf_Blight
-Leaf_Colletotrichum
-Leaf_Healthy
-Leaf_Phomopsis
-Leaf_Rhizoctonia
+Durian___Leaf_Algal
+Durian___Leaf_Blight
+Durian___Leaf_Colletotrichum
+Durian___Leaf_Healthy
+Durian___Leaf_Phomopsis
+Durian___Leaf_Rhizoctonia

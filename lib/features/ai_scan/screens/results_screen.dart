@@ -52,6 +52,24 @@ class _ResultsScreenState extends State<ResultsScreen> {
     });
   }
 
+  // Format disease label for display: "Apple___Apple_scab" -> "Apple Scab"
+  String _formatDiseaseLabel(String label) {
+    if (label.isEmpty || label == 'Unknown') return label;
+
+    // Split on '___' and take the last part (disease name)
+    final parts = label.split('___');
+    final diseasePart = parts.length > 1 ? parts.last : label;
+
+    // Replace underscores with spaces and capitalize each word
+    return diseasePart
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+            : '')
+        .join(' ');
+  }
+
   Future<void> _loadDiseaseDetails() async {
     final topPrediction = widget.analysisResult['topPrediction'];
     if (topPrediction == null || topPrediction == 'healthy') return;
@@ -127,77 +145,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
         setState(() {
           _isSaving = false;
         });
-      }
-    }
-  }
-
-  void _navigateToDiseaseDetails(Map<String, dynamic>? prediction) async {
-    if (prediction == null) return;
-
-    try {
-      final className = prediction['className'] ?? '';
-
-      List<Map<String, dynamic>> diseaseResults = [];
-      if (className.isNotEmpty) {
-        diseaseResults = await SupabaseService.searchDiseases(className);
-      }
-
-      Map<String, dynamic> diseaseData;
-      if (diseaseResults.isNotEmpty) {
-        final dbDisease = diseaseResults.first;
-        diseaseData = {
-          'id': dbDisease['id'],
-          'class_name': dbDisease['className'],
-          'display_name': dbDisease['name'],
-          'description': dbDisease['description'],
-          'treatment': dbDisease['treatment'],
-          'prevention': dbDisease['prevention'],
-          'crop_name': dbDisease['cropName'],
-          'crop_scientific_name': dbDisease['cropScientificName'],
-          'confidence': prediction['confidence'] ?? 0.0,
-          'ai_prediction': prediction,
-        };
-      } else {
-        diseaseData = {
-          'class_name': className,
-          'display_name': prediction['displayName'] ?? className,
-          'description': 'This disease was detected by our AI model. For detailed information about this condition, please consult with a plant pathologist or agricultural expert.',
-          'treatment': {},
-          'prevention': 'Prevention recommendations are not available in our database for this specific condition.',
-          'confidence': prediction['confidence'] ?? 0.0,
-          'ai_prediction': prediction,
-        };
-      }
-
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => DiseaseDetailsScreen(disease: diseaseData),
-          ),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        CustomSnackbars.showError(
-          context: context,
-          message: 'Could not load detailed information: ${error.toString()}',
-        );
-
-        final fallbackData = {
-          'class_name': prediction['className'] ?? '',
-          'display_name': prediction['displayName'] ?? prediction['className'] ?? '',
-          'description': 'Disease information could not be loaded from the database.',
-          'treatment': {},
-          'prevention': 'Please consult with a plant pathologist or agricultural expert.',
-          'confidence': prediction['confidence'] ?? 0.0,
-          'ai_prediction': prediction,
-        };
-
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => DiseaseDetailsScreen(disease: fallbackData),
-          ),
-        );
       }
     }
   }
@@ -360,7 +307,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildDiseaseItem(Map<String, dynamic> disease, int index) {
-    final diseaseName = disease['disease'] ?? 'Unknown';
+    // Extract label and format it for display
+    final label = disease['label'] ?? 'Unknown';
+    final diseaseName = _formatDiseaseLabel(label);
     final confidence = (disease['confidence'] ?? 0.0) as double;
 
     return Container(
@@ -461,150 +410,38 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
+  // Simplified navigation from disease list - same as Search Screen approach
   Future<void> _navigateToDiseaseDetailsFromList(Map<String, dynamic> disease) async {
     try {
-      final label = disease['label'] ?? disease['disease'] ?? '';
+      final label = disease['label'] ?? '';
 
-      List<Map<String, dynamic>> diseaseResults = [];
-      if (label.isNotEmpty) {
-        diseaseResults = await SupabaseService.searchDiseases(label);
-      }
+      if (label.isEmpty) return;
 
-      Map<String, dynamic> diseaseData;
-      if (diseaseResults.isNotEmpty) {
-        final dbDisease = diseaseResults.first;
-        diseaseData = {
-          'id': dbDisease['id'],
-          'class_name': dbDisease['className'],
-          'display_name': dbDisease['name'],
-          'description': dbDisease['description'],
-          'treatment': dbDisease['treatment'],
-          'prevention': dbDisease['prevention'],
-          'crop_name': dbDisease['cropName'],
-          'crop_scientific_name': dbDisease['cropScientificName'],
-          'confidence': disease['confidence'] ?? 0.0,
-        };
-      } else {
-        diseaseData = {
-          'class_name': label,
-          'display_name': disease['disease'] ?? label,
-          'description': 'This disease was detected by our AI model. For detailed information, please consult with a plant pathologist or agricultural expert.',
-          'treatment': {},
-          'prevention': 'Prevention information not available for this disease.',
-          'confidence': disease['confidence'] ?? 0.0,
-        };
-      }
+      final diseaseResults = await SupabaseService.searchDiseases(label);
 
       if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => DiseaseDetailsScreen(disease: diseaseData),
-          ),
-        );
+        if (diseaseResults.isNotEmpty) {
+          // Use database result directly (same as Search Screen)
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => DiseaseDetailsScreen(disease: diseaseResults.first),
+            ),
+          );
+        } else {
+          CustomSnackbars.showError(
+            context: context,
+            message: 'Disease information not found in database',
+          );
+        }
       }
     } catch (error) {
       if (mounted) {
         CustomSnackbars.showError(
           context: context,
-          message: 'Could not load detailed information',
-        );
-
-        final fallbackData = {
-          'class_name': disease['label'] ?? '',
-          'display_name': disease['disease'] ?? 'Unknown Disease',
-          'description': 'Disease information could not be loaded from the database.',
-          'treatment': {},
-          'prevention': 'Please consult with a plant pathologist or agricultural expert.',
-          'confidence': disease['confidence'] ?? 0.0,
-        };
-
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => DiseaseDetailsScreen(disease: fallbackData),
-          ),
+          message: 'Could not load disease information',
         );
       }
     }
-  }
-
-  Widget _buildMainResult(
-      Map<String, dynamic>? topPrediction, bool isHealthy) {
-    final resultColor =
-        isHealthy ? AppColors.successGreen : AppColors.warningOrange;
-    final resultIcon = isHealthy ? Icons.check_circle : Icons.warning;
-    final resultText =
-        isHealthy ? 'Plant appears healthy!' : 'Disease detected';
-
-    // Extract confidence from detectedDiseases
-    final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
-    double confidence = 0.0;
-    if (detectedDiseases.isNotEmpty && detectedDiseases[0] is Map && detectedDiseases[0]['confidence'] != null) {
-      confidence = (detectedDiseases[0]['confidence'] as num).toDouble();
-    }
-
-    return CustomCard(
-      child: Column(
-        children: [
-          // Status icon and text
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: resultColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  resultIcon,
-                  color: resultColor,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacingLg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      resultText,
-                      style: AppTypography.headlineMedium.copyWith(
-                        color: resultColor,
-                      ),
-                    ),
-                    if (topPrediction != null)
-                      Text(
-                        topPrediction['displayName'] ?? 'Unknown',
-                        style: AppTypography.bodyLarge,
-                      ),
-                    if (confidence > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            LinearProgressIndicator(
-                              value: confidence,
-                              minHeight: 8,
-                              backgroundColor: Colors.grey[200],
-                              color: resultColor,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
-                              style: AppTypography.bodySmall.copyWith(color: resultColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildDiseaseInformation() {
@@ -696,325 +533,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
             'Loading disease information...',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.mediumGray,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFallbackRecommendations(
-      bool isHealthy, Map<String, dynamic>? topPrediction) {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recommendations',
-                style: AppTypography.headlineMedium,
-              ),
-              // Add "View More" button for disease cases
-              if (!isHealthy && topPrediction != null)
-                GestureDetector(
-                  onTap: () => _navigateToDiseaseDetails(topPrediction),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.primaryGreen,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'View More',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 12,
-                          color: AppColors.primaryGreen,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          if (isHealthy) ...[
-            _buildRecommendationItem(
-              Icons.check_circle_outline,
-              'Continue Care',
-              'Your plant looks healthy! Keep up the good work with regular watering and proper lighting.',
-              AppColors.successGreen,
-            ),
-            _buildRecommendationItem(
-              Icons.visibility,
-              'Monitor Regularly',
-              'Check your plant regularly for any signs of disease or pest issues.',
-              AppColors.info,
-            ),
-          ] else ...[
-            _buildRecommendationItem(
-              Icons.medical_services,
-              'Treatment Required',
-              'Consider applying appropriate fungicide or treatment for the detected condition.',
-              AppColors.warningOrange,
-            ),
-            _buildRecommendationItem(
-              Icons.person_search,
-              'Consult Expert',
-              'For severe cases, consult with a plant pathologist or agricultural expert.',
-              AppColors.info,
-            ),
-            _buildRecommendationItem(
-              Icons.cleaning_services,
-              'Improve Conditions',
-              'Ensure proper air circulation, avoid overwatering, and remove affected leaves.',
-              AppColors.primaryGreen,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiseaseRecommendations() {
-    final disease = _diseaseDetails!;
-    final causes = disease['description'] as String? ?? '';
-    final treatment = disease['treatment']; // JSONB object or null
-    final prevention = disease['prevention'] as String? ?? '';
-    final displayName = disease['display_name'] as String? ?? '';
-    final className = disease['class_name'] as String? ?? '';
-
-    // Debug information
-    debugPrint('🔍 Building disease recommendations with data: $disease');
-    debugPrint('📝 Display name: $displayName');
-    debugPrint('🏷️ Class name: $className');
-    debugPrint('📄 Description: ${causes.length} characters');
-    debugPrint('💊 Treatment: $treatment');
-    debugPrint('🛡️ Prevention: ${prevention.length} characters');
-
-    return Column(
-      children: [
-        // Debug info card (remove this in production)
-        CustomCard(
-          child: Container(
-            padding: const EdgeInsets.all(AppDimensions.spacingSm),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-            ),
-            child: Text(
-              'DEBUG: Disease details loaded - ${disease.keys.join(', ')}',
-              style: AppTypography.bodySmall.copyWith(
-                color: Colors.blue,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: AppDimensions.spacingMd),
-
-        // Disease Title Card
-        CustomCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                displayName.isNotEmpty ? displayName : (className.isNotEmpty ? className : 'Unknown Disease'),
-                style: AppTypography.headlineMedium.copyWith(
-                  color: AppColors.warningOrange,
-                ),
-              ),
-              if (className.isNotEmpty && displayName.isNotEmpty && className != displayName) ...[
-                const SizedBox(height: AppDimensions.spacingXs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.spacingSm,
-                    vertical: AppDimensions.spacingXs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-                  ),
-                  child: Text(
-                    'Class: $className',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.primaryGreen,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-
-        const SizedBox(height: AppDimensions.spacingMd),
-
-        // Causes Section
-        if (causes.isNotEmpty)
-          _buildDetailSection(
-            'Causes',
-            causes,
-            Icons.info_outline,
-            AppColors.info,
-          ),
-
-        // Treatment Section
-        if (treatment != null && treatment is Map<String, dynamic> && treatment.isNotEmpty) ...[
-          const SizedBox(height: AppDimensions.spacingMd),
-          _buildTreatmentSections(treatment),
-        ],
-
-        // Prevention Section
-        if (prevention.isNotEmpty) ...[
-          const SizedBox(height: AppDimensions.spacingMd),
-          _buildDetailSection(
-            'Prevention',
-            prevention,
-            Icons.shield_outlined,
-            AppColors.primaryGreen,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildTreatmentSections(Map<String, dynamic> treatment) {
-    return Column(
-      children: [
-        // Organic Treatment
-        if (treatment['organic'] != null && treatment['organic'].toString().isNotEmpty)
-          _buildDetailSection(
-            'Organic Treatment',
-            treatment['organic'].toString(),
-            Icons.eco,
-            AppColors.successGreen,
-          ),
-
-        // Chemical Treatment
-        if (treatment['chemical'] != null && treatment['chemical'].toString().isNotEmpty) ...[
-          const SizedBox(height: AppDimensions.spacingMd),
-          _buildDetailSection(
-            'Chemical Treatment',
-            treatment['chemical'].toString(),
-            Icons.science,
-            AppColors.accentOrange,
-          ),
-        ],
-
-        // Biological Treatment
-        if (treatment['biological'] != null && treatment['biological'].toString().isNotEmpty) ...[
-          const SizedBox(height: AppDimensions.spacingMd),
-          _buildDetailSection(
-            'Biological Treatment',
-            treatment['biological'].toString(),
-            Icons.biotech,
-            AppColors.primaryGreen,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildDetailSection(String title, String content, IconData icon, Color color) {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacingMd),
-              Text(
-                title,
-                style: AppTypography.labelLarge.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacingMd),
-          Text(
-            content,
-            style: AppTypography.bodyMedium.copyWith(
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItem(
-      IconData icon, String title, String description, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.spacingLg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius:
-                  BorderRadius.circular(AppDimensions.borderRadiusMedium),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppDimensions.spacingLg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.labelMedium,
-                ),
-                const SizedBox(height: AppDimensions.spacingXs),
-                Text(
-                  description,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mediumGray,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

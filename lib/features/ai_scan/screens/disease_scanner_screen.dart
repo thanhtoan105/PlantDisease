@@ -388,9 +388,9 @@ class _DiseaseScannerScreenState extends State<DiseaseScannerScreen>
   void _showInfoDialog() {
     CustomDialogs.showInfoDialog(
       context: context,
-      title: 'About Disease Scanner',
-      message: 'This is an AI-powered scanner to detect diseases on plant.',
-      buttonText: 'Got it',
+      title: 'Disease Scanner',
+      message: 'This is an AI-powered scanner to detect diseases on plant (only Durian now).',
+      buttonText: 'OK',
     );
   }
 }

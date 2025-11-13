@@ -232,7 +232,12 @@ class TensorFlowService {
   static Future<void> _loadLabels() async {
     try {
       final labelsData = await rootBundle.loadString(labelsPath);
-      _labels = labelsData.split('\n').where((label) => label.isNotEmpty).toList();
+      // Trim each label to remove \r, \n, and whitespace from Windows/Unix line endings
+      _labels = labelsData
+          .split('\n')
+          .map((label) => label.trim())
+          .where((label) => label.isNotEmpty)
+          .toList();
       debugPrint('✅ Loaded ${_labels!.length} labels from file');
     } catch (e) {
       debugPrint('⚠️ Labels file not found, will generate generic labels after model loads: $e');
@@ -527,20 +532,19 @@ class TensorFlowService {
     final topPrediction = predictions.isNotEmpty ? predictions.first : null;
 
     // Build detectedDiseases list for storage
+    // Only store 'label' and 'confidence' - no need for redundant 'disease' field
     List<Map<String, dynamic>> detectedDiseases = [];
     if (predictions.isNotEmpty) {
       for (final pred in predictions) {
         detectedDiseases.add({
-          'disease': pred['displayName'],
-          'confidence': pred['confidence'],
           'label': pred['label'],
+          'confidence': pred['confidence'],
         });
       }
     } else {
       detectedDiseases.add({
-        'disease': 'Unknown',
-        'confidence': 0.0,
         'label': 'Unknown',
+        'confidence': 0.0,
       });
     }
 
