@@ -452,7 +452,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         // Causes Section
         _buildExpandableSection(
           'Causes',
-          _diseaseDetails!['description'] ?? 'No cause information available.',
+          _diseaseDetails!['overview'] ?? 'No cause information available.',
           'causes',
           Icons.info_outline,
         ),

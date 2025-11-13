@@ -373,7 +373,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   // Description
                   const SizedBox(height: AppDimensions.spacingXs),
                   Text(
-                    result['description'] ?? 'No description available',
+                    result['overview'] ?? result['description'] ?? 'No description available',
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.mediumGray,
                     ),

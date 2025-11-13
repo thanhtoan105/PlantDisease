@@ -255,7 +255,7 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
                 ),
                 const SizedBox(height: AppDimensions.spacingMd),
                 Text(
-                  disease['description'] ??
+                  disease['overview'] ??
                       'Cause information not available for this disease.',
                   style: AppTypography.bodyMedium,
                 ),

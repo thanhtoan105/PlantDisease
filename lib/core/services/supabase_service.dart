@@ -86,7 +86,7 @@ class SupabaseService {
       final diseasesResponse = await _supabase
           .from('diseases')
           .select(
-              'id, class_name, display_name, description, treatment, prevention, image_url')
+              'id, class_name, display_name, overview, treatment, prevention, image_url')
           .eq('crop_id', int.parse(cropId));
 
       // Transform diseases data
@@ -95,7 +95,7 @@ class SupabaseService {
           'id': disease['id'].toString(),
           'className': disease['class_name'],
           'name': disease['display_name'],
-          'description': disease['description'] ?? 'No description available',
+          'overview': disease['overview'] ?? 'No overview available',
           'treatment': disease['treatment'] ?? {}, // Keep JSONB structure
           'prevention': disease['prevention'] ?? 'No prevention information available',
           'image_url': disease['image_url'],
@@ -167,7 +167,7 @@ class SupabaseService {
           'cropId': disease['crop_id'].toString(),
           'className': disease['class_name'],
           'name': disease['display_name'],
-          'description': _extractDescription(disease['description']),
+          'overview': _extractDescription(disease['overview']),
           'treatment': disease['treatment'] ?? {},
           'prevention': disease['prevention'] ?? 'No prevention information available',
           'cropName': disease['crop_name'],
