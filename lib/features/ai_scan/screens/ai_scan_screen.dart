@@ -192,10 +192,55 @@ class _AiScanScreenState extends State<AiScanScreen>
       final processedImagePath = await CameraService.processGalleryImage(croppedFile.path);
 
       if (mounted) {
+        debugPrint('\n📍 Getting location data...');
         final locationResult = await WeatherService.getCurrentLocation();
-        final locationData = locationResult['success'] == true
-            ? locationResult['data']
-            : null;
+
+        debugPrint('📍 Location service response:');
+        debugPrint('  Type: ${locationResult.runtimeType}');
+        debugPrint('  Keys: ${locationResult.keys.toList()}');
+        debugPrint('  Full result: $locationResult');
+        debugPrint('  success: ${locationResult['success']}');
+
+        if (locationResult['data'] != null) {
+          debugPrint('  data type: ${locationResult['data'].runtimeType}');
+          debugPrint('  data value: ${locationResult['data']}');
+          debugPrint('  data is String? ${locationResult['data'] is String}');
+          debugPrint('  data is Map? ${locationResult['data'] is Map}');
+        }
+
+        // Extract location data with defensive type checking
+        String? locationData;
+        if (locationResult['success'] == true && locationResult['data'] != null) {
+          final data = locationResult['data'];
+          debugPrint('\n📍 Extracting location data:');
+          debugPrint('  Input type: ${data.runtimeType}');
+
+          // Handle both String and Map types defensively
+          if (data is String) {
+            locationData = data;
+            debugPrint('  ✅ Is String, using directly: "$locationData"');
+          } else if (data is Map) {
+            // Fallback: if somehow a Map is returned, convert it to a readable string
+            locationData = data.toString();
+            debugPrint('  ⚠️⚠️⚠️ WARNING: locationData was a Map!');
+            debugPrint('  Map keys: ${data.keys.toList()}');
+            debugPrint('  Converted to String: "$locationData"');
+          } else {
+            locationData = 'Unknown Location';
+            debugPrint('  ❌ WARNING: Unexpected type ${data.runtimeType}');
+            debugPrint('  Using fallback: "$locationData"');
+          }
+        } else {
+          debugPrint('  ⚠️ Location fetch failed or data is null');
+          locationData = null;
+        }
+
+        debugPrint('\n📍 Final locationData before analysis:');
+        debugPrint('  Type: ${locationData.runtimeType}');
+        debugPrint('  Value: "$locationData"');
+        debugPrint('  Is String? ${locationData is String}');
+        debugPrint('  Is Map? ${locationData is Map}\n');
+
         await _analyzeImage(processedImagePath, locationData: locationData);
       }
     } catch (e) {
@@ -299,32 +344,73 @@ class _AiScanScreenState extends State<AiScanScreen>
     });
 
     try {
+      debugPrint('\n🔬 _analyzeImage called:');
+      debugPrint('  imagePath: $imagePath');
+      debugPrint('  locationData type: ${locationData.runtimeType}');
+      debugPrint('  locationData value: $locationData');
+      debugPrint('  locationData is String? ${locationData is String}');
+      debugPrint('  locationData is Map? ${locationData is Map}');
+
       final result = await TensorFlowService.analyzeImage(imagePath);
+
+      debugPrint('\n📊 TensorFlow analysis result:');
+      debugPrint('  success: ${result['success']}');
+      if (result['success']) {
+        debugPrint('  data type: ${result['data'].runtimeType}');
+        debugPrint('  data keys: ${result['data'].keys.toList()}');
+      }
 
       if (mounted) {
         if (result['success']) {
-          // Navigate to results screen
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ResultsScreen(
-                imagePath: imagePath,
-                analysisResult: result['data'],
-                locationData: locationData,
+          debugPrint('\n🚀 Navigating to ResultsScreen with:');
+          debugPrint('  imagePath type: ${imagePath.runtimeType}');
+          debugPrint('  analysisResult type: ${result['data'].runtimeType}');
+          debugPrint('  locationData type: ${locationData.runtimeType}');
+          debugPrint('  locationData value: "$locationData"');
+          debugPrint('  locationData is String? ${locationData is String}');
+          debugPrint('  locationData is Map? ${locationData is Map}\n');
+
+          try {
+            // Explicitly type-check locationData before navigation
+            final String? typedLocationData = locationData;
+            debugPrint('🚨 Type-checked locationData:');
+            debugPrint('   Type: ${typedLocationData.runtimeType}');
+            debugPrint('   Value: "$typedLocationData"');
+            debugPrint('   Is String?: ${typedLocationData is String?}');
+
+            // Navigate to results screen
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) {
+                  debugPrint('🏗️ Building ResultsScreen widget...');
+                  return ResultsScreen(
+                    imagePath: imagePath,
+                    analysisResult: result['data'],
+                    locationData: typedLocationData,
+                  );
+                },
               ),
-            ),
-          );
+            );
+          } catch (navError, navStack) {
+            debugPrint('❌❌❌ Navigation Error: $navError');
+            debugPrint('Stack: $navStack');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Navigation error: $navError')),
+            );
+          }
         } else {
           // Check if this is a model file issue
           if (result['requiresModelFile'] == true) {
             _showModelFileDialog();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Analysis failed: \\${result['error']}')),
+              SnackBar(content: Text('Analysis failed: ${result['error']}')),
             );
           }
         }
       }
     } catch (e) {
+      debugPrint('❌ Error in _analyzeImage: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Analysis error: $e')),

@@ -210,27 +210,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                 // Render scan history item
                 final scan = provider.history[index];
 
-                // Extract disease info
-                String diseaseResult = '';
-                String plantName = 'Unknown Plant';
-                double confidenceScore = 0.0;
-
-                if (scan.detectedDiseases.isNotEmpty) {
-                  final firstDisease = scan.detectedDiseases[0];
-                  if (firstDisease is Map) {
-                    // Get the label directly without parsing
-                    String? label = firstDisease['label']?.toString().trim();
-
-                    if (label != null && label.isNotEmpty) {
-                      // Show the raw label as is
-                      diseaseResult = label;
-                      // Extract plant name from label for display
-                      plantName = _parseLabelToPlantName(label);
-                    }
-
-                    confidenceScore = (firstDisease['confidence'] as num?)?.toDouble() ?? 0.0;
-                  }
-                }
+                // Extract disease info from new optimized structure
+                final diseaseResult = scan.diseaseDisplayName; // Use getter for disease name
+                final plantName = scan.plantName;
+                final confidenceScore = scan.topConfidence / 100; // Convert from percentage to decimal for display
 
                 final plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
                 final location = _parseLocation(scan.locationData);
@@ -242,7 +225,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                   location: location,
                   timeAgo: timeAgo,
                   diseaseResult: diseaseResult,
-                  confidenceScore: confidenceScore,
+                  confidenceScore: confidenceScore, // Already as decimal 0-1
                 );
               },
             ),

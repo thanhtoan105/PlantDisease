@@ -180,7 +180,7 @@ class SupabaseService {
           'name': disease['display_name'],
           'overview': _extractDescription(disease['overview']),
           'treatment': disease['treatment'] ?? {},
-          'prevention': disease['prevention'] ?? 'No prevention information available',
+          'prevention': _extractDescription(disease['prevention']),
           'cropName': disease['crop_name'],
           'cropScientificName': disease['crop_scientific_name'],
           'image_url': disease['image_url'], // Add image URL
@@ -219,19 +219,19 @@ class SupabaseService {
     return publicUrl;
   }
 
-  /// Save analysis result to the database
+  /// Save analysis result to the database with optimized structure
   static Future<void> saveAnalysisResult({
     required String userId,
     required String imagePath,
-    required dynamic detectedDiseases,
-    required String? locationData,  // Changed to String (nullable)
+    required List<dynamic> allPredictions,  // All predictions from AI model
+    required String? locationData,
     required String analysisDate,
   }) async {
     if (userId.isEmpty) {
       throw Exception('User ID cannot be null or empty');
     }
-    if (!(detectedDiseases is Map || detectedDiseases is List)) {
-      throw Exception('detectedDiseases must be a Map or List');
+    if (allPredictions.isEmpty) {
+      throw Exception('Predictions list cannot be empty');
     }
 
     // Upload image and get public URL
@@ -241,16 +241,64 @@ class SupabaseService {
       analysisDate: analysisDate,
     );
 
+    // Extract top prediction (highest confidence)
+    final topPrediction = allPredictions.first;
+    // TensorFlow returns 'label' field, not 'className'
+    final className = topPrediction['label']?.toString() ?? topPrediction['className']?.toString();
+    final topConfidence = (topPrediction['confidence'] as num).toDouble() * 100; // Convert to percentage
+
+    // Get disease ID from class_name
+    int? diseaseId;
+    if (className != null && className.isNotEmpty) {
+      try {
+        final diseaseResult = await _supabase
+            .from('diseases')
+            .select('id')
+            .eq('class_name', className)
+            .maybeSingle();
+
+        if (diseaseResult != null) {
+          diseaseId = diseaseResult['id'] as int;
+        } else {
+          debugPrint('⚠️ Disease not found in database for class_name: $className');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error fetching disease ID: $e');
+      }
+    } else {
+      debugPrint('⚠️ClassName is null or empty, cannot fetch disease ID');
+    }
+
+    // Extract only the 2nd and 3rd highest predictions for relevant_diseases
+    List<Map<String, dynamic>> relevantDiseases = [];
+    if (allPredictions.length > 1) {
+      // Take 2nd and 3rd predictions (skip the first one)
+      final predictions = allPredictions.skip(1).take(2).toList();
+      for (var prediction in predictions) {
+        relevantDiseases.add({
+          'label': prediction['label'] ?? prediction['className'],  // TensorFlow uses 'label'
+          'confidence': ((prediction['confidence'] as num).toDouble() * 100).toStringAsFixed(2),
+        });
+      }
+    }
+
+    debugPrint('📊 Saving analysis:');
+    debugPrint('  - Top Disease ID: $diseaseId');
+    debugPrint('  - Top Confidence: ${topConfidence.toStringAsFixed(2)}%');
+    debugPrint('  - Relevant Diseases: ${relevantDiseases.length} items');
+
     await _supabase.from('analysis_results').insert({
       'user_id': userId,
       'image_url': imageUrl,
-      'detected_diseases': detectedDiseases,
-      'location_data': locationData ?? 'Unknown Location',  // Store as VARCHAR string
+      'top1_disease_id': diseaseId,
+      'top1_confidence': topConfidence,
+      'relevant_diseases': relevantDiseases.isEmpty ? null : relevantDiseases,
+      'location_data': locationData ?? 'Unknown Location',
       'analysis_date': analysisDate,
     });
   }
 
-  /// Fetch all scan history for the current user
+  /// Fetch all scan history for the current user with disease information
   static Future<List<Map<String, dynamic>>> getUserScanHistory({
     required String userId,
     int? limit,
@@ -260,10 +308,29 @@ class SupabaseService {
       throw Exception('User ID cannot be null or empty');
     }
 
-    // Get analysis results with pagination support
+    // Get analysis results with pagination support, joined with diseases table
     var query = _supabase
         .from('analysis_results')
-        .select()
+        .select('''
+          id,
+          user_id,
+          image_url,
+          top1_disease_id,
+          top1_confidence,
+          relevant_diseases,
+          location_data,
+          analysis_date,
+          diseases:top1_disease_id (
+            id,
+            class_name,
+            display_name,
+            crop_id,
+            crops:crop_id (
+              name,
+              scientific_name
+            )
+          )
+        ''')
         .eq('user_id', userId)
         .order('analysis_date', ascending: false);
 
@@ -280,7 +347,6 @@ class SupabaseService {
     // Convert response to a properly typed list
     final results = List<Map<String, dynamic>>.from(response);
 
-    // The ScanHistory model will handle the lack of crops data
     return results;
   }
 

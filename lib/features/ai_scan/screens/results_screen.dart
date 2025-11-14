@@ -19,7 +19,7 @@ class ResultsScreen extends StatefulWidget {
     super.key,
     required this.imagePath,
     required this.analysisResult,
-    required this.locationData,
+    this.locationData,  // Optional since it's nullable
   });
 
   @override
@@ -27,29 +27,211 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class _ResultsScreenState extends State<ResultsScreen> {
-  final Map<String, bool> _expandedSections = {};
-  Map<String, dynamic>? _diseaseDetails;
-  bool _isLoadingDiseaseDetails = false;
   bool _isSaving = false;
   bool _isSaved = false; // New variable to track if the result has been saved
   String? _locationData;  // Changed from Map to String
 
   // Add missing properties to fix compilation errors
   bool get isDemoResult => widget.analysisResult['isDemoResult'] == true;
-  Map<String, dynamic>? get topPrediction => widget.analysisResult['topPrediction'];
-  bool get isHealthy => topPrediction == null || topPrediction!['className'] == 'healthy';
+
+  Map<String, dynamic>? get topPrediction {
+    try {
+      final tp = widget.analysisResult['topPrediction'];
+      if (tp is Map<String, dynamic>) {
+        return tp;
+      } else if (tp is Map) {
+        return Map<String, dynamic>.from(tp);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error accessing topPrediction: $e');
+      return null;
+    }
+  }
+
+  bool get isHealthy {
+    try {
+      if (topPrediction == null) return true;
+      final label = topPrediction!['label']?.toString() ?? '';
+      return label.toLowerCase().contains('healthy');
+    } catch (e) {
+      debugPrint('❌ Error in isHealthy: $e');
+      return true;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadDiseaseDetails();
-    _locationData = widget.locationData;
-  }
 
-  void _toggleSection(String sectionId) {
-    setState(() {
-      _expandedSections[sectionId] = !(_expandedSections[sectionId] ?? false);
-    });
+    try {
+      debugPrint('\n╔════════════════════════════════════════════════════════════╗');
+      debugPrint('║         RESULTS SCREEN INITIALIZATION DEBUG               ║');
+      debugPrint('╚════════════════════════════════════════════════════════════╝\n');
+
+      // 1. Debug imagePath
+      debugPrint('📸 IMAGE PATH:');
+      debugPrint('  Type: ${widget.imagePath.runtimeType}');
+      debugPrint('  Value: ${widget.imagePath}');
+      debugPrint('  Length: ${widget.imagePath.length} characters\n');
+
+      // 2. Debug analysisResult
+      debugPrint('🔬 ANALYSIS RESULT:');
+      debugPrint('  Type: ${widget.analysisResult.runtimeType}');
+      debugPrint('  Keys: ${widget.analysisResult.keys.toList()}');
+
+      // Debug each key in analysisResult
+      widget.analysisResult.forEach((key, value) {
+        debugPrint('  [$key]:');
+        debugPrint('    Type: ${value.runtimeType}');
+        if (value is List && value.isNotEmpty) {
+          debugPrint('    Length: ${value.length}');
+          debugPrint('    First item type: ${value.first.runtimeType}');
+        } else if (value is Map) {
+          debugPrint('    Keys: ${value.keys.toList()}');
+        }
+      });
+      debugPrint('');
+
+      // 3. Debug locationData - THE CRITICAL PART
+      debugPrint('📍 LOCATION DATA (CRITICAL DEBUG):');
+      debugPrint('  Raw Type: ${widget.locationData.runtimeType}');
+      debugPrint('  Raw Value: ${widget.locationData}');
+      debugPrint('  Is null? ${widget.locationData == null}');
+      debugPrint('  Is String? ${widget.locationData is String}');
+      debugPrint('  Is Map? ${widget.locationData is Map}');
+      debugPrint('  Is Map<String, dynamic>? ${widget.locationData is Map<String, dynamic>}');
+
+      // Handle locationData based on actual type with extensive debugging
+      if (widget.locationData == null) {
+        debugPrint('  ✅ locationData is null - setting to null');
+        _locationData = null;
+      } else if (widget.locationData is String) {
+        debugPrint('  ✅ locationData is String - using it directly');
+        _locationData = widget.locationData;
+        debugPrint('  Final value: "$_locationData"');
+      } else if (widget.locationData is Map) {
+        debugPrint('  ⚠️⚠️⚠️ WARNING: locationData is Map!');
+        final locationMap = widget.locationData as Map;
+        debugPrint('  Map type: ${locationMap.runtimeType}');
+        debugPrint('  Map keys: ${locationMap.keys.toList()}');
+        debugPrint('  Map values: ${locationMap.values.toList()}');
+        debugPrint('  Full map: $locationMap');
+
+        // Try to extract 'data' field
+        if (locationMap.containsKey('data')) {
+          final dataValue = locationMap['data'];
+          debugPrint('  Found "data" field in Map:');
+          debugPrint('    Type: ${dataValue.runtimeType}');
+          debugPrint('    Value: $dataValue');
+
+          if (dataValue is String) {
+            _locationData = dataValue;
+            debugPrint('  ✅ Extracted string from Map["data"]: "$_locationData"');
+          } else {
+            _locationData = dataValue.toString();
+            debugPrint('  ⚠️ Converted non-string data to string: "$_locationData"');
+          }
+        } else {
+          // No 'data' key, convert entire map to string
+          _locationData = locationMap.toString();
+          debugPrint('  ⚠️ No "data" key found, using map.toString(): "$_locationData"');
+        }
+      } else {
+        // Unknown type, convert to string
+        debugPrint('  ❌❌❌ ERROR: Unknown type detected!');
+        debugPrint('  Converting to string...');
+        _locationData = widget.locationData.toString();
+        debugPrint('  Result: "$_locationData"');
+      }
+
+      debugPrint('  \n  ✅ FINAL _locationData:');
+      debugPrint('     Type: ${_locationData.runtimeType}');
+      debugPrint('     Value: "$_locationData"\n');
+
+      // 4. Debug topPrediction
+      debugPrint('🎯 TOP PREDICTION:');
+      try {
+        final tp = topPrediction;
+        if (tp != null) {
+          debugPrint('  Type: ${tp.runtimeType}');
+          debugPrint('  Keys: ${tp.keys.toList()}');
+          tp.forEach((key, value) {
+            debugPrint('  [$key]: ${value.runtimeType} = $value');
+          });
+        } else {
+          debugPrint('  ⚠️ topPrediction is null');
+        }
+      } catch (e) {
+        debugPrint('  ❌ Error accessing topPrediction: $e');
+      }
+      debugPrint('');
+
+      // 5. Debug detectedDiseases
+      debugPrint('🦠 DETECTED DISEASES:');
+      try {
+        final diseases = widget.analysisResult['detectedDiseases'];
+        if (diseases != null) {
+          debugPrint('  Type: ${diseases.runtimeType}');
+          debugPrint('  Is List? ${diseases is List}');
+          if (diseases is List) {
+            debugPrint('  Count: ${diseases.length}');
+            for (int i = 0; i < diseases.length && i < 3; i++) {
+              debugPrint('  Disease #$i:');
+              debugPrint('    Type: ${diseases[i].runtimeType}');
+              if (diseases[i] is Map) {
+                final diseaseMap = diseases[i] as Map;
+                debugPrint('    Keys: ${diseaseMap.keys.toList()}');
+                diseaseMap.forEach((key, value) {
+                  debugPrint('      [$key]: ${value.runtimeType} = $value');
+                });
+              } else {
+                debugPrint('    Value: ${diseases[i]}');
+              }
+            }
+          }
+        } else {
+          debugPrint('  ⚠️ detectedDiseases is null');
+        }
+      } catch (e) {
+        debugPrint('  ❌ Error accessing detectedDiseases: $e');
+      }
+      debugPrint('');
+
+      debugPrint('╔════════════════════════════════════════════════════════════╗');
+      debugPrint('║         INITIALIZATION COMPLETE ✅                         ║');
+      debugPrint('╚════════════════════════════════════════════════════════════╝\n');
+
+    } catch (e, stackTrace) {
+      debugPrint('\n╔════════════════════════════════════════════════════════════╗');
+      debugPrint('║         ❌❌❌ CRITICAL ERROR ❌❌❌                      ║');
+      debugPrint('╚════════════════════════════════════════════════════════════╝');
+      debugPrint('Error: $e');
+      debugPrint('Error Type: ${e.runtimeType}');
+      debugPrint('\n📋 STACK TRACE:');
+      debugPrint(stackTrace.toString());
+      debugPrint('\n📊 ERROR CONTEXT:');
+      debugPrint('  widget.locationData type: ${widget.locationData.runtimeType}');
+      debugPrint('  widget.locationData value: ${widget.locationData}');
+      debugPrint('  widget.imagePath: ${widget.imagePath}');
+      debugPrint('  widget.analysisResult keys: ${widget.analysisResult.keys.toList()}');
+
+      // Set safe fallback
+      _locationData = 'Unknown Location';
+
+      // Show error on screen
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Initialization Error: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        });
+      }
+    }
   }
 
   // Format disease label for display: "Apple___Apple_scab" -> "Apple Scab"
@@ -70,36 +252,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
         .join(' ');
   }
 
-  Future<void> _loadDiseaseDetails() async {
-    final topPrediction = widget.analysisResult['topPrediction'];
-    if (topPrediction == null || topPrediction == 'healthy') return;
-
-    setState(() {
-      _isLoadingDiseaseDetails = true;
-    });
-
-    try {
-      // Try to get disease details from database using the prediction class name
-      debugPrint('🔍 Searching for disease: $topPrediction');
-      final diseaseData = await SupabaseService.searchDiseases(topPrediction);
-      debugPrint('📊 Found ${diseaseData.length} disease results');
-      if (diseaseData.isNotEmpty) {
-        debugPrint('✅ Using disease: ${diseaseData.first['name']}');
-        setState(() {
-          _diseaseDetails = diseaseData.first;
-        });
-      } else {
-        debugPrint('❌ No disease found for: $topPrediction');
-      }
-    } catch (error) {
-      debugPrint('❌ Error loading disease details: $error');
-    } finally {
-      setState(() {
-        _isLoadingDiseaseDetails = false;
-      });
-    }
-  }
-
   Future<void> _saveResult() async {
     setState(() {
       _isSaving = true;
@@ -116,16 +268,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
         return;
       }
       final imagePath = widget.imagePath;
-      final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
+      final allPredictions = widget.analysisResult['detectedDiseases'] ?? [];
       final locationData = _locationData;
       final analysisDate = DateTime.now().toIso8601String();
+
       await SupabaseService.saveAnalysisResult(
         userId: userId,
         imagePath: imagePath,
-        detectedDiseases: detectedDiseases,
+        allPredictions: allPredictions,  // Send all predictions for processing
         locationData: locationData,
         analysisDate: analysisDate,
       );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Result saved successfully!')),
@@ -175,15 +329,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   // Detected Diseases List (Top 3)
                   _buildDetectedDiseasesList(),
 
-                  const SizedBox(height: AppDimensions.spacingLg),
-
-                  // Disease Information (Causes and Treatment)
-                  if (!isHealthy && _isLoadingDiseaseDetails)
-                    _buildLoadingDiseaseInfo(),
-                  if (!isHealthy &&
-                      !_isLoadingDiseaseDetails &&
-                      _diseaseDetails != null)
-                    _buildDiseaseInformation(),
 
 
                   // Add bottom padding to ensure content doesn't get hidden behind button
@@ -277,40 +422,62 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildDetectedDiseasesList() {
-    final detectedDiseases = widget.analysisResult['detectedDiseases'] ?? [];
+    try {
+      final detectedDiseases = widget.analysisResult['detectedDiseases'];
 
-    // Get top 3 diseases
-    final topDiseases = detectedDiseases.take(3).toList();
+      if (detectedDiseases == null || detectedDiseases is! List) {
+        debugPrint('⚠️ detectedDiseases is null or not a List');
+        return const SizedBox.shrink();
+      }
 
-    if (topDiseases.isEmpty) {
+      // Get top 3 diseases
+      final topDiseases = detectedDiseases.take(3).toList();
+
+      if (topDiseases.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Detected Diseases',
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.darkNavy,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          ...topDiseases.asMap().entries.map((entry) {
+            final index = entry.key;
+            final disease = entry.value;
+            if (disease is Map) {
+              return _buildDiseaseItem(Map<String, dynamic>.from(disease), index);
+            } else {
+              debugPrint('⚠️ Disease at index $index is not a Map: ${disease.runtimeType}');
+              return const SizedBox.shrink();
+            }
+          }).toList(),
+        ],
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in _buildDetectedDiseasesList: $e');
+      debugPrint('Stack trace: $stackTrace');
       return const SizedBox.shrink();
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Detected Diseases',
-          style: AppTypography.headlineMedium.copyWith(
-            color: AppColors.darkNavy,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppDimensions.spacingMd),
-        ...topDiseases.asMap().entries.map((entry) {
-          final index = entry.key;
-          final disease = entry.value;
-          return _buildDiseaseItem(disease, index);
-        }).toList(),
-      ],
-    );
   }
 
   Widget _buildDiseaseItem(Map<String, dynamic> disease, int index) {
     // Extract label and format it for display
-    final label = disease['label'] ?? 'Unknown';
+    final label = disease['label'] ?? disease['className'] ?? 'Unknown';
     final diseaseName = _formatDiseaseLabel(label);
     final confidence = (disease['confidence'] ?? 0.0) as double;
+
+    // Only first disease (top prediction) gets arrow button
+    final bool isTopPrediction = index == 0;
+    final String diseaseLabel = isTopPrediction
+        ? 'Top Prediction'
+        : 'Alternative #${index}';
 
     return Container(
       margin: EdgeInsets.only(bottom: AppDimensions.spacingMd),
@@ -318,8 +485,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
         border: Border.all(
-          color: AppColors.lightGray,
-          width: 1,
+          color: isTopPrediction ? AppColors.primaryGreen : AppColors.lightGray,
+          width: isTopPrediction ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -360,10 +527,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Disease #${index + 1}',
+                    diseaseLabel,
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.mediumGray,
-                      fontWeight: FontWeight.w500,
+                      color: isTopPrediction ? AppColors.primaryGreen : AppColors.mediumGray,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -388,7 +555,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
           ),
 
-          // Arrow Button
+          // Arrow Button - Available for ALL diseases
           GestureDetector(
             onTap: () => _navigateToDiseaseDetailsFromList(disease),
             child: Container(
@@ -442,101 +609,5 @@ class _ResultsScreenState extends State<ResultsScreen> {
         );
       }
     }
-  }
-
-  Widget _buildDiseaseInformation() {
-    if (_diseaseDetails == null) return const SizedBox.shrink();
-
-    return Column(
-      children: [
-        // Causes Section
-        _buildExpandableSection(
-          'Causes',
-          _diseaseDetails!['overview'] ?? 'No cause information available.',
-          'causes',
-          Icons.info_outline,
-        ),
-        const SizedBox(height: AppDimensions.spacingMd),
-        // Treatment Section
-        _buildExpandableSection(
-          'Treatment',
-          _diseaseDetails!['treatment'] ??
-              'No treatment information available.',
-          'treatment',
-          Icons.medical_services,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExpandableSection(
-    String title,
-    String content,
-    String sectionId,
-    IconData icon,
-  ) {
-    final isExpanded = _expandedSections[sectionId] ?? false;
-
-    return CustomCard(
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => _toggleSection(sectionId),
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppDimensions.spacingSm),
-              child: Row(
-                children: [
-                  Icon(icon, size: 20, color: AppColors.primaryGreen),
-                  const SizedBox(width: AppDimensions.spacingXs),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.darkNavy,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded ? Icons.expand_less : Icons.expand_more,
-                    size: 24,
-                    color: AppColors.mediumGray,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.only(top: AppDimensions.spacingSm),
-              child: Text(
-                content,
-                style: AppTypography.bodyMedium,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingDiseaseInfo() {
-    return CustomCard(
-      child: Column(
-        children: [
-          const CircularProgressIndicator(
-            color: AppColors.primaryGreen,
-          ),
-          const SizedBox(height: AppDimensions.spacingMd),
-          Text(
-            'Loading disease information...',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.mediumGray,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
