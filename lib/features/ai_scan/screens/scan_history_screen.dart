@@ -73,29 +73,11 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   }
 
   /// Parse location data to extract name
-  String _parseLocation(Map<String, dynamic>? locationData) {
-    if (locationData == null) return 'Unknown location';
-
-    // Check for 'name' field first
-    final name = locationData['name'];
-    if (name != null && name.toString().trim().isNotEmpty) {
-      return name.toString();
+  String _parseLocation(String? locationData) {
+    if (locationData == null || locationData.trim().isEmpty) {
+      return 'Unknown location';
     }
-
-    // Check for 'location_name' field
-    final locationName = locationData['location_name'];
-    if (locationName != null && locationName.toString().trim().isNotEmpty) {
-      return locationName.toString();
-    }
-
-    // Fallback to coordinates if available
-    final lat = locationData['latitude'];
-    final lng = locationData['longitude'];
-    if (lat != null && lng != null) {
-      return '$lat, $lng';
-    }
-
-    return 'Unknown location';
+    return locationData;
   }
 
   /// Format DateTime to 'time ago' string
@@ -114,6 +96,18 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     } else {
       return 'Just now';
     }
+  }
+
+  /// Parse label to extract plant name
+  /// Example: "Durian___Leaf_Algal" -> "Durian"
+  String _parseLabelToPlantName(String label) {
+    if (label.contains('___')) {
+      final parts = label.split('___');
+      if (parts.isNotEmpty) {
+        return parts[0].replaceAll('_', ' ').trim();
+      }
+    }
+    return 'Unknown Plant';
   }
 
   @override
@@ -218,17 +212,26 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
                 // Extract disease info
                 String diseaseResult = '';
+                String plantName = 'Unknown Plant';
                 double confidenceScore = 0.0;
 
                 if (scan.detectedDiseases.isNotEmpty) {
                   final firstDisease = scan.detectedDiseases[0];
                   if (firstDisease is Map) {
-                    diseaseResult = firstDisease['disease']?.toString().trim() ?? '';
+                    // Get the label directly without parsing
+                    String? label = firstDisease['label']?.toString().trim();
+
+                    if (label != null && label.isNotEmpty) {
+                      // Show the raw label as is
+                      diseaseResult = label;
+                      // Extract plant name from label for display
+                      plantName = _parseLabelToPlantName(label);
+                    }
+
                     confidenceScore = (firstDisease['confidence'] as num?)?.toDouble() ?? 0.0;
                   }
                 }
 
-                final plantName = 'Tomato';
                 final plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
                 final location = _parseLocation(scan.locationData);
                 final timeAgo = _formatTimeAgo(scan.analysisDate);

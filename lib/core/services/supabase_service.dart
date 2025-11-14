@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
 import 'dart:io';
 
 class SupabaseService {
@@ -225,7 +224,7 @@ class SupabaseService {
     required String userId,
     required String imagePath,
     required dynamic detectedDiseases,
-    required dynamic locationData,
+    required String? locationData,  // Changed to String (nullable)
     required String analysisDate,
   }) async {
     if (userId.isEmpty) {
@@ -234,31 +233,19 @@ class SupabaseService {
     if (!(detectedDiseases is Map || detectedDiseases is List)) {
       throw Exception('detectedDiseases must be a Map or List');
     }
-    if (!(locationData is Map || locationData is List)) {
-      try {
-        if (locationData is String) {
-          locationData = jsonDecode(locationData);
-          if (!(locationData is Map || locationData is List)) {
-            throw Exception('locationData must decode to a Map or List. Actual value: \\${locationData.toString()}, type: \\${locationData.runtimeType}');
-          }
-        } else {
-          throw Exception('locationData must be a Map or List. Actual type: \\${locationData.runtimeType}, value: \\${locationData.toString()}');
-        }
-      } catch (e) {
-        throw Exception('locationData must be a Map or List. Error: \\${e.toString()}. Actual value: \\${locationData.toString()}');
-      }
-    }
+
     // Upload image and get public URL
     final imageUrl = await uploadScanImage(
       userId: userId,
       imagePath: imagePath,
       analysisDate: analysisDate,
     );
+
     await _supabase.from('analysis_results').insert({
       'user_id': userId,
       'image_url': imageUrl,
       'detected_diseases': detectedDiseases,
-      'location_data': locationData,
+      'location_data': locationData ?? 'Unknown Location',  // Store as VARCHAR string
       'analysis_date': analysisDate,
     });
   }

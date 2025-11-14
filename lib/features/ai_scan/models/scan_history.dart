@@ -8,7 +8,7 @@ class ScanHistory {
   final String imageUrl;
   final List<dynamic> detectedDiseases;
   final double confidenceScore;
-  final Map<String, dynamic>? locationData;
+  final String? locationData;  // Changed from Map to String
   final DateTime analysisDate;
   final String plantName; // We'll derive this from cropId or detected diseases
   final String plantImage; // We'll use imageUrl as a fallback
@@ -86,25 +86,14 @@ class ScanHistory {
       }
     }
 
-    // Parse location data with better error handling
-    Map<String, dynamic>? locationData;
+    // Parse location data - now it's just a string
+    String? locationData;
     try {
       if (json['location_data'] != null) {
-        final rawLocationData = json['location_data'];
-
-        // If it's already a Map, use it directly
-        if (rawLocationData is Map<String, dynamic>) {
-          locationData = rawLocationData;
-        } else if (rawLocationData is Map) {
-          locationData = Map<String, dynamic>.from(rawLocationData);
-        } else if (rawLocationData is String) {
-          // Only parse from string if it's actually a string
-          locationData = jsonDecode(rawLocationData) as Map<String, dynamic>;
-        }
+        locationData = json['location_data'].toString();
       }
     } catch (e) {
       debugPrint('Error parsing location_data: $e');
-      debugPrint('Raw location_data: ${json['location_data']}');
       locationData = null;
     }
 

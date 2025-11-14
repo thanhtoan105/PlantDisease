@@ -232,6 +232,7 @@ class WeatherService {
 
       // Get location name with error handling
       String locationName = 'Unknown Location';
+
       try {
         final placemarks = await placemarkFromCoordinates(
           position.latitude,
@@ -240,25 +241,46 @@ class WeatherService {
 
         if (placemarks.isNotEmpty) {
           final placemark = placemarks.first;
-          locationName =
-              '${placemark.locality ?? ''}, ${placemark.country ?? ''}'
-                  .replaceAll(RegExp(r'^,\s*|,\s*$'), '');
+
+          // Build simple location string: City, Country
+          List<String> locationComponents = [];
+
+          // Add locality (City) - prefer locality over subLocality for main city name
+          if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+            locationComponents.add(placemark.locality!);
+          } else if (placemark.subLocality != null && placemark.subLocality!.isNotEmpty) {
+            // Fallback to subLocality if locality is not available
+            locationComponents.add(placemark.subLocality!);
+          } else if (placemark.administrativeArea != null && placemark.administrativeArea!.isNotEmpty) {
+            // Fallback to administrative area if neither locality nor subLocality available
+            locationComponents.add(placemark.administrativeArea!);
+          }
+
+          // Add country
+          if (placemark.country != null && placemark.country!.isNotEmpty) {
+            locationComponents.add(placemark.country!);
+          }
+
+          // Join components: "Ho Chi Minh City, Vietnam"
+          locationName = locationComponents.join(', ');
+
           if (locationName.isEmpty) {
             locationName = 'Unknown Location';
           }
+
+          debugPrint('📍 Location: $locationName');
         }
       } catch (e) {
         debugPrint('⚠️ Failed to get location name: $e');
         // Continue with coordinates even if reverse geocoding fails
       }
 
+      // Return location name as the main data, but also include coordinates for weather API
       return {
         'success': true,
-        'data': {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'name': locationName,
-        },
+        'data': locationName,  // This is the string that will be saved to database
+        'latitude': position.latitude,  // For weather API
+        'longitude': position.longitude,  // For weather API
       };
     } catch (e) {
       debugPrint('❌ Location service error: $e');

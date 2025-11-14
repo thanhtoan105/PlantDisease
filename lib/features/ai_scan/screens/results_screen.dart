@@ -13,7 +13,7 @@ import '../../home/screens/disease_details_screen.dart';
 class ResultsScreen extends StatefulWidget {
   final String imagePath;
   final Map<String, dynamic> analysisResult;
-  final Map<String, dynamic>? locationData;
+  final String? locationData;  // Changed from Map to String
 
   const ResultsScreen({
     super.key,
@@ -32,7 +32,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   bool _isLoadingDiseaseDetails = false;
   bool _isSaving = false;
   bool _isSaved = false; // New variable to track if the result has been saved
-  Map<String, dynamic>? _locationData;
+  String? _locationData;  // Changed from Map to String
 
   // Add missing properties to fix compilation errors
   bool get isDemoResult => widget.analysisResult['isDemoResult'] == true;

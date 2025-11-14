@@ -293,7 +293,7 @@ class _AiScanScreenState extends State<AiScanScreen>
   }
 
   Future<void> _analyzeImage(String imagePath,
-      {Map<String, dynamic>? locationData}) async {
+      {String? locationData}) async {
     setState(() {
       _isAnalyzing = true;
     });

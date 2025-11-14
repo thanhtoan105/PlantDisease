@@ -90,14 +90,23 @@ class WeatherProvider extends ChangeNotifier {
       final locationResult = await WeatherService.getCurrentLocation();
 
       if (locationResult['success']) {
-        _locationInfo = locationResult['data'];
-        _selectedCity = _locationInfo!['name'];
-        _hasLocationPermission = true;
+        // locationResult['data'] is the location name string
+        final locationName = locationResult['data'] as String;
+        final latitude = locationResult['latitude'] as double;
+        final longitude = locationResult['longitude'] as double;
 
-        // Get weather for current location
+        _selectedCity = locationName;
+        _hasLocationPermission = true;
+        _locationInfo = {
+          'name': locationName,
+          'latitude': latitude,
+          'longitude': longitude,
+        };
+
+        // Get weather for current location using coordinates
         final weatherResult = await WeatherService.getCurrentWeather(
-          _locationInfo!['latitude'],
-          _locationInfo!['longitude'],
+          latitude,
+          longitude,
         );
 
         if (weatherResult['success']) {
