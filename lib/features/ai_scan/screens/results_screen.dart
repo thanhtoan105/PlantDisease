@@ -303,6 +303,122 @@ class _ResultsScreenState extends State<ResultsScreen> {
     }
   }
 
+  void _showAITipsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb,
+                      color: AppColors.primaryGreen,
+                      size: 28,
+                    ),
+                    const SizedBox(width: AppDimensions.spacingSm),
+                    Text(
+                      'AI Tips',
+                      style: AppTypography.headlineMedium.copyWith(
+                        color: AppColors.darkNavy,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppColors.mediumGray),
+                      onPressed: () => Navigator.of(context).pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                // Divider
+                Divider(color: AppColors.lightGray, height: 1),
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                // Content (Placeholder for now)
+                Container(
+                  padding: const EdgeInsets.all(AppDimensions.spacingMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+                    border: Border.all(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: AppColors.primaryGreen,
+                            size: 20,
+                          ),
+                          const SizedBox(width: AppDimensions.spacingXs),
+                          Text(
+                            'Smart Recommendations',
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.darkNavy,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.spacingSm),
+                      Text(
+                        '🌱 This is a placeholder for AI-generated tips and recommendations.\n\n'
+                        '✨ Soon, Gemini AI will provide:\n'
+                        '  • Personalized treatment advice\n'
+                        '  • Prevention strategies\n'
+                        '  • Environmental considerations\n'
+                        '  • Best practices for plant care\n\n'
+                        '🚀 AI-powered insights coming soon!',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.darkNavy,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spacingLg),
+
+                // Close Button
+                SizedBox(
+                  width: double.infinity,
+                  child: CustomButton(
+                    text: 'Got it',
+                    onPressed: () => Navigator.of(context).pop(),
+                    type: ButtonType.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -440,12 +556,38 @@ class _ResultsScreenState extends State<ResultsScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Detected Diseases',
-            style: AppTypography.headlineMedium.copyWith(
-              color: AppColors.darkNavy,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Detected Diseases',
+                style: AppTypography.headlineMedium.copyWith(
+                  color: AppColors.darkNavy,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: _showAITipsDialog,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      color: AppColors.primaryGreen,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'AI Tips',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppDimensions.spacingMd),
           ...topDiseases.asMap().entries.map((entry) {
