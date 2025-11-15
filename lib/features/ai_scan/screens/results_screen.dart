@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -7,6 +8,7 @@ import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/utils/custom_snackbars.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../core/services/gemini_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../home/screens/disease_details_screen.dart';
 
@@ -14,12 +16,14 @@ class ResultsScreen extends StatefulWidget {
   final String imagePath;
   final Map<String, dynamic> analysisResult;
   final String? locationData;  // Changed from Map to String
+  final Map<String, dynamic>? weatherData;  // Add weather data
 
   const ResultsScreen({
     super.key,
     required this.imagePath,
     required this.analysisResult,
     this.locationData,  // Optional since it's nullable
+    this.weatherData,   // Optional weather data
   });
 
   @override
@@ -306,114 +310,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
   void _showAITipsDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,  // Prevent dismissing while loading
       builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(AppDimensions.spacingLg),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  children: [
-                    Icon(
-                      Icons.lightbulb,
-                      color: AppColors.primaryGreen,
-                      size: 28,
-                    ),
-                    const SizedBox(width: AppDimensions.spacingSm),
-                    Text(
-                      'AI Tips',
-                      style: AppTypography.headlineMedium.copyWith(
-                        color: AppColors.darkNavy,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.close, color: AppColors.mediumGray),
-                      onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppDimensions.spacingMd),
-
-                // Divider
-                Divider(color: AppColors.lightGray, height: 1),
-                const SizedBox(height: AppDimensions.spacingMd),
-
-                // Content (Placeholder for now)
-                Container(
-                  padding: const EdgeInsets.all(AppDimensions.spacingMd),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-                    border: Border.all(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: AppColors.primaryGreen,
-                            size: 20,
-                          ),
-                          const SizedBox(width: AppDimensions.spacingXs),
-                          Text(
-                            'Smart Recommendations',
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.darkNavy,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppDimensions.spacingSm),
-                      Text(
-                        '🌱 This is a placeholder for AI-generated tips and recommendations.\n\n'
-                        '✨ Soon, Gemini AI will provide:\n'
-                        '  • Personalized treatment advice\n'
-                        '  • Prevention strategies\n'
-                        '  • Environmental considerations\n'
-                        '  • Best practices for plant care\n\n'
-                        '🚀 AI-powered insights coming soon!',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.darkNavy,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.spacingLg),
-
-                // Close Button
-                SizedBox(
-                  width: double.infinity,
-                  child: CustomButton(
-                    text: 'Got it',
-                    onPressed: () => Navigator.of(context).pop(),
-                    type: ButtonType.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        return _AITipsDialog(
+          diseaseName: topPrediction?['label'] ?? 'Unknown',
+          confidence: (topPrediction?['confidence'] ?? 0.0) as double,
+          locationData: _locationData,
+          weatherData: widget.weatherData,
         );
       },
     );
@@ -753,3 +656,349 @@ class _ResultsScreenState extends State<ResultsScreen> {
     }
   }
 }
+
+// AI Tips Dialog Widget
+class _AITipsDialog extends StatefulWidget {
+  final String diseaseName;
+  final double confidence;
+  final String? locationData;
+  final Map<String, dynamic>? weatherData;
+
+  const _AITipsDialog({
+    required this.diseaseName,
+    required this.confidence,
+    this.locationData,
+    this.weatherData,
+  });
+
+  @override
+  State<_AITipsDialog> createState() => _AITipsDialogState();
+}
+
+class _AITipsDialogState extends State<_AITipsDialog> {
+  bool _isLoading = true;
+  String _recommendation = '';
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecommendation();
+  }
+
+  Future<void> _fetchRecommendation() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final recommendation = await GeminiService.generateDiseaseRecommendation(
+        diseaseName: widget.diseaseName,
+        confidence: widget.confidence,
+        locationData: widget.locationData,
+        weatherData: widget.weatherData,
+      );
+
+      if (mounted) {
+        setState(() {
+          _recommendation = recommendation;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching AI recommendation: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to generate AI recommendations. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          maxWidth: MediaQuery.of(context).size.width * 0.9,
+        ),
+        padding: const EdgeInsets.all(AppDimensions.spacingLg),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(
+                  Icons.lightbulb,
+                  color: AppColors.primaryGreen,
+                  size: 28,
+                ),
+                const SizedBox(width: AppDimensions.spacingSm),
+                Expanded(
+                  child: Text(
+                    'AI Tips',
+                    style: AppTypography.headlineMedium.copyWith(
+                      color: AppColors.darkNavy,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: AppColors.mediumGray),
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.spacingMd),
+
+            // Divider
+            Divider(color: AppColors.lightGray, height: 1),
+            const SizedBox(height: AppDimensions.spacingMd),
+
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                child: _buildContent(),
+              ),
+            ),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Close Button
+            SizedBox(
+              width: double.infinity,
+              child: CustomButton(
+                text: _isLoading ? 'Loading...' : 'Got it',
+                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                type: ButtonType.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return _buildLoadingState();
+    }
+
+    if (_error != null) {
+      return _buildErrorState();
+    }
+
+    return _buildRecommendationContent();
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingXl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(
+            color: AppColors.primaryGreen,
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'Analyzing with Gemini AI...',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.mediumGray,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppDimensions.spacingSm),
+          Text(
+            'Generating personalized recommendations based on disease, location, and weather conditions',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.mediumGray,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        border: Border.all(
+          color: Colors.red.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 20,
+              ),
+              const SizedBox(width: AppDimensions.spacingXs),
+              Text(
+                'Error',
+                style: AppTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingSm),
+          Text(
+            _error ?? 'An error occurred',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.darkNavy,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: 'Retry',
+              onPressed: _fetchRecommendation,
+              type: ButtonType.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationContent() {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with AI badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.spacingSm,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Gemini AI',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppDimensions.spacingSm),
+              Expanded(
+                child: Text(
+                  'AI Recommendations',
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkNavy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+
+          // AI-generated content rendered as Markdown
+          MarkdownBody(
+            data: _recommendation,
+            selectable: true,
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+              h1: AppTypography.headlineMedium.copyWith(color: AppColors.darkNavy),
+              h2: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkNavy),
+              h3: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkNavy),
+              p: AppTypography.bodyMedium.copyWith(height: 1.4, color: AppColors.darkNavy),
+              listBullet: AppTypography.bodyMedium.copyWith(color: AppColors.darkNavy),
+              codeblockDecoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              code: AppTypography.bodySmall.copyWith(fontFamily: 'monospace', color: Colors.deepPurple),
+            ),
+          ),
+
+          const SizedBox(height: AppDimensions.spacingMd),
+
+          // Disclaimer
+          Container(
+            padding: const EdgeInsets.all(AppDimensions.spacingSm),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Colors.amber.shade700,
+                  size: 16,
+                ),
+                const SizedBox(width: AppDimensions.spacingXs),
+                Expanded(
+                  child: Text(
+                    'AI-generated advice. Always consult agricultural experts for critical decisions.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.amber.shade900,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

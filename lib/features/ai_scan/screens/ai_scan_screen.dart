@@ -210,6 +210,8 @@ class _AiScanScreenState extends State<AiScanScreen>
 
         // Extract location data with defensive type checking
         String? locationData;
+        Map<String, dynamic>? weatherData;
+
         if (locationResult['success'] == true && locationResult['data'] != null) {
           final data = locationResult['data'];
           debugPrint('\n📍 Extracting location data:');
@@ -230,6 +232,22 @@ class _AiScanScreenState extends State<AiScanScreen>
             debugPrint('  ❌ WARNING: Unexpected type ${data.runtimeType}');
             debugPrint('  Using fallback: "$locationData"');
           }
+
+          // Fetch weather data if we have coordinates
+          if (locationResult['latitude'] != null && locationResult['longitude'] != null) {
+            debugPrint('\n🌤️ Fetching weather data...');
+            final weatherResult = await WeatherService.getCurrentWeather(
+              locationResult['latitude'],
+              locationResult['longitude'],
+            );
+
+            if (weatherResult['success'] == true && weatherResult['data'] != null) {
+              weatherData = weatherResult['data'] as Map<String, dynamic>?;
+              debugPrint('✅ Weather data fetched successfully');
+            } else {
+              debugPrint('⚠️ Weather fetch failed: ${weatherResult['error']}');
+            }
+          }
         } else {
           debugPrint('  ⚠️ Location fetch failed or data is null');
           locationData = null;
@@ -241,7 +259,7 @@ class _AiScanScreenState extends State<AiScanScreen>
         debugPrint('  Is String? ${locationData is String}');
         debugPrint('  Is Map? ${locationData is Map}\n');
 
-        await _analyzeImage(processedImagePath, locationData: locationData);
+        await _analyzeImage(processedImagePath, locationData: locationData, weatherData: weatherData);
       }
     } catch (e) {
       if (mounted) {
@@ -338,7 +356,7 @@ class _AiScanScreenState extends State<AiScanScreen>
   }
 
   Future<void> _analyzeImage(String imagePath,
-      {String? locationData}) async {
+      {String? locationData, Map<String, dynamic>? weatherData}) async {
     setState(() {
       _isAnalyzing = true;
     });
@@ -349,6 +367,7 @@ class _AiScanScreenState extends State<AiScanScreen>
       debugPrint('  locationData type: ${locationData.runtimeType}');
       debugPrint('  locationData value: $locationData');
       debugPrint('  locationData is String? ${locationData is String}');
+      debugPrint('  weatherData: ${weatherData != null ? "Available" : "Not available"}');
       debugPrint('  locationData is Map? ${locationData is Map}');
 
       final result = await TensorFlowService.analyzeImage(imagePath);
@@ -377,6 +396,7 @@ class _AiScanScreenState extends State<AiScanScreen>
             debugPrint('   Type: ${typedLocationData.runtimeType}');
             debugPrint('   Value: "$typedLocationData"');
             debugPrint('   Is String?: ${typedLocationData is String?}');
+            debugPrint('   weatherData available: ${weatherData != null}');
 
             // Navigate to results screen
             Navigator.of(context).push(
@@ -387,6 +407,7 @@ class _AiScanScreenState extends State<AiScanScreen>
                     imagePath: imagePath,
                     analysisResult: result['data'],
                     locationData: typedLocationData,
+                    weatherData: weatherData,
                   );
                 },
               ),
