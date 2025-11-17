@@ -11,7 +11,7 @@ class GeminiService {
   static GenerativeModel get model {
     // Validate API key first
     if (_apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY not configured in .env file');
+      throw Exception('AI_TIPS_NOT_AVAILABLE');  // Special error code for UI handling
     }
 
     _model ??= GenerativeModel(
@@ -32,7 +32,7 @@ class GeminiService {
   ///
   /// Parameters:
   /// - [diseaseName]: The detected disease name
-  /// - [confidence]: Confidence level of the detection (0.0 - 1.0)
+  /// - [confidence]: Confidence level of the detection (0.0 - 1.0) - used internally, not displayed
   /// - [locationData]: Location information (city, country, etc.)
   /// - [weatherData]: Current weather conditions
   ///
@@ -43,22 +43,21 @@ class GeminiService {
     String? locationData,
     Map<String, dynamic>? weatherData,
   }) async {
+    // Extract weather information early so it's available in catch block
+    final weatherInfo = _formatWeatherInfo(weatherData);
+
     try {
       if (kDebugMode) {
         debugPrint('\n╔═════ GEMINI AI REQUEST ═════╗');
         debugPrint('🦠 Disease: $diseaseName');
-        debugPrint('📊 Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
+        debugPrint('📊 Confidence: ${(confidence * 100).toStringAsFixed(1)}% (not displayed to user)');
         debugPrint('📍 Location: ${locationData ?? "Unknown"}');
         debugPrint('🌤️ Weather: ${weatherData != null ? "Available" : "Not available"}');
       }
 
-      // Extract weather information
-      final weatherInfo = _formatWeatherInfo(weatherData);
-
       // Build the prompt
       final prompt = _buildPrompt(
         diseaseName: diseaseName,
-        confidence: confidence,
         locationData: locationData,
         weatherInfo: weatherInfo,
       );
@@ -70,8 +69,23 @@ class GeminiService {
 
       // Post-process: ensure Detection section exists
       if (!raw.contains('# Detection')) {
-        final detectionBlock = '# Detection\n- Disease: ${diseaseName.isEmpty ? 'Unknown' : diseaseName}\n- Confidence: ${(confidence * 100).toStringAsFixed(1)}%\n- Location: ${locationData ?? 'Not specified'}\n- Weather: ${weatherInfo.isEmpty ? 'Not specified' : weatherInfo}\n\n';
+        final detectionBlock = '# Detection\n- Disease: ${diseaseName.isEmpty ? 'Unknown' : diseaseName}\n- Location: ${locationData != null && locationData.isNotEmpty ? locationData : 'Not specified'}\n- Weather: ${weatherInfo.isEmpty ? 'Not specified' : weatherInfo}\n\n';
         raw = detectionBlock + raw.trim();
+      }
+
+      // CRITICAL: Validate both treatment sections are present
+      final hasOrganicTreatment = raw.contains('## Organic Treatment');
+      final hasChemicalTreatment = raw.contains('## Chemical Treatment');
+
+      if (!hasOrganicTreatment || !hasChemicalTreatment) {
+        if (kDebugMode) {
+          debugPrint('⚠️ WARNING: AI response missing treatment sections!');
+          debugPrint('  Has Organic: $hasOrganicTreatment');
+          debugPrint('  Has Chemical: $hasChemicalTreatment');
+          debugPrint('  Using fallback recommendation...');
+        }
+        // Use fallback if either section is missing
+        return _getFallbackRecommendation(diseaseName, locationData, weatherInfo);
       }
 
       if (raw.isEmpty) {
@@ -80,6 +94,7 @@ class GeminiService {
 
       if (kDebugMode) {
         debugPrint('✅ AI Response received (${raw.length} characters)');
+        debugPrint('✅ Both treatment sections validated');
         debugPrint('╚════════════════════════════╝\n');
       }
 
@@ -90,8 +105,13 @@ class GeminiService {
         debugPrint('Stack trace: $stackTrace');
       }
 
+      // Check if it's an API key error
+      if (e.toString().contains('AI_TIPS_NOT_AVAILABLE')) {
+        return _getUnavailableMessage();
+      }
+
       // Return a user-friendly error message
-      return _getFallbackRecommendation(diseaseName);
+      return _getFallbackRecommendation(diseaseName, locationData, weatherInfo);
     }
   }
 
@@ -114,62 +134,74 @@ class GeminiService {
   /// Build the AI prompt
   static String _buildPrompt({
     required String diseaseName,
-    required double confidence,
     String? locationData,
     required String weatherInfo,
   }) {
     return '''
-You are an expert plant pathologist.
-MUST output EXACTLY these Markdown headings, in order, no extras:
+You are an expert plant pathologist. Generate treatment recommendations.
+
+CRITICAL REQUIREMENTS:
+1. MUST include ## Organic Treatment section with EXACTLY 3 bullet points
+2. MUST include ## Chemical Treatment section with EXACTLY 3 bullet points
+3. NO subsections (no "Primary:", no "Alternatives:")
+4. Each bullet: 20-30 words, specific and actionable
+
+OUTPUT FORMAT:
 
 # Detection
 - Disease: ${diseaseName.isEmpty ? 'Unknown' : diseaseName}
-- Confidence: ${(confidence * 100).toStringAsFixed(1)}%
-- Location: ${locationData ?? 'Not specified'}
-- Weather: ${weatherInfo.isEmpty ? 'Not specified' : weatherInfo}
+- Location: ${locationData != null && locationData.isNotEmpty ? locationData : 'Not specified'}
+- Weather: ${weatherInfo.isNotEmpty ? weatherInfo : 'Not specified'}
 
 ## Organic Treatment
-(Primary first; then Alternatives list.)
-Primary:
-- Up to 5 concise bullet steps describing the most effective organic intervention sequence.
-Alternatives:
-- Two bullets: each (name – when to use / condition suitability).
+- [First organic treatment step with timing and method]
+- [Second organic treatment step with timing and method]
+- [Third organic treatment step with timing and method]
 
 ## Chemical Treatment
-(Primary first; then Alternatives list.)
-Primary:
-- 3–5 bullets covering: active ingredient, timing/interval, application method, safety/PPE, resistance rotation.
-Alternatives:
-- Two bullets: each (active ingredient – specific scenario / constraint).
+- [First chemical treatment with active ingredient and application]
+- [Second chemical treatment with active ingredient and application]
+- [Third chemical treatment with active ingredient and application]
 
-Strict rules:
-- TOTAL content (excluding headings and Detection list) MUST be between 180 and 210 words; aim ~200 words. Split roughly: Organic ~90–110 words, Chemical ~90–110 words.
-- Bullet text only; no paragraphs, no intro/outro sentences outside bullets.
-- If disease label contains 'healthy' or 'unknown', replace both sections with general plant vitality & scouting guidance, still respecting headings & word totals.
-- Use generic active ingredient names, no brand names.
-- No Prevention section. Do not invent additional headings.
-- No repeating identical advice between organic and chemical; differentiate roles.
+RULES:
+- Generic names only (no brand names)
+- Organic: Cultural practices, biofungicides, natural methods
+- Chemical: Active ingredients, dosages, safety measures
+- For healthy plants: provide maintenance tips in both sections
+- Total: 120-180 words (60-90 per section)
 ''';
   }
 
   /// Fallback recommendation when AI fails (matches simplified structure)
-  static String _getFallbackRecommendation(String diseaseName) {
+  static String _getFallbackRecommendation(String diseaseName, [String? locationData, String? weatherInfo]) {
     final healthyLike = diseaseName.toLowerCase().contains('healthy') ||
         diseaseName.toLowerCase().contains('unknown');
 
-    final detection = '# Detection\n- Disease: ${diseaseName.isEmpty ? 'Unknown' : diseaseName}\n- Confidence: N/A\n- Location: Not specified\n- Weather: Not specified\n\n';
+    final location = locationData != null && locationData.isNotEmpty ? locationData : 'Not specified';
+    final weather = weatherInfo != null && weatherInfo.isNotEmpty ? weatherInfo : 'Not specified';
+
+    final detection = '# Detection\n- Disease: ${diseaseName.isEmpty ? 'Unknown' : diseaseName}\n- Location: $location\n- Weather: $weather\n\n';
 
     if (healthyLike) {
-      final organic = '## Organic Treatment\n- Maintain consistent soil moisture (avoid waterlogging).\n- Provide balanced light; adjust shading if leaves yellow.\n- Inspect foliage daily for early spotting or pest presence.\n- Remove senescent / damaged leaves to lower pathogen load.\n- Mulch lightly to stabilize root zone microclimate.\n\nAlternatives:\n- Light compost tea drench during active growth.\n- Seaweed extract foliar spray under stress.\n\n';
-      final chemical = '## Chemical Treatment\n- No routine chemical use recommended on healthy / uncertain status.\n- Focus on sanitation & early scouting instead of prophylactic sprays.\n- Maintain resistance stewardship by avoiding unnecessary fungicides.\n\nAlternatives:\n- N/A\n- N/A\n';
+      final organic = '## Organic Treatment\n- Maintain consistent soil moisture by watering deeply but infrequently to encourage strong root development\n- Inspect foliage weekly for early signs of pests or diseases and remove affected leaves promptly\n- Apply organic mulch around the base to regulate soil temperature and suppress weeds\n\n';
+      final chemical = '## Chemical Treatment\n- No routine chemical applications recommended for healthy plants to preserve beneficial organisms\n- Monitor plant health regularly and reserve treatments only for confirmed pest or disease issues\n- Practice integrated pest management focusing on prevention rather than reactive chemical use\n\n';
       return detection + organic + chemical;
     }
 
-    final organic = '## Organic Treatment\n- Remove infected tissues promptly (pruning shears sanitized).\n- Improve airflow: thin dense growth / adjust spacing.\n- Morning root-zone watering; keep foliage dry.\n- Apply approved biofungicide (e.g. Bacillus-based) on a 7–10 day cycle.\n- Integrate mulch to reduce soil splash dispersal.\n\nAlternatives:\n- Potassium bicarbonate spray for early lesion suppression.\n- Neem or horticultural oil under mild pressure (avoid heat >30°C).\n\n';
+    final organic = '## Organic Treatment\n- Remove all infected plant tissues using sterilized pruning tools and dispose of debris away from garden\n- Improve air circulation by spacing plants 60-90cm apart and pruning dense foliage\n- Apply copper-based organic fungicide every 7-10 days following label instructions for application rate\n\n';
 
-    final chemical = '## Chemical Treatment\n- Primary protectant: copper hydroxide (interval 7–10d; avoid overuse & phytotoxicity).\n- Rotate mode of action (alternate with a phosphonate systemic).\n- Target sprays pre-wet/humid periods based on forecast.\n- Use calibrated nozzle for fine coverage; avoid runoff.\n- PPE: gloves, mask, long sleeves; wash equipment post-use.\n\nAlternatives:\n- Mancozeb (broad-spectrum) during extended cool wet cycles.\n- Sulfur (only in dry, moderate temps; avoid with oils).\n';
+    final chemical = '## Chemical Treatment\n- Use chlorothalonil or mancozeb fungicide at recommended dosage rotating between products to prevent resistance\n- Apply treatments early morning or late evening targeting all leaf surfaces including undersides\n- Wear protective equipment including gloves mask and long sleeves during application and storage\n\n';
 
     return detection + organic + chemical;
+  }
+
+  /// Return unavailable message when API key is not configured
+  static String _getUnavailableMessage() {
+    return '''# AI Tips Not Available
+
+This function is currently not available. Please contact support or try again later.
+
+The AI-powered recommendations feature requires additional configuration to function properly.''';
   }
 
   /// Test the Gemini API connection
