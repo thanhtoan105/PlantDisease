@@ -277,7 +277,7 @@ class SupabaseService {
       for (var prediction in predictions) {
         relevantDiseases.add({
           'label': prediction['label'] ?? prediction['className'],  // TensorFlow uses 'label'
-          'confidence': ((prediction['confidence'] as num).toDouble() * 100).toStringAsFixed(2),
+          'confidence': (prediction['confidence'] as num).toDouble() * 100,  // Lưu dạng số (percentage), ví dụ: 53.45
         });
       }
     }
