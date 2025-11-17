@@ -2,13 +2,33 @@
 // Run with: dart test_gemini.dart
 
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   print('\n╔════════════════════════════════════════════════════════════╗');
   print('║         GEMINI API CONNECTION TEST                        ║');
-  print('╚════════════════════════════════════════════════════════════╝\n');
+  print('���════════════════════════════════════════════════════════════╝\n');
 
-  const apiKey = 'AIzaSyADyTiwlCyg9wgd7xgThcampIRkWyRazKU';
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: '.env');
+    print('✅ Environment variables loaded\n');
+  } catch (e) {
+    print('❌ Failed to load .env file: $e');
+    print('Make sure .env file exists in the project root\n');
+    return;
+  }
+
+  final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+
+  if (apiKey.isEmpty) {
+    print('❌ GEMINI_API_KEY not found in .env file');
+    print('Please add GEMINI_API_KEY=your_key to .env file\n');
+    return;
+  }
+
+  print('🔑 API Key loaded from environment');
+  print('   Length: ${apiKey.length} characters\n');
 
   // Test 1: Simple connection test
   print('Test 1: Testing model connection...');

@@ -1,12 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../config/env_config.dart';
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyADyTiwlCyg9wgd7xgThcampIRkWyRazKU';
+  // Get API key from environment configuration (SECURE - not hardcoded)
+  static String get _apiKey => EnvConfig.geminiApiKey;
   static GenerativeModel? _model;
 
   /// Initialize the Gemini model (Gemini Flash - free tier)
   static GenerativeModel get model {
+    // Validate API key first
+    if (_apiKey.isEmpty) {
+      throw Exception('GEMINI_API_KEY not configured in .env file');
+    }
+
     _model ??= GenerativeModel(
       model: 'gemini-flash-latest',  // Updated to use available model
       apiKey: _apiKey,
@@ -19,6 +26,7 @@ class GeminiService {
     );
     return _model!;
   }
+
 
   /// Generate AI-powered disease recommendations
   ///
@@ -36,13 +44,13 @@ class GeminiService {
     Map<String, dynamic>? weatherData,
   }) async {
     try {
-      debugPrint('\n╔═══════════════════════���════════════════════════════════════╗');
-      debugPrint('║         GEMINI AI RECOMMENDATION REQUEST                  ║');
-      debugPrint('╚═══════════════════════════════════════���════════════════════╝');
-      debugPrint('🦠 Disease: $diseaseName');
-      debugPrint('📊 Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
-      debugPrint('📍 Location: ${locationData ?? "Unknown"}');
-      debugPrint('🌤️ Weather: ${weatherData ?? "Not available"}');
+      if (kDebugMode) {
+        debugPrint('\n╔═════ GEMINI AI REQUEST ═════╗');
+        debugPrint('🦠 Disease: $diseaseName');
+        debugPrint('📊 Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
+        debugPrint('📍 Location: ${locationData ?? "Unknown"}');
+        debugPrint('🌤️ Weather: ${weatherData != null ? "Available" : "Not available"}');
+      }
 
       // Extract weather information
       final weatherInfo = _formatWeatherInfo(weatherData);
@@ -54,8 +62,6 @@ class GeminiService {
         locationData: locationData,
         weatherInfo: weatherInfo,
       );
-
-      debugPrint('\n📝 Prompt:\n$prompt\n');
 
       // Generate content
       final response = await model.generateContent([Content.text(prompt)]);
@@ -72,13 +78,17 @@ class GeminiService {
         throw Exception('Empty response from Gemini AI');
       }
 
-      debugPrint('\n✅ AI Response received (${raw.length} characters)');
-      debugPrint('╚═══════════════════════════════════════════════════════���════╝\n');
+      if (kDebugMode) {
+        debugPrint('✅ AI Response received (${raw.length} characters)');
+        debugPrint('╚════════════════════════════╝\n');
+      }
 
       return raw;
     } catch (e, stackTrace) {
-      debugPrint('\n❌ Error in generateDiseaseRecommendation: $e');
-      debugPrint('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('\n❌ Error in generateDiseaseRecommendation: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
 
       // Return a user-friendly error message
       return _getFallbackRecommendation(diseaseName);

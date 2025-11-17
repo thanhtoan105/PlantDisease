@@ -61,6 +61,12 @@ class EnvConfig {
         defaultValue: '',
       );
 
+  // Gemini AI Configuration
+  static String get geminiApiKey => _getEnv(
+        'GEMINI_API_KEY',
+        defaultValue: '',
+      );
+
   /// Validate that all required environment variables are set
   static bool validateConfig() {
     final requiredVars = {
@@ -68,6 +74,7 @@ class EnvConfig {
       'WEATHER_API_BASE_URL': weatherApiBaseUrl,
       'SUPABASE_URL': supabaseUrl,
       'SUPABASE_ANON_KEY': supabaseAnonKey,
+      'GEMINI_API_KEY': geminiApiKey,
     };
 
     bool isValid = true;
@@ -100,5 +107,7 @@ class EnvConfig {
         '  Supabase URL: ${supabaseUrl.isNotEmpty ? "✅ Set" : "❌ Missing"}');
     debugPrint(
         '  Supabase Key: ${supabaseAnonKey.isNotEmpty ? "✅ Set" : "❌ Missing"}');
+    debugPrint(
+        '  Gemini API Key: ${geminiApiKey.isNotEmpty ? "✅ Set" : "❌ Missing"}');
   }
 }
