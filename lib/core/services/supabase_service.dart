@@ -245,7 +245,9 @@ class SupabaseService {
     final topPrediction = allPredictions.first;
     // TensorFlow returns 'label' field, not 'className'
     final className = topPrediction['label']?.toString() ?? topPrediction['className']?.toString();
-    final topConfidence = (topPrediction['confidence'] as num).toDouble() * 100; // Convert to percentage
+    // Convert to percentage and round to 2 decimals
+    final _rawTopConfidence = (topPrediction['confidence'] as num).toDouble() * 100;
+    final topConfidence = double.parse(_rawTopConfidence.toStringAsFixed(2));
 
     // Get disease ID from class_name
     int? diseaseId;
@@ -275,9 +277,11 @@ class SupabaseService {
       // Take 2nd and 3rd predictions (skip the first one)
       final predictions = allPredictions.skip(1).take(2).toList();
       for (var prediction in predictions) {
+        final rawAlt = (prediction['confidence'] as num).toDouble() * 100;
+        final roundedAlt = double.parse(rawAlt.toStringAsFixed(2));
         relevantDiseases.add({
           'label': prediction['label'] ?? prediction['className'],  // TensorFlow uses 'label'
-          'confidence': (prediction['confidence'] as num).toDouble() * 100,  // Lưu dạng số (percentage), ví dụ: 53.45
+          'confidence': roundedAlt,  // Đã làm tròn 2 số thập phân
         });
       }
     }
@@ -291,7 +295,7 @@ class SupabaseService {
       'user_id': userId,
       'image_url': imageUrl,
       'top1_disease_id': diseaseId,
-      'top1_confidence': topConfidence,
+      'top1_confidence': topConfidence, // đã round
       'relevant_diseases': relevantDiseases.isEmpty ? null : relevantDiseases,
       'location_data': locationData ?? 'Unknown Location',
       'analysis_date': analysisDate,
