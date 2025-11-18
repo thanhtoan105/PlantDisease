@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -91,114 +92,107 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
 
   Widget _buildHeader() {
     final disease = widget.disease;
-    final imageUrl = disease['image_url'] as String?;
+    final rawUrl = disease['image_url'] as String?;
+    final imageUrl = (rawUrl != null && rawUrl.isNotEmpty)
+        ? rawUrl
+        : 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop';
 
-    return SizedBox(
-      height: 250,
-      child: Stack(
-        children: [
-          // Disease Image
-          SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          size: 64,
-                          color: AppColors.mediumGray,
+    return Container(
+      height: 280,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: CachedNetworkImageProvider(imageUrl),
+          fit: BoxFit.cover,
+          onError: (exception, stackTrace) {},
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withValues(alpha: 0.3),
+              Colors.black.withValues(alpha: 0.7),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Back Button (standardized size)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(22),
                         ),
-                      );
-                    },
-                  )
-                : Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primaryGreen.withValues(alpha: 0.8),
-                          AppColors.primaryGreen.withValues(alpha: 0.6),
-                        ],
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
                     ),
-                    child: const Icon(
-                      Icons.coronavirus,
-                      size: 80,
-                      color: AppColors.white,
-                    ),
-                  ),
-          ),
-
-          // Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.7),
-                ],
-              ),
-            ),
-          ),
-
-          // Back Button
-          Positioned(
-            top: 20,
-            left: 20,
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(20),
+                    const SizedBox(width: 44), // keep symmetrical spacing
+                  ],
                 ),
-                child: const Icon(
-                  Icons.arrow_back,
-                  color: AppColors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-          ),
 
-          // Disease Info
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  disease['display_name'] ??
-                      disease['name'] ??
-                      'Unknown Disease',
-                  style: AppTypography.headlineLarge.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.spacingXs),
-                Text(
-                  'Disease Information',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.9),
+                // Disease title and subtitle
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        disease['display_name'] ??
+                            disease['name'] ??
+                            'Unknown Disease',
+                        style: AppTypography.headlineLarge.copyWith(
+                          fontSize: 24, // slightly smaller than plant title
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              offset: const Offset(0, 1),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppDimensions.spacingXs),
+                      Text(
+                        'Disease Information',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              offset: const Offset(0, 1),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
