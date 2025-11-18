@@ -300,42 +300,39 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
 
   Widget _buildTreatmentContent() {
     final disease = widget.disease;
-    final treatment = disease['treatment'];
+    final organicTreatment = disease['organic_treatment'] as String?;
+    final chemicalTreatment = disease['chemical_treatment'] as String?;
 
-    // Handle treatment as JSONB object
-    if (treatment is Map<String, dynamic> && treatment.isNotEmpty) {
+    // Check if we have any treatment data
+    final hasOrganicTreatment = organicTreatment != null &&
+        organicTreatment.isNotEmpty &&
+        organicTreatment != 'No organic treatment information available';
+    final hasChemicalTreatment = chemicalTreatment != null &&
+        chemicalTreatment.isNotEmpty &&
+        chemicalTreatment != 'No chemical treatment information available';
+
+    if (hasOrganicTreatment || hasChemicalTreatment) {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.spacingLg),
         child: Column(
           children: [
             // Organic Treatment
-            if (treatment['organic'] != null && treatment['organic'].toString().isNotEmpty)
+            if (hasOrganicTreatment)
               _buildTreatmentCard(
                 'Organic Treatment',
-                treatment['organic'].toString(),
+                organicTreatment,
                 Icons.eco,
                 AppColors.successGreen,
               ),
 
             // Chemical Treatment
-            if (treatment['chemical'] != null && treatment['chemical'].toString().isNotEmpty) ...[
+            if (hasChemicalTreatment) ...[
               const SizedBox(height: AppDimensions.spacingMd),
               _buildTreatmentCard(
                 'Chemical Treatment',
-                treatment['chemical'].toString(),
+                chemicalTreatment,
                 Icons.science,
                 AppColors.accentOrange,
-              ),
-            ],
-
-            // Biological Treatment
-            if (treatment['biological'] != null && treatment['biological'].toString().isNotEmpty) ...[
-              const SizedBox(height: AppDimensions.spacingMd),
-              _buildTreatmentCard(
-                'Biological Treatment',
-                treatment['biological'].toString(),
-                Icons.biotech,
-                AppColors.primaryGreen,
               ),
             ],
           ],
