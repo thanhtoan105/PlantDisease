@@ -493,6 +493,17 @@ class TensorFlowService {
         throw Exception('Invalid inference output');
       }
 
+      // DEBUG: Check sum of outputs to verify softmax
+      final sum = results.reduce((a, b) => a + b);
+      debugPrint('📊 Output sum: ${sum.toStringAsFixed(4)} (should be ≈1.0 if softmax applied)');
+      if ((sum - 1.0).abs() < 0.01) {
+        debugPrint('✅ Softmax confirmed: sum ≈ 1.0');
+      } else if (sum > 1.5) {
+        debugPrint('⚠️ Possible logits detected (sum > 1.5) - softmax may be needed');
+      } else {
+        debugPrint('🔍 Unusual sum value - verify model output layer');
+      }
+
       debugPrint('🔬 Inference results: ${results.take(5).toList()}... (showing first 5)');
       return results;
     } catch (e) {
