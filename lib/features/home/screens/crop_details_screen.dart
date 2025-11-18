@@ -623,6 +623,10 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     final imageUrl = disease['image_url'] ??
         'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop';
 
+    // Format disease name consistently: trim, collapse spaces, Title Case
+    final rawName = (disease['display_name'] ?? disease['name'] ?? 'Unknown Disease').toString();
+    final displayName = _formatDiseaseName(rawName);
+
     return GestureDetector(
       onTap: () {
         context.push('/disease-details', extra: disease);
@@ -691,13 +695,11 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
               child: Padding(
                 padding: const EdgeInsets.all(AppDimensions.spacingMd),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      disease['display_name'] ??
-                          disease['name'] ??
-                          'Unknown Disease',
+                      displayName,
                       style: AppTypography.bodyLarge.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.darkNavy,
@@ -714,6 +716,20 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
         ),
       ),
     );
+  }
+
+  // Ensure disease names are consistently formatted for display
+  String _formatDiseaseName(String name) {
+    // Trim and collapse multiple spaces
+    final trimmed = name.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (trimmed.isEmpty) return 'Unknown Disease';
+
+    // Convert to Title Case (keep existing casing for known acronyms if needed)
+    final words = trimmed.split(' ');
+    final titled = words
+        .map((w) => w.isEmpty ? '' : (w[0].toUpperCase() + (w.length > 1 ? w.substring(1).toLowerCase() : '')))
+        .join(' ');
+    return titled;
   }
 
   Widget _buildEmptyDiseaseState() {
