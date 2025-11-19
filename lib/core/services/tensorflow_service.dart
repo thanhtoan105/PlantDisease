@@ -38,15 +38,21 @@ Future<Float32List?> _preprocessImageInIsolate(Map<String, dynamic> params) asyn
     final input = Float32List(inputSize);
 
     // Optimized pixel processing
+    // NOTE: MobileNetV3Large with ImageNet preprocessing handles normalization internally
+    // No need to manually normalize to [-1, 1] range - just extract RGB values as [0, 255]
     int pixelIndex = 0;
     for (int y = 0; y < modelInputSize; y++) {
       for (int x = 0; x < modelInputSize; x++) {
         final pixel = resizedImage.getPixel(x, y);
 
-        // Extract RGB values and normalize to [-1, 1] range
-        input[pixelIndex++] = (pixel.r / 127.5) - 1.0;
-        input[pixelIndex++] = (pixel.g / 127.5) - 1.0;
-        input[pixelIndex++] = (pixel.b / 127.5) - 1.0;
+        input[pixelIndex++] = pixel.r.toDouble();
+        input[pixelIndex++] = pixel.g.toDouble();
+        input[pixelIndex++] = pixel.b.toDouble();
+
+        // OLD CODE (for models requiring manual normalization to [-1, 1]):
+        // input[pixelIndex++] = (pixel.r / 127.5) - 1.0;
+        // input[pixelIndex++] = (pixel.g / 127.5) - 1.0;
+        // input[pixelIndex++] = (pixel.b / 127.5) - 1.0;
       }
     }
 
