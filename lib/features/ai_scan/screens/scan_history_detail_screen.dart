@@ -8,13 +8,20 @@ import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/utils/custom_snackbars.dart';
 import '../models/scan_history.dart';
 
-class ScanHistoryDetailScreen extends StatelessWidget {
+class ScanHistoryDetailScreen extends StatefulWidget {
   final ScanHistory scanHistory;
 
   const ScanHistoryDetailScreen({
     super.key,
     required this.scanHistory,
   });
+
+  @override
+  State<ScanHistoryDetailScreen> createState() => _ScanHistoryDetailScreenState();
+}
+
+class _ScanHistoryDetailScreenState extends State<ScanHistoryDetailScreen> {
+  bool _isNavigating = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,12 +46,12 @@ class ScanHistoryDetailScreen extends StatelessWidget {
 
   /// Image card with Hero animation
   Widget _buildImageCard() {
-    final imageUrl = scanHistory.plantImage.isNotEmpty
-        ? scanHistory.plantImage
-        : scanHistory.imageUrl;
+    final imageUrl = widget.scanHistory.plantImage.isNotEmpty
+        ? widget.scanHistory.plantImage
+        : widget.scanHistory.imageUrl;
 
     return Hero(
-      tag: 'scan_${scanHistory.id}',
+      tag: 'scan_${widget.scanHistory.id}',
       child: CustomCard(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
@@ -127,7 +134,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.spacingMd),
           Text(
-            scanHistory.diseaseDisplayName,
+            widget.scanHistory.diseaseDisplayName,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -140,7 +147,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
           _buildInfoRow(
             Icons.location_on_outlined,
             'Location',
-            _parseLocation(scanHistory.locationData),
+            _parseLocation(widget.scanHistory.locationData),
           ),
           const SizedBox(height: AppDimensions.spacingMd),
 
@@ -148,7 +155,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
           _buildInfoRow(
             Icons.access_time_outlined,
             'Time',
-            _formatDateTime(scanHistory.analysisDate),
+            _formatDateTime(widget.scanHistory.analysisDate),
           ),
           const SizedBox(height: AppDimensions.spacingMd),
 
@@ -156,8 +163,8 @@ class ScanHistoryDetailScreen extends StatelessWidget {
           _buildConfidenceRow(),
 
           // Alternative Possibilities (Relevant Diseases) - inline
-          if (scanHistory.relevantDiseases != null &&
-              scanHistory.relevantDiseases!.isNotEmpty) ...[
+          if (widget.scanHistory.relevantDiseases != null &&
+              widget.scanHistory.relevantDiseases!.isNotEmpty) ...[
             const SizedBox(height: AppDimensions.spacingLg),
             const Divider(height: 1),
             const SizedBox(height: AppDimensions.spacingMd),
@@ -208,7 +215,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
 
   /// Confidence row with progress bar
   Widget _buildConfidenceRow() {
-    final confidence = scanHistory.topConfidence;
+    final confidence = widget.scanHistory.topConfidence;
     final confidenceColor = _getConfidenceColor(confidence);
 
     return Column(
@@ -261,12 +268,12 @@ class ScanHistoryDetailScreen extends StatelessWidget {
 
   /// Build alternative predictions from relevantDiseases (simplified inline version)
   List<Widget> _buildAlternativePredictions() {
-    if (scanHistory.relevantDiseases == null) return [];
+    if (widget.scanHistory.relevantDiseases == null) return [];
 
     final widgets = <Widget>[];
 
-    for (var i = 0; i < scanHistory.relevantDiseases!.length && i < 2; i++) {
-      final disease = scanHistory.relevantDiseases![i];
+    for (var i = 0; i < widget.scanHistory.relevantDiseases!.length && i < 2; i++) {
+      final disease = widget.scanHistory.relevantDiseases![i];
       if (disease == null) continue;
 
       final name = _parseDiseaseName(disease['label']?.toString() ?? 'Unknown');
@@ -321,7 +328,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
         ),
       );
 
-      if (i < scanHistory.relevantDiseases!.length - 1 && i < 1) {
+      if (i < widget.scanHistory.relevantDiseases!.length - 1 && i < 1) {
         widgets.add(const SizedBox(height: AppDimensions.spacingSm));
       }
     }
@@ -376,17 +383,27 @@ class ScanHistoryDetailScreen extends StatelessWidget {
 
   /// Check if we can navigate to disease details
   bool _canNavigateToDisease() {
-    return scanHistory.diseaseInfo != null &&
-           scanHistory.diseaseInfo!.isNotEmpty;
+    return widget.scanHistory.diseaseInfo != null &&
+           widget.scanHistory.diseaseInfo!.isNotEmpty;
   }
 
   /// Navigate to disease details screen - same approach as results_screen
   void _navigateToDiseaseDetails(BuildContext context) async {
-    if (!_canNavigateToDisease()) return;
+    // Prevent multiple navigation
+    if (_isNavigating || !_canNavigateToDisease()) return;
+
+    setState(() {
+      _isNavigating = true;
+    });
 
     // Get disease class_name from scanHistory
-    final className = scanHistory.diseaseInfo?['class_name'] as String?;
-    if (className == null || className.isEmpty) return;
+    final className = widget.scanHistory.diseaseInfo?['class_name'] as String?;
+    if (className == null || className.isEmpty) {
+      setState(() {
+        _isNavigating = false;
+      });
+      return;
+    }
 
     try {
       // Search disease using class_name (same as results_screen approach)
@@ -395,8 +412,18 @@ class ScanHistoryDetailScreen extends StatelessWidget {
       if (context.mounted) {
         if (diseaseResults.isNotEmpty) {
           // Navigate with first result (same as results_screen)
-          context.push('/disease-details', extra: diseaseResults.first);
+          await context.push('/disease-details', extra: diseaseResults.first);
+
+          // Reset navigation flag when returning from disease details screen
+          if (mounted) {
+            setState(() {
+              _isNavigating = false;
+            });
+          }
         } else {
+          setState(() {
+            _isNavigating = false;
+          });
           CustomSnackbars.showError(
             context: context,
             message: 'Disease information not found in database',
@@ -404,6 +431,11 @@ class ScanHistoryDetailScreen extends StatelessWidget {
         }
       }
     } catch (error) {
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
       if (context.mounted) {
         CustomSnackbars.showError(
           context: context,
