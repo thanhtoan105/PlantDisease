@@ -4,6 +4,7 @@ import '../../../core/providers/scan_history_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import 'scan_history_item.dart';
+import 'scan_history_detail_screen.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
@@ -226,6 +227,17 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                   timeAgo: timeAgo,
                   diseaseResult: diseaseResult,
                   confidenceScore: confidenceScore, // Already as decimal 0-1
+                  scanId: scan.id,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ScanHistoryDetailScreen(
+                          scanHistory: scan,
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
