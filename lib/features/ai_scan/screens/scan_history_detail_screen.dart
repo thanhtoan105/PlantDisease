@@ -28,8 +28,6 @@ class ScanHistoryDetailScreen extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacingLg),
             _buildTopInfoCard(),
             const SizedBox(height: AppDimensions.spacingLg),
-            _buildDetailSection(),
-            const SizedBox(height: AppDimensions.spacingLg),
           ],
         ),
       ),
@@ -135,6 +133,25 @@ class ScanHistoryDetailScreen extends StatelessWidget {
 
           // Confidence
           _buildConfidenceRow(),
+
+          // Alternative Possibilities (Relevant Diseases) - inline
+          if (scanHistory.relevantDiseases != null &&
+              scanHistory.relevantDiseases!.isNotEmpty) ...[
+            const SizedBox(height: AppDimensions.spacingLg),
+            const Divider(height: 1),
+            const SizedBox(height: AppDimensions.spacingMd),
+            Text(
+              'Alternative Possibilities',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.spacingMd),
+            ..._buildAlternativePredictions(),
+          ],
         ],
       ),
     );
@@ -221,162 +238,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Detail section with top 3 predictions
-  Widget _buildDetailSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.spacingLg),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.analytics_outlined,
-                size: 20,
-                color: AppColors.primaryGreen,
-              ),
-              const SizedBox(width: AppDimensions.spacingSm),
-              const Text(
-                'Analysis Results',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-
-          // Top 1 Prediction
-          _buildPredictionItem(
-            rank: 1,
-            name: scanHistory.diseaseDisplayName,
-            confidence: scanHistory.topConfidence,
-            isTop: true,
-          ),
-
-          // Alternative predictions (Top 2 & 3)
-          if (scanHistory.relevantDiseases != null &&
-              scanHistory.relevantDiseases!.isNotEmpty) ...[
-            const SizedBox(height: AppDimensions.spacingMd),
-            const Divider(height: 1),
-            const SizedBox(height: AppDimensions.spacingMd),
-            Text(
-              'Alternative Possibilities',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingMd),
-            ..._buildAlternativePredictions(),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// Build prediction item
-  Widget _buildPredictionItem({
-    required int rank,
-    required String name,
-    required double confidence,
-    bool isTop = false,
-  }) {
-    final color = isTop ? AppColors.primaryGreen : Colors.grey[600]!;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingSm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: isTop ? AppColors.primaryGreen : Colors.grey[400],
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '$rank',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacingMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: isTop ? 16 : 15,
-                        fontWeight: isTop ? FontWeight.bold : FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-                            child: LinearProgressIndicator(
-                              value: confidence / 100,
-                              backgroundColor: Colors.grey[200],
-                              valueColor: AlwaysStoppedAnimation<Color>(color),
-                              minHeight: 6,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppDimensions.spacingMd),
-                        SizedBox(
-                          width: 50,
-                          child: Text(
-                            '${confidence.toStringAsFixed(1)}%',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                            textAlign: TextAlign.end,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Build alternative predictions from relevantDiseases
+  /// Build alternative predictions from relevantDiseases (simplified inline version)
   List<Widget> _buildAlternativePredictions() {
     if (scanHistory.relevantDiseases == null) return [];
 
@@ -388,14 +250,55 @@ class ScanHistoryDetailScreen extends StatelessWidget {
 
       final name = _parseDiseaseName(disease['label']?.toString() ?? 'Unknown');
       final confidence = (disease['confidence'] as num?)?.toDouble() ?? 0.0;
-      final rank = i + 2; // Rank 2 or 3
+      final color = Colors.grey[600]!;
 
-      widgets.add(_buildPredictionItem(
-        rank: rank,
-        name: name,
-        confidence: confidence,
-        isTop: false,
-      ));
+      widgets.add(
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingSm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+                      child: LinearProgressIndicator(
+                        value: confidence / 100,
+                        backgroundColor: Colors.grey[200],
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.spacingMd),
+                  SizedBox(
+                    width: 50,
+                    child: Text(
+                      '${confidence.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
 
       if (i < scanHistory.relevantDiseases!.length - 1 && i < 1) {
         widgets.add(const SizedBox(height: AppDimensions.spacingSm));
