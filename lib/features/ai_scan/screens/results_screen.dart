@@ -15,15 +15,15 @@ import '../../home/screens/disease_details_screen.dart';
 class ResultsScreen extends StatefulWidget {
   final String imagePath;
   final Map<String, dynamic> analysisResult;
-  final String? locationData;  // Changed from Map to String
-  final Map<String, dynamic>? weatherData;  // Add weather data
+  final String? locationData; // Changed from Map to String
+  final Map<String, dynamic>? weatherData; // Add weather data
 
   const ResultsScreen({
     super.key,
     required this.imagePath,
     required this.analysisResult,
-    this.locationData,  // Optional since it's nullable
-    this.weatherData,   // Optional weather data
+    this.locationData, // Optional since it's nullable
+    this.weatherData, // Optional weather data
   });
 
   @override
@@ -33,7 +33,8 @@ class ResultsScreen extends StatefulWidget {
 class _ResultsScreenState extends State<ResultsScreen> {
   bool _isSaving = false;
   bool _isSaved = false; // New variable to track if the result has been saved
-  String? _locationData;  // Changed from Map to String
+  bool _isNavigating = false; // Prevent multiple navigation
+  String? _locationData; // Changed from Map to String
 
   // Add missing properties to fix compilation errors
   bool get isDemoResult => widget.analysisResult['isDemoResult'] == true;
@@ -69,9 +70,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
     super.initState();
 
     try {
-      debugPrint('\n╔════════════════════════════════════════════════════════════╗');
-      debugPrint('║         RESULTS SCREEN INITIALIZATION DEBUG               ║');
-      debugPrint('╚════════════════════════════════════════════════════════════╝\n');
+      debugPrint(
+          '\n╔════════════════════════════════════════════════════════════╗');
+      debugPrint(
+          '║         RESULTS SCREEN INITIALIZATION DEBUG               ║');
+      debugPrint(
+          '╚════════════════════════════════════════════════════════════╝\n');
 
       // 1. Debug imagePath
       debugPrint('📸 IMAGE PATH:');
@@ -104,7 +108,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       debugPrint('  Is null? ${widget.locationData == null}');
       debugPrint('  Is String? ${widget.locationData is String}');
       debugPrint('  Is Map? ${widget.locationData is Map}');
-      debugPrint('  Is Map<String, dynamic>? ${widget.locationData is Map<String, dynamic>}');
+      debugPrint(
+          '  Is Map<String, dynamic>? ${widget.locationData is Map<String, dynamic>}');
 
       // Handle locationData based on actual type with extensive debugging
       if (widget.locationData == null) {
@@ -131,15 +136,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
           if (dataValue is String) {
             _locationData = dataValue;
-            debugPrint('  ✅ Extracted string from Map["data"]: "$_locationData"');
+            debugPrint(
+                '  ✅ Extracted string from Map["data"]: "$_locationData"');
           } else {
             _locationData = dataValue.toString();
-            debugPrint('  ⚠️ Converted non-string data to string: "$_locationData"');
+            debugPrint(
+                '  ⚠️ Converted non-string data to string: "$_locationData"');
           }
         } else {
           // No 'data' key, convert entire map to string
           _locationData = locationMap.toString();
-          debugPrint('  ⚠️ No "data" key found, using map.toString(): "$_locationData"');
+          debugPrint(
+              '  ⚠️ No "data" key found, using map.toString(): "$_locationData"');
         }
       } else {
         // Unknown type, convert to string
@@ -202,23 +210,29 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
       debugPrint('');
 
-      debugPrint('╔════════════════════════════════════════════════════════════╗');
-      debugPrint('║         INITIALIZATION COMPLETE ✅                         ║');
-      debugPrint('╚════════════════════════════════════════════════════════════╝\n');
-
+      debugPrint(
+          '╔════════════════════════════════════════════════════════════╗');
+      debugPrint(
+          '║         INITIALIZATION COMPLETE ✅                         ║');
+      debugPrint(
+          '╚════════════════════════════════════════════════════════════╝\n');
     } catch (e, stackTrace) {
-      debugPrint('\n╔════════════════════════════════════════════════════════════╗');
+      debugPrint(
+          '\n╔════════════════════════════════════════════════════════════╗');
       debugPrint('║         ❌❌❌ CRITICAL ERROR ❌❌❌                      ║');
-      debugPrint('╚════════════════════════════════════════════════════════════╝');
+      debugPrint(
+          '╚════════════════════════════════════════════════════════════╝');
       debugPrint('Error: $e');
       debugPrint('Error Type: ${e.runtimeType}');
       debugPrint('\n📋 STACK TRACE:');
       debugPrint(stackTrace.toString());
       debugPrint('\n📊 ERROR CONTEXT:');
-      debugPrint('  widget.locationData type: ${widget.locationData.runtimeType}');
+      debugPrint(
+          '  widget.locationData type: ${widget.locationData.runtimeType}');
       debugPrint('  widget.locationData value: ${widget.locationData}');
       debugPrint('  widget.imagePath: ${widget.imagePath}');
-      debugPrint('  widget.analysisResult keys: ${widget.analysisResult.keys.toList()}');
+      debugPrint(
+          '  widget.analysisResult keys: ${widget.analysisResult.keys.toList()}');
 
       // Set safe fallback
       _locationData = 'Unknown Location';
@@ -264,7 +278,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       final userId = SupabaseService.currentUserId();
       if (userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must be signed in to save results.')),
+          const SnackBar(
+              content: Text('You must be signed in to save results.')),
         );
         setState(() {
           _isSaving = false;
@@ -279,7 +294,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       await SupabaseService.saveAnalysisResult(
         userId: userId,
         imagePath: imagePath,
-        allPredictions: allPredictions,  // Send all predictions for processing
+        allPredictions: allPredictions, // Send all predictions for processing
         locationData: locationData,
         analysisDate: analysisDate,
       );
@@ -310,7 +325,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   void _showAITipsDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,  // Prevent dismissing while loading
+      barrierDismissible: false, // Prevent dismissing while loading
       builder: (BuildContext context) {
         return _AITipsDialog(
           diseaseName: topPrediction?['label'] ?? 'Unknown',
@@ -348,8 +363,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   // Detected Diseases List (Top 3)
                   _buildDetectedDiseasesList(),
 
-
-
                   // Add bottom padding to ensure content doesn't get hidden behind button
                   const SizedBox(height: 100),
                 ],
@@ -382,9 +395,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 icon: _isSaved
                     ? null
                     : Icon(
-                        _isSaving
-                            ? Icons.hourglass_empty
-                            : Icons.bookmark,
+                        _isSaving ? Icons.hourglass_empty : Icons.bookmark,
                         color: AppColors.white,
                       ),
               ),
@@ -497,9 +508,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
             final index = entry.key;
             final disease = entry.value;
             if (disease is Map) {
-              return _buildDiseaseItem(Map<String, dynamic>.from(disease), index);
+              return _buildDiseaseItem(
+                  Map<String, dynamic>.from(disease), index);
             } else {
-              debugPrint('⚠️ Disease at index $index is not a Map: ${disease.runtimeType}');
+              debugPrint(
+                  '⚠️ Disease at index $index is not a Map: ${disease.runtimeType}');
               return const SizedBox.shrink();
             }
           }).toList(),
@@ -520,9 +533,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     // Only first disease (top prediction) gets arrow button
     final bool isTopPrediction = index == 0;
-    final String diseaseLabel = isTopPrediction
-        ? 'Top Prediction'
-        : 'Alternative #${index}';
+    final String diseaseLabel =
+        isTopPrediction ? 'Top Prediction' : 'Alternative #${index}';
 
     return Container(
       margin: EdgeInsets.only(bottom: AppDimensions.spacingMd),
@@ -550,10 +562,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
             margin: const EdgeInsets.all(AppDimensions.spacingSm),
             decoration: BoxDecoration(
               color: AppColors.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
               child: Image.file(
                 File(widget.imagePath),
                 fit: BoxFit.cover,
@@ -574,7 +588,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   Text(
                     diseaseLabel,
                     style: AppTypography.bodySmall.copyWith(
-                      color: isTopPrediction ? AppColors.primaryGreen : AppColors.mediumGray,
+                      color: isTopPrediction
+                          ? AppColors.primaryGreen
+                          : AppColors.mediumGray,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -623,23 +639,47 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   // Simplified navigation from disease list - same as Search Screen approach
-  Future<void> _navigateToDiseaseDetailsFromList(Map<String, dynamic> disease) async {
+  Future<void> _navigateToDiseaseDetailsFromList(
+      Map<String, dynamic> disease) async {
+    // Prevent multiple navigation
+    if (_isNavigating) return;
+
+    setState(() {
+      _isNavigating = true;
+    });
+
     try {
       final label = disease['label'] ?? '';
 
-      if (label.isEmpty) return;
+      if (label.isEmpty) {
+        setState(() {
+          _isNavigating = false;
+        });
+        return;
+      }
 
       final diseaseResults = await SupabaseService.searchDiseases(label);
 
       if (mounted) {
         if (diseaseResults.isNotEmpty) {
           // Use database result directly (same as Search Screen)
-          Navigator.of(context).push(
+          await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => DiseaseDetailsScreen(disease: diseaseResults.first),
+              builder: (context) =>
+                  DiseaseDetailsScreen(disease: diseaseResults.first),
             ),
           );
+
+          // Reset navigation flag when returning from disease details screen
+          if (mounted) {
+            setState(() {
+              _isNavigating = false;
+            });
+          }
         } else {
+          setState(() {
+            _isNavigating = false;
+          });
           CustomSnackbars.showError(
             context: context,
             message: 'Disease information not found in database',
@@ -648,6 +688,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       }
     } catch (error) {
       if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
         CustomSnackbars.showError(
           context: context,
           message: 'Could not load disease information',
@@ -783,7 +826,8 @@ class _AITipsDialogState extends State<_AITipsDialog> {
               width: double.infinity,
               child: CustomButton(
                 text: _isLoading ? 'Loading...' : 'Got it',
-                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                onPressed:
+                    _isLoading ? null : () => Navigator.of(context).pop(),
                 type: ButtonType.primary,
               ),
             ),
@@ -951,18 +995,25 @@ class _AITipsDialogState extends State<_AITipsDialog> {
           MarkdownBody(
             data: _recommendation,
             selectable: true,
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              h1: AppTypography.headlineMedium.copyWith(color: AppColors.darkNavy),
-              h2: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkNavy),
-              h3: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkNavy),
-              p: AppTypography.bodyMedium.copyWith(height: 1.4, color: AppColors.darkNavy),
-              listBullet: AppTypography.bodyMedium.copyWith(color: AppColors.darkNavy),
+            styleSheet:
+                MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+              h1: AppTypography.headlineMedium
+                  .copyWith(color: AppColors.darkNavy),
+              h2: AppTypography.bodyLarge.copyWith(
+                  fontWeight: FontWeight.bold, color: AppColors.darkNavy),
+              h3: AppTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold, color: AppColors.darkNavy),
+              p: AppTypography.bodyMedium
+                  .copyWith(height: 1.4, color: AppColors.darkNavy),
+              listBullet:
+                  AppTypography.bodyMedium.copyWith(color: AppColors.darkNavy),
               codeblockDecoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Colors.grey.shade300),
               ),
-              code: AppTypography.bodySmall.copyWith(fontFamily: 'monospace', color: Colors.deepPurple),
+              code: AppTypography.bodySmall
+                  .copyWith(fontFamily: 'monospace', color: Colors.deepPurple),
             ),
           ),
 
@@ -973,7 +1024,8 @@ class _AITipsDialogState extends State<_AITipsDialog> {
             padding: const EdgeInsets.all(AppDimensions.spacingSm),
             decoration: BoxDecoration(
               color: Colors.amber.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,4 +1053,3 @@ class _AITipsDialogState extends State<_AITipsDialog> {
     );
   }
 }
-
