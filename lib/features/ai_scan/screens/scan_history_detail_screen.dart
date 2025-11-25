@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/custom_card.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 import '../models/scan_history.dart';
 
 class ScanHistoryDetailScreen extends StatelessWidget {
@@ -26,7 +29,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
           children: [
             _buildImageCard(),
             const SizedBox(height: AppDimensions.spacingLg),
-            _buildTopInfoCard(),
+            _buildTopInfoCard(context),
             const SizedBox(height: AppDimensions.spacingLg),
           ],
         ),
@@ -63,7 +66,7 @@ class ScanHistoryDetailScreen extends StatelessWidget {
   }
 
   /// Top info card with main details
-  Widget _buildTopInfoCard() {
+  Widget _buildTopInfoCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
       decoration: BoxDecoration(
@@ -102,6 +105,24 @@ class ScanHistoryDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const Spacer(),
+              if (_canNavigateToDisease())
+                InkWell(
+                  onTap: () => _navigateToDiseaseDetails(context),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: AppDimensions.spacingMd),
@@ -351,6 +372,45 @@ class ScanHistoryDetailScreen extends StatelessWidget {
     if (confidence >= 80) return 'High';
     if (confidence >= 60) return 'Medium';
     return 'Low';
+  }
+
+  /// Check if we can navigate to disease details
+  bool _canNavigateToDisease() {
+    return scanHistory.diseaseInfo != null &&
+           scanHistory.diseaseInfo!.isNotEmpty;
+  }
+
+  /// Navigate to disease details screen - same approach as results_screen
+  void _navigateToDiseaseDetails(BuildContext context) async {
+    if (!_canNavigateToDisease()) return;
+
+    // Get disease class_name from scanHistory
+    final className = scanHistory.diseaseInfo?['class_name'] as String?;
+    if (className == null || className.isEmpty) return;
+
+    try {
+      // Search disease using class_name (same as results_screen approach)
+      final diseaseResults = await SupabaseService.searchDiseases(className);
+
+      if (context.mounted) {
+        if (diseaseResults.isNotEmpty) {
+          // Navigate with first result (same as results_screen)
+          context.push('/disease-details', extra: diseaseResults.first);
+        } else {
+          CustomSnackbars.showError(
+            context: context,
+            message: 'Disease information not found in database',
+          );
+        }
+      }
+    } catch (error) {
+      if (context.mounted) {
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Could not load disease information',
+        );
+      }
+    }
   }
 }
 
