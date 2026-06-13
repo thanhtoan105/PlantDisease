@@ -12,8 +12,9 @@ void main() {
     );
 
     expect(find.text('Plant AI Disease Detection'), findsOneWidget);
-    expect(find.text('Try the web demo'), findsOneWidget);
-    expect(find.text('Open full app'), findsWidgets);
+    expect(find.text('Preview upload flow'), findsOneWidget);
+    expect(find.text('Open authenticated app'), findsOneWidget);
+    expect(find.text('Open full app'), findsOneWidget);
     expect(find.textContaining('Web inference preview'), findsOneWidget);
   });
 
@@ -26,7 +27,8 @@ void main() {
     );
 
     expect(find.text('Upload a leaf image'), findsOneWidget);
-    expect(find.text('Choose leaf image'), findsOneWidget);
+    expect(find.text('Click to choose a leaf image'), findsOneWidget);
+    expect(find.text('Choose leaf image'), findsNothing);
     expect(find.text('Detect Disease'), findsOneWidget);
     expect(find.text('JPG, PNG, or WebP up to 5 MB.'), findsOneWidget);
 

@@ -36,6 +36,7 @@ class PublicDemoScreen extends StatefulWidget {
 
 class _PublicDemoScreenState extends State<PublicDemoScreen> {
   late final ImagePicker _imagePicker;
+  final GlobalKey _uploadPanelKey = GlobalKey();
   PublicDemoImageSelection? _selection;
   String? _uploadError;
 
@@ -81,8 +82,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
                                 Expanded(
                                   flex: 6,
                                   child: _HeroPanel(
-                                    onTryDemo: () =>
-                                        _showWebInferencePreview(context),
+                                    onPreviewUpload: _previewUploadFlow,
                                   ),
                                 ),
                                 const SizedBox(
@@ -96,8 +96,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
                           : Column(
                               children: [
                                 _HeroPanel(
-                                  onTryDemo: () =>
-                                      _showWebInferencePreview(context),
+                                  onPreviewUpload: _previewUploadFlow,
                                 ),
                                 const SizedBox(height: AppDimensions.spacingLg),
                                 const _DemoStatusPanel(),
@@ -105,6 +104,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
                             ),
                       const SizedBox(height: AppDimensions.spacingXxl),
                       _UploadPanel(
+                        key: _uploadPanelKey,
                         selection: _selection,
                         errorText: _uploadError,
                         onChooseImage: _chooseImage,
@@ -172,11 +172,21 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
     );
   }
 
-  void _showWebInferencePreview(BuildContext context) {
+  void _previewUploadFlow() {
+    final uploadContext = _uploadPanelKey.currentContext;
+    if (uploadContext != null) {
+      Scrollable.ensureVisible(
+        uploadContext,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        alignment: 0.08,
+      );
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Web inference preview is being prepared. The Android app keeps native TensorFlow Lite scanning.',
+          'Choose a leaf image in the upload preview below. Native inference stays in the full app for now.',
         ),
       ),
     );
@@ -185,6 +195,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
 
 class _UploadPanel extends StatelessWidget {
   const _UploadPanel({
+    super.key,
     required this.selection,
     required this.errorText,
     required this.onChooseImage,
@@ -238,21 +249,13 @@ class _UploadPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppDimensions.spacingLg),
-          Wrap(
-            spacing: AppDimensions.spacingMd,
-            runSpacing: AppDimensions.spacingMd,
-            children: [
-              OutlinedButton.icon(
-                onPressed: onChooseImage,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Choose leaf image'),
-              ),
-              ElevatedButton.icon(
-                onPressed: onDetect,
-                icon: const Icon(Icons.search),
-                label: const Text('Detect Disease'),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onDetect,
+              icon: const Icon(Icons.search),
+              label: const Text('Detect Disease'),
+            ),
           ),
         ],
       ),
@@ -289,7 +292,16 @@ class _EmptyUploadState extends StatelessWidget {
             ),
             const SizedBox(height: AppDimensions.spacingMd),
             Text(
-              'Choose a clear, well-lit leaf photo to preview it here.',
+              'Click to choose a leaf image',
+              textAlign: TextAlign.center,
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.spacingSm),
+            Text(
+              'Use a clear, well-lit JPG, PNG, or WebP photo.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.mediumGray,
@@ -384,9 +396,9 @@ class _Header extends StatelessWidget {
 }
 
 class _HeroPanel extends StatelessWidget {
-  const _HeroPanel({required this.onTryDemo});
+  const _HeroPanel({required this.onPreviewUpload});
 
-  final VoidCallback onTryDemo;
+  final VoidCallback onPreviewUpload;
 
   @override
   Widget build(BuildContext context) {
@@ -424,14 +436,14 @@ class _HeroPanel extends StatelessWidget {
             runSpacing: AppDimensions.spacingMd,
             children: [
               ElevatedButton.icon(
-                onPressed: onTryDemo,
+                onPressed: onPreviewUpload,
                 icon: const Icon(Icons.image_search),
-                label: const Text('Try the web demo'),
+                label: const Text('Preview upload flow'),
               ),
               OutlinedButton.icon(
                 onPressed: () => context.go(RouteNames.main),
                 icon: const Icon(Icons.login),
-                label: const Text('Open full app'),
+                label: const Text('Open authenticated app'),
               ),
             ],
           ),
