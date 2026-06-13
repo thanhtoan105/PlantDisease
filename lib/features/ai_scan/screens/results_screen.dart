@@ -515,7 +515,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   '⚠️ Disease at index $index is not a Map: ${disease.runtimeType}');
               return const SizedBox.shrink();
             }
-          }).toList(),
+          }),
         ],
       );
     } catch (e, stackTrace) {
@@ -534,7 +534,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     // Only first disease (top prediction) gets arrow button
     final bool isTopPrediction = index == 0;
     final String diseaseLabel =
-        isTopPrediction ? 'Top Prediction' : 'Alternative #${index}';
+        isTopPrediction ? 'Top Prediction' : 'Alternative #$index';
 
     return Container(
       margin: EdgeInsets.only(bottom: AppDimensions.spacingMd),

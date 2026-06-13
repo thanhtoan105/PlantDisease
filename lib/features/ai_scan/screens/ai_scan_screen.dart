@@ -12,7 +12,6 @@ import '../../../core/services/weather_service.dart';
 import '../../../shared/utils/custom_dialogs.dart';
 
 import 'results_screen.dart';
-import 'crop_image_screen.dart';
 
 class AiScanScreen extends StatefulWidget {
   const AiScanScreen({super.key});
@@ -30,21 +29,19 @@ class _AiScanScreenState extends State<AiScanScreen>
 
   // AI and analysis
   bool _tensorflowInitialized = false;
-  bool _modelLoaded = false;
   bool _isAnalyzing = false;
   bool _isCapturing = false;
-  String? _error;
 
   // Animations
   late AnimationController _pulseController;
   late AnimationController _fadeController;
   late Animation<double> _pulseAnimation;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _flashMode = FlashMode.off; // Always reset flash to OFF when entering this screen
+    _flashMode =
+        FlashMode.off; // Always reset flash to OFF when entering this screen
     _initializeAnimations();
     _checkCameraPermission();
     _initializeServices();
@@ -67,11 +64,6 @@ class _AiScanScreenState extends State<AiScanScreen>
       parent: _pulseController,
       curve: Curves.easeInOut,
     ));
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(_fadeController);
 
     _pulseController.repeat(reverse: true);
     _fadeController.forward();
@@ -116,24 +108,22 @@ class _AiScanScreenState extends State<AiScanScreen>
       if (mounted) {
         setState(() {
           _tensorflowInitialized = tensorflowInitialized;
-          _modelLoaded = modelLoaded;
           _cameraInitialized = cameraInitialized;
 
           if (!tensorflowInitialized) {
-            _error = 'Failed to initialize TensorFlow service';
+            debugPrint('Failed to initialize TensorFlow service');
           } else if (!cameraInitialized) {
-            _error =
-                'Camera not available. If using emulator, configure virtual cameras in AVD Manager.';
+            debugPrint(
+              'Camera not available. If using emulator, configure virtual cameras in AVD Manager.',
+            );
           } else if (!modelLoaded && modelError != null) {
-            _error = null; // Clear error since we can still function
+            debugPrint('TensorFlow model warning: $modelError');
           }
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _error = 'Initialization failed: $e';
-        });
+        debugPrint('Initialization failed: $e');
       }
     }
   }
@@ -189,7 +179,8 @@ class _AiScanScreenState extends State<AiScanScreen>
       }
 
       // Process the cropped image
-      final processedImagePath = await CameraService.processGalleryImage(croppedFile.path);
+      final processedImagePath =
+          await CameraService.processGalleryImage(croppedFile.path);
 
       if (mounted) {
         debugPrint('\n📍 Getting location data...');
@@ -212,7 +203,8 @@ class _AiScanScreenState extends State<AiScanScreen>
         String? locationData;
         Map<String, dynamic>? weatherData;
 
-        if (locationResult['success'] == true && locationResult['data'] != null) {
+        if (locationResult['success'] == true &&
+            locationResult['data'] != null) {
           final data = locationResult['data'];
           debugPrint('\n📍 Extracting location data:');
           debugPrint('  Input type: ${data.runtimeType}');
@@ -234,14 +226,16 @@ class _AiScanScreenState extends State<AiScanScreen>
           }
 
           // Fetch weather data if we have coordinates
-          if (locationResult['latitude'] != null && locationResult['longitude'] != null) {
+          if (locationResult['latitude'] != null &&
+              locationResult['longitude'] != null) {
             debugPrint('\n🌤️ Fetching weather data...');
             final weatherResult = await WeatherService.getCurrentWeather(
               locationResult['latitude'],
               locationResult['longitude'],
             );
 
-            if (weatherResult['success'] == true && weatherResult['data'] != null) {
+            if (weatherResult['success'] == true &&
+                weatherResult['data'] != null) {
               weatherData = weatherResult['data'] as Map<String, dynamic>?;
               debugPrint('✅ Weather data fetched successfully');
             } else {
@@ -259,7 +253,8 @@ class _AiScanScreenState extends State<AiScanScreen>
         debugPrint('  Is String? ${locationData is String}');
         debugPrint('  Is Map? ${locationData is Map}\n');
 
-        await _analyzeImage(processedImagePath, locationData: locationData, weatherData: weatherData);
+        await _analyzeImage(processedImagePath,
+            locationData: locationData, weatherData: weatherData);
       }
     } catch (e) {
       if (mounted) {
@@ -367,7 +362,8 @@ class _AiScanScreenState extends State<AiScanScreen>
       debugPrint('  locationData type: ${locationData.runtimeType}');
       debugPrint('  locationData value: $locationData');
       debugPrint('  locationData is String? ${locationData is String}');
-      debugPrint('  weatherData: ${weatherData != null ? "Available" : "Not available"}');
+      debugPrint(
+          '  weatherData: ${weatherData != null ? "Available" : "Not available"}');
       debugPrint('  locationData is Map? ${locationData is Map}');
 
       final result = await TensorFlowService.analyzeImage(imagePath);
@@ -395,7 +391,7 @@ class _AiScanScreenState extends State<AiScanScreen>
             debugPrint('🚨 Type-checked locationData:');
             debugPrint('   Type: ${typedLocationData.runtimeType}');
             debugPrint('   Value: "$typedLocationData"');
-            debugPrint('   Is String?: ${typedLocationData is String?}');
+            debugPrint('   Has String?: ${typedLocationData != null}');
             debugPrint('   weatherData available: ${weatherData != null}');
 
             // Navigate to results screen
@@ -450,7 +446,8 @@ class _AiScanScreenState extends State<AiScanScreen>
     CustomDialogs.showInfoDialog(
       context: context,
       title: 'AI Model Required',
-      message: 'The AI model file is missing. To use plant disease detection, please:\n\n'
+      message:
+          'The AI model file is missing. To use plant disease detection, please:\n\n'
           '1. Add the model.tflite file to assets/models/\n'
           '2. Restart the app\n\n'
           'The app can still be used for other features.',
@@ -496,7 +493,8 @@ class _AiScanScreenState extends State<AiScanScreen>
                   onPressed: _checkCameraPermission,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
                   ),
                   child: const Text('Grant Permission'),
                 ),

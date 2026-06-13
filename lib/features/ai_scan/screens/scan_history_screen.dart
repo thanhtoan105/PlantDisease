@@ -99,18 +99,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     }
   }
 
-  /// Parse label to extract plant name
-  /// Example: "Durian___Leaf_Algal" -> "Durian"
-  String _parseLabelToPlantName(String label) {
-    if (label.contains('___')) {
-      final parts = label.split('___');
-      if (parts.isNotEmpty) {
-        return parts[0].replaceAll('_', ' ').trim();
-      }
-    }
-    return 'Unknown Plant';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,7 +176,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             child: ListView.builder(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: provider.history.length + (provider.hasMoreData ? 1 : 0),
+              itemCount:
+                  provider.history.length + (provider.hasMoreData ? 1 : 0),
               itemBuilder: (context, index) {
                 // Show loading indicator at the bottom
                 if (index == provider.history.length) {
@@ -212,11 +201,15 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                 final scan = provider.history[index];
 
                 // Extract disease info from new optimized structure
-                final diseaseResult = scan.diseaseDisplayName; // Use getter for disease name
+                final diseaseResult =
+                    scan.diseaseDisplayName; // Use getter for disease name
                 final plantName = scan.plantName;
-                final confidenceScore = scan.topConfidence / 100; // Convert from percentage to decimal for display
+                final confidenceScore = scan.topConfidence /
+                    100; // Convert from percentage to decimal for display
 
-                final plantImage = scan.plantImage.isNotEmpty ? scan.plantImage : scan.imageUrl;
+                final plantImage = scan.plantImage.isNotEmpty
+                    ? scan.plantImage
+                    : scan.imageUrl;
                 final location = _parseLocation(scan.locationData);
                 final timeAgo = _formatTimeAgo(scan.analysisDate);
 

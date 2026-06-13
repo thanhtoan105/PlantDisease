@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'supabase_service.dart';
 
 /// Plant Service - Provides a clean interface for plant-related data operations
@@ -60,7 +59,8 @@ class PlantService {
     }
 
     if (diseasesResult['success']) {
-      allResults.addAll(List<Map<String, dynamic>>.from(diseasesResult['data']));
+      allResults
+          .addAll(List<Map<String, dynamic>>.from(diseasesResult['data']));
     }
 
     return {

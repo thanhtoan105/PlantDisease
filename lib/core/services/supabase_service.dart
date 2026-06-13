@@ -81,7 +81,8 @@ class SupabaseService {
       // Get crop data with new columns
       final cropResponse = await _supabase
           .from('crops')
-          .select('id, name, scientific_name, overview, temperature, sunlight, watering, growing_tips, image_url')
+          .select(
+              'id, name, scientific_name, overview, temperature, sunlight, watering, growing_tips, image_url')
           .eq('id', int.parse(cropId))
           .single();
 
@@ -99,9 +100,12 @@ class SupabaseService {
           'className': disease['class_name'],
           'name': disease['display_name'],
           'overview': disease['overview'] ?? 'No overview available',
-          'organic_treatment': disease['organic_treatment'] ?? 'No organic treatment information available',
-          'chemical_treatment': disease['chemical_treatment'] ?? 'No chemical treatment information available',
-          'prevention': disease['prevention'] ?? 'No prevention information available',
+          'organic_treatment': disease['organic_treatment'] ??
+              'No organic treatment information available',
+          'chemical_treatment': disease['chemical_treatment'] ??
+              'No chemical treatment information available',
+          'prevention':
+              disease['prevention'] ?? 'No prevention information available',
           'image_url': disease['image_url'],
         };
       }).toList();
@@ -115,7 +119,8 @@ class SupabaseService {
         'temperature': cropResponse['temperature'] ?? 'Not specified',
         'sunlight': cropResponse['sunlight'] ?? 'Not specified',
         'watering': cropResponse['watering'] ?? 'Not specified',
-        'growingTips': cropResponse['growing_tips'] ?? {}, // Key-value pairs for growing tips
+        'growingTips': cropResponse['growing_tips'] ??
+            {}, // Key-value pairs for growing tips
         'emoji': _getCropEmoji(cropResponse['name']),
         'diseases': diseases,
         'diseaseCount': diseases.length,
@@ -180,8 +185,10 @@ class SupabaseService {
           'className': disease['class_name'],
           'name': disease['display_name'],
           'overview': _extractDescription(disease['overview']),
-          'organic_treatment': disease['organic_treatment'] ?? 'No organic treatment information available',
-          'chemical_treatment': disease['chemical_treatment'] ?? 'No chemical treatment information available',
+          'organic_treatment': disease['organic_treatment'] ??
+              'No organic treatment information available',
+          'chemical_treatment': disease['chemical_treatment'] ??
+              'No chemical treatment information available',
           'prevention': _extractDescription(disease['prevention']),
           'cropName': disease['crop_name'],
           'cropScientificName': disease['crop_scientific_name'],
@@ -225,7 +232,7 @@ class SupabaseService {
   static Future<void> saveAnalysisResult({
     required String userId,
     required String imagePath,
-    required List<dynamic> allPredictions,  // All predictions from AI model
+    required List<dynamic> allPredictions, // All predictions from AI model
     required String? locationData,
     required String analysisDate,
   }) async {
@@ -246,10 +253,12 @@ class SupabaseService {
     // Extract top prediction (highest confidence)
     final topPrediction = allPredictions.first;
     // TensorFlow returns 'label' field, not 'className'
-    final className = topPrediction['label']?.toString() ?? topPrediction['className']?.toString();
+    final className = topPrediction['label']?.toString() ??
+        topPrediction['className']?.toString();
     // Convert to percentage and round to 2 decimals
-    final _rawTopConfidence = (topPrediction['confidence'] as num).toDouble() * 100;
-    final topConfidence = double.parse(_rawTopConfidence.toStringAsFixed(2));
+    final rawTopConfidence =
+        (topPrediction['confidence'] as num).toDouble() * 100;
+    final topConfidence = double.parse(rawTopConfidence.toStringAsFixed(2));
 
     // Get disease ID from class_name
     int? diseaseId;
@@ -264,7 +273,8 @@ class SupabaseService {
         if (diseaseResult != null) {
           diseaseId = diseaseResult['id'] as int;
         } else {
-          debugPrint('⚠️ Disease not found in database for class_name: $className');
+          debugPrint(
+              '⚠️ Disease not found in database for class_name: $className');
         }
       } catch (e) {
         debugPrint('⚠️ Error fetching disease ID: $e');
@@ -282,8 +292,9 @@ class SupabaseService {
         final rawAlt = (prediction['confidence'] as num).toDouble() * 100;
         final roundedAlt = double.parse(rawAlt.toStringAsFixed(2));
         relevantDiseases.add({
-          'label': prediction['label'] ?? prediction['className'],  // TensorFlow uses 'label'
-          'confidence': roundedAlt,  // Đã làm tròn 2 số thập phân
+          'label': prediction['label'] ??
+              prediction['className'], // TensorFlow uses 'label'
+          'confidence': roundedAlt, // Đã làm tròn 2 số thập phân
         });
       }
     }
@@ -315,9 +326,7 @@ class SupabaseService {
     }
 
     // Get analysis results with pagination support, joined with diseases table
-    var query = _supabase
-        .from('analysis_results')
-        .select('''
+    var query = _supabase.from('analysis_results').select('''
           id,
           user_id,
           image_url,
@@ -336,9 +345,7 @@ class SupabaseService {
               scientific_name
             )
           )
-        ''')
-        .eq('user_id', userId)
-        .order('analysis_date', ascending: false);
+        ''').eq('user_id', userId).order('analysis_date', ascending: false);
 
     // Apply pagination if specified
     if (limit != null) {
@@ -420,10 +427,7 @@ class SupabaseService {
       }
 
       // Update the profile in the database
-      await _supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', userId);
+      await _supabase.from('profiles').update(updateData).eq('id', userId);
 
       debugPrint('✅ Profile updated successfully');
     } catch (error) {

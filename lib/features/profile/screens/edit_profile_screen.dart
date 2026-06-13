@@ -270,7 +270,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           decoration: BoxDecoration(
             color: AppColors.lightGray.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+            borderRadius:
+                BorderRadius.circular(AppDimensions.borderRadiusMedium),
             border: Border.all(color: AppColors.lightGray),
           ),
           child: Row(
@@ -319,7 +320,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             hintText: 'Enter your full name',
             prefixIcon: const Icon(Icons.badge_outlined),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusMedium),
             ),
             filled: true,
             fillColor: AppColors.white,
@@ -351,7 +353,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             decoration: BoxDecoration(
               color: AppColors.white,
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusMedium),
               border: Border.all(color: AppColors.lightGray),
             ),
             child: Row(
@@ -393,12 +396,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         SizedBox(height: AppDimensions.spacingSm),
         DropdownButtonFormField<String>(
-          value: _selectedGender,
+          initialValue: _selectedGender,
           decoration: InputDecoration(
             hintText: 'Select your gender',
             prefixIcon: const Icon(Icons.people_outline),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusMedium),
             ),
             filled: true,
             fillColor: AppColors.white,
@@ -437,7 +441,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             hintText: 'Enter your address',
             prefixIcon: const Icon(Icons.location_on_outlined),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusMedium),
             ),
             filled: true,
             fillColor: AppColors.white,

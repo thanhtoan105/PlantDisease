@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,7 +18,8 @@ class VerifyOtpScreen extends StatefulWidget {
   State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
 }
 
-class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingObserver {
+class _VerifyOtpScreenState extends State<VerifyOtpScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _otpController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isLoading = false;
@@ -236,7 +236,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingOb
 
     try {
       // Use Supabase's verifyOTP method for password recovery with correct syntax
-      final AuthResponse response = await Supabase.instance.client.auth.verifyOTP(
+      final AuthResponse response =
+          await Supabase.instance.client.auth.verifyOTP(
         type: OtpType.recovery,
         token: _getOtpCode(),
         email: widget.email,
@@ -246,7 +247,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingOb
       if (response.user != null && response.session != null) {
         if (mounted) {
           // OTP verified successfully - redirect to reset password screen
-          context.go('${RouteNames.resetPassword}?email=${Uri.encodeComponent(widget.email)}');
+          context.go(
+              '${RouteNames.resetPassword}?email=${Uri.encodeComponent(widget.email)}');
         }
       } else {
         throw Exception('Verification failed');
@@ -257,10 +259,14 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingOb
 
         // Provide more specific error messages
         String errorString = e.toString().toLowerCase();
-        if (errorString.contains('expired') || errorString.contains('otp_expired')) {
-          errorMessage = 'Verification code has expired. Please request a new one.';
-        } else if (errorString.contains('invalid') || errorString.contains('token_hash_not_found')) {
-          errorMessage = 'Invalid verification code. Please check and try again.';
+        if (errorString.contains('expired') ||
+            errorString.contains('otp_expired')) {
+          errorMessage =
+              'Verification code has expired. Please request a new one.';
+        } else if (errorString.contains('invalid') ||
+            errorString.contains('token_hash_not_found')) {
+          errorMessage =
+              'Invalid verification code. Please check and try again.';
         } else if (errorString.contains('too_many_requests')) {
           errorMessage = 'Too many attempts. Please wait before trying again.';
         }
@@ -309,7 +315,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with WidgetsBindingOb
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Failed to resend code. Please try again after 60 seconds.';
+        String errorMessage =
+            'Failed to resend code. Please try again after 60 seconds.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),

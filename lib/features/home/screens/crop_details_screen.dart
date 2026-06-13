@@ -8,7 +8,6 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/plant_provider.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
-import '../../../shared/widgets/loading_spinner.dart';
 
 class CropDetailsScreen extends StatefulWidget {
   final String cropId;
@@ -29,10 +28,7 @@ class CropDetailsScreen extends StatefulWidget {
 class _CropDetailsScreenState extends State<CropDetailsScreen>
     with TickerProviderStateMixin {
   Map<String, dynamic>? _cropDetails;
-  bool _isLoading = true;
-  String? _error;
   String _activeTab = 'overview';
-  final Map<String, bool> _expandedSections = {};
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -91,12 +87,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
         debugPrint('Error loading crop details: $e');
       }
     }
-  }
-
-  void _toggleSection(String sectionId) {
-    setState(() {
-      _expandedSections[sectionId] = !(_expandedSections[sectionId] ?? false);
-    });
   }
 
   @override
@@ -526,13 +516,18 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
   // Helper method to format keys into readable labels
   String _formatLabel(String key) {
     // Convert camelCase or snake_case to Title Case
-    final words = key.replaceAllMapped(
-      RegExp(r'([A-Z])|_'),
-      (match) => ' ${match.group(0)}'.toUpperCase(),
-    ).trim().split(' ');
+    final words = key
+        .replaceAllMapped(
+          RegExp(r'([A-Z])|_'),
+          (match) => ' ${match.group(0)}'.toUpperCase(),
+        )
+        .trim()
+        .split(' ');
 
     return words
-        .map((word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .map((word) => word.isEmpty
+            ? ''
+            : word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join(' ');
   }
 
@@ -624,7 +619,9 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
         'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop';
 
     // Format disease name consistently: trim, collapse spaces, Title Case
-    final rawName = (disease['display_name'] ?? disease['name'] ?? 'Unknown Disease').toString();
+    final rawName =
+        (disease['display_name'] ?? disease['name'] ?? 'Unknown Disease')
+            .toString();
     final displayName = _formatDiseaseName(rawName);
 
     return GestureDetector(
@@ -727,7 +724,10 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
     // Convert to Title Case (keep existing casing for known acronyms if needed)
     final words = trimmed.split(' ');
     final titled = words
-        .map((w) => w.isEmpty ? '' : (w[0].toUpperCase() + (w.length > 1 ? w.substring(1).toLowerCase() : '')))
+        .map((w) => w.isEmpty
+            ? ''
+            : (w[0].toUpperCase() +
+                (w.length > 1 ? w.substring(1).toLowerCase() : '')))
         .join(' ');
     return titled;
   }
@@ -795,8 +795,6 @@ class _CropDetailsScreenState extends State<CropDetailsScreen>
               type: ButtonType.primary,
               onPressed: () {
                 setState(() {
-                  _isLoading = true;
-                  _error = null;
                   _cropDetails = null;
                 });
                 _loadCropDetails();

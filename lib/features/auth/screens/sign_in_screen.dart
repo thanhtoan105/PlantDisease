@@ -32,16 +32,6 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  void _clearForm() {
-    _emailController.clear();
-    _passwordController.clear();
-    setState(() {
-      _isLoading = false;
-      _obscurePassword = true;
-      _navigated = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -60,7 +50,8 @@ class _SignInScreenState extends State<SignInScreen> {
           if (isAuthenticated && !_navigated) {
             _navigated = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.go('/main'); // Replace '/main' with your main screen route name
+              context.go(
+                  '/main'); // Replace '/main' with your main screen route name
             });
           }
           return Form(
