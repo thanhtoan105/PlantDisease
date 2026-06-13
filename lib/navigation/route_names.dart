@@ -1,4 +1,7 @@
 class RouteNames {
+  // Public routes
+  static const String publicDemo = '/demo';
+
   // Auth routes
   static const String onboarding = '/onboarding';
   static const String auth = '/auth';

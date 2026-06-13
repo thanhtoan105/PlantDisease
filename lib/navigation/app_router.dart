@@ -10,6 +10,7 @@ import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/verify_otp_screen.dart';
 import '../features/auth/screens/reset_password_screen.dart';
 
+import '../features/public_demo/screens/public_demo_screen.dart';
 import '../features/main/main_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/home/screens/crop_details_screen.dart';
@@ -19,7 +20,6 @@ import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/edit_profile_screen.dart';
 import '../features/profile/screens/about_screen.dart';
 import '../features/profile/screens/help_support_screen.dart';
-import '../shared/widgets/loading_spinner.dart';
 import 'route_names.dart';
 
 class AppRouter {
@@ -32,6 +32,10 @@ class AppRouter {
       if (!authProvider.isInitialized) {
         debugPrint('⏳ Waiting for auth initialization...');
         return null; // Show loading screen
+      }
+
+      if (state.uri.path == '/' || state.uri.path == RouteNames.publicDemo) {
+        return null;
       }
       
       // Allow access to forgot password and OTP verification screens without authentication
@@ -65,27 +69,11 @@ class AppRouter {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) {
-          // Show loading screen while auth initializes
-          return Consumer<AuthProvider>(
-            builder: (context, authProvider, child) {
-              if (!authProvider.isInitialized) {
-                return const LoadingScreen(message: 'Initializing...');
-              }
-              
-              // Redirect to main screen once initialized
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                context.go(RouteNames.main);
-              });
-
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            },
-          );
-        },
+        builder: (context, state) => const PublicDemoScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.publicDemo,
+        builder: (context, state) => const PublicDemoScreen(),
       ),
       GoRoute(
         path: RouteNames.onboarding,
