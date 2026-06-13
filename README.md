@@ -45,8 +45,8 @@ This Flutter application combines computer vision, machine learning, and agricul
 ## 🛠️ Technical Stack
 
 ### **Frontend**
-- **Framework**: Flutter 3.24.5
-- **Language**: Dart 3.5.4
+- **Framework**: Flutter 3.35.0 or higher (validated with Flutter 3.41.5)
+- **Language**: Dart 3.9.0 or higher (validated with Dart 3.11.3)
 - **State Management**: Provider pattern
 - **Navigation**: GoRouter for declarative routing
 - **UI Components**: Material Design 3
@@ -72,8 +72,8 @@ This Flutter application combines computer vision, machine learning, and agricul
 Before running this application, ensure you have the following installed:
 
 ### **Required Software**
-- **Flutter SDK**: Version 3.24.5 or higher
-- **Dart SDK**: Version 3.5.4 or higher (included with Flutter)
+- **Flutter SDK**: Version 3.35.0 or higher
+- **Dart SDK**: Version 3.9.0 or higher (included with Flutter)
 - **Android Studio**: Latest version with Android SDK
 - **Git**: For version control
 

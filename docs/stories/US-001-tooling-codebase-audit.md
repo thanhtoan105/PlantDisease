@@ -2,7 +2,7 @@
 
 ## Status
 
-planned
+implemented
 
 ## Lane
 
@@ -59,3 +59,4 @@ The Harness durable layer had to be initialized locally. `query tools --summary`
 - `rg --files`
 - `rg -n "dart:io|Platform\\.|File\\(|camera|image_picker|tflite|permission|geolocator|path_provider|gal|image_cropper|SystemChrome" lib pubspec.yaml`
 - Vercel documentation search for SPA rewrites/build configuration.
+- Follow-up readiness findings were captured in `docs/stories/US-002-phase-0-web-readiness-audit.md`.
