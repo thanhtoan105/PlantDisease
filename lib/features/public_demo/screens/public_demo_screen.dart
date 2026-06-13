@@ -39,6 +39,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
   final GlobalKey _uploadPanelKey = GlobalKey();
   PublicDemoImageSelection? _selection;
   String? _uploadError;
+  bool _showSampleResult = false;
 
   @override
   void initState() {
@@ -107,6 +108,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
                         key: _uploadPanelKey,
                         selection: _selection,
                         errorText: _uploadError,
+                        showSampleResult: _showSampleResult,
                         onChooseImage: _chooseImage,
                         onRemoveImage: _removeImage,
                         onDetect: _selection == null ? null : _showDetectPreview,
@@ -152,6 +154,7 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
         bytes: bytes,
       );
       _uploadError = null;
+      _showSampleResult = false;
     });
   }
 
@@ -159,14 +162,19 @@ class _PublicDemoScreenState extends State<PublicDemoScreen> {
     setState(() {
       _selection = null;
       _uploadError = null;
+      _showSampleResult = false;
     });
   }
 
   void _showDetectPreview() {
+    setState(() {
+      _showSampleResult = true;
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Inference will be wired in US-009. Image preview is ready.',
+          'Showing a simulated web demo result. Native inference stays in the full app for now.',
         ),
       ),
     );
@@ -198,6 +206,7 @@ class _UploadPanel extends StatelessWidget {
     super.key,
     required this.selection,
     required this.errorText,
+    required this.showSampleResult,
     required this.onChooseImage,
     required this.onRemoveImage,
     required this.onDetect,
@@ -205,6 +214,7 @@ class _UploadPanel extends StatelessWidget {
 
   final PublicDemoImageSelection? selection;
   final String? errorText;
+  final bool showSampleResult;
   final VoidCallback onChooseImage;
   final VoidCallback onRemoveImage;
   final VoidCallback? onDetect;
@@ -256,6 +266,70 @@ class _UploadPanel extends StatelessWidget {
               icon: const Icon(Icons.search),
               label: const Text('Detect Disease'),
             ),
+          ),
+          if (showSampleResult) ...[
+            const SizedBox(height: AppDimensions.spacingLg),
+            const _SampleResultCard(),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SampleResultCard extends StatelessWidget {
+  const _SampleResultCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppDimensions.spacingLg),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.fact_check, color: AppColors.primaryGreen),
+              const SizedBox(width: AppDimensions.spacingSm),
+              Text(
+                'Demo diagnosis result',
+                style: AppTypography.labelLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'Sample class: Healthy leaf',
+            style: AppTypography.headlineSmall,
+          ),
+          const SizedBox(height: AppDimensions.spacingSm),
+          Text(
+            'Confidence: 92% sample score',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.primaryGreen,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'This is a simulated web demo result. Use the authenticated full app for native TensorFlow Lite scanning and saved diagnosis history.',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.mediumGray,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'Care guidance: keep monitoring the leaf surface, compare future scans, and avoid overwatering while checking for pest or fungal symptoms.',
+            style: AppTypography.bodyMedium.copyWith(height: 1.4),
           ),
         ],
       ),

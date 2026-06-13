@@ -60,6 +60,39 @@ void main() {
     );
     expect(detectButton.onPressed, isNotNull);
   });
+
+  testWidgets('public demo shell shows a sample result after detection',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PublicDemoScreen(
+          initialSelection: PublicDemoImageSelection(
+            fileName: 'leaf.png',
+            bytes: _onePixelPng,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Demo diagnosis result'), findsNothing);
+
+    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Detect Disease'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Detect Disease'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Demo diagnosis result'), findsOneWidget);
+    expect(find.text('Sample class: Healthy leaf'), findsOneWidget);
+    expect(find.text('Confidence: 92% sample score'), findsOneWidget);
+    expect(
+      find.textContaining('This is a simulated web demo result'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Remove image'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Demo diagnosis result'), findsNothing);
+  });
 }
 
 const List<int> _onePixelPng = [
