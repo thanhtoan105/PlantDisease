@@ -1,13 +1,50 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_typography.dart';
+import '../models/public_demo_upload_policy.dart';
 import '../../../navigation/route_names.dart';
 
-class PublicDemoScreen extends StatelessWidget {
-  const PublicDemoScreen({super.key});
+class PublicDemoImageSelection {
+  const PublicDemoImageSelection({
+    required this.fileName,
+    required this.bytes,
+  });
+
+  final String fileName;
+  final List<int> bytes;
+}
+
+class PublicDemoScreen extends StatefulWidget {
+  const PublicDemoScreen({
+    super.key,
+    this.initialSelection,
+    ImagePicker? imagePicker,
+  }) : _imagePicker = imagePicker;
+
+  final PublicDemoImageSelection? initialSelection;
+  final ImagePicker? _imagePicker;
+
+  @override
+  State<PublicDemoScreen> createState() => _PublicDemoScreenState();
+}
+
+class _PublicDemoScreenState extends State<PublicDemoScreen> {
+  late final ImagePicker _imagePicker;
+  PublicDemoImageSelection? _selection;
+  String? _uploadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _imagePicker = widget._imagePicker ?? ImagePicker();
+    _selection = widget.initialSelection;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +104,14 @@ class PublicDemoScreen extends StatelessWidget {
                               ],
                             ),
                       const SizedBox(height: AppDimensions.spacingXxl),
+                      _UploadPanel(
+                        selection: _selection,
+                        errorText: _uploadError,
+                        onChooseImage: _chooseImage,
+                        onRemoveImage: _removeImage,
+                        onDetect: _selection == null ? null : _showDetectPreview,
+                      ),
+                      const SizedBox(height: AppDimensions.spacingXxl),
                       const _FeatureGrid(),
                     ],
                   ),
@@ -79,6 +124,54 @@ class PublicDemoScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _chooseImage() async {
+    final pickedImage = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedImage == null) {
+      return;
+    }
+
+    final bytes = await pickedImage.readAsBytes();
+    final validation = validatePublicDemoUpload(
+      fileName: pickedImage.name,
+      fileSizeBytes: bytes.length,
+    );
+
+    if (!validation.isValid) {
+      setState(() {
+        _selection = null;
+        _uploadError = validation.message;
+      });
+      return;
+    }
+
+    setState(() {
+      _selection = PublicDemoImageSelection(
+        fileName: pickedImage.name,
+        bytes: bytes,
+      );
+      _uploadError = null;
+    });
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selection = null;
+      _uploadError = null;
+    });
+  }
+
+  void _showDetectPreview() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Inference will be wired in US-009. Image preview is ready.',
+        ),
+      ),
+    );
+  }
+
   void _showWebInferencePreview(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -86,6 +179,169 @@ class PublicDemoScreen extends StatelessWidget {
           'Web inference preview is being prepared. The Android app keeps native TensorFlow Lite scanning.',
         ),
       ),
+    );
+  }
+}
+
+class _UploadPanel extends StatelessWidget {
+  const _UploadPanel({
+    required this.selection,
+    required this.errorText,
+    required this.onChooseImage,
+    required this.onRemoveImage,
+    required this.onDetect,
+  });
+
+  final PublicDemoImageSelection? selection;
+  final String? errorText;
+  final VoidCallback onChooseImage;
+  final VoidCallback onRemoveImage;
+  final VoidCallback? onDetect;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelection = selection != null;
+
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingXl),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusLarge),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Upload a leaf image', style: AppTypography.headlineSmall),
+          const SizedBox(height: AppDimensions.spacingSm),
+          Text(
+            'JPG, PNG, or WebP up to 5 MB.',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.mediumGray,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingLg),
+          if (hasSelection)
+            _SelectedImagePreview(
+              selection: selection!,
+              onRemoveImage: onRemoveImage,
+            )
+          else
+            _EmptyUploadState(onChooseImage: onChooseImage),
+          if (errorText != null) ...[
+            const SizedBox(height: AppDimensions.spacingMd),
+            Text(
+              errorText!,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.errorRed,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppDimensions.spacingLg),
+          Wrap(
+            spacing: AppDimensions.spacingMd,
+            runSpacing: AppDimensions.spacingMd,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onChooseImage,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Choose leaf image'),
+              ),
+              ElevatedButton.icon(
+                onPressed: onDetect,
+                icon: const Icon(Icons.search),
+                label: const Text('Detect Disease'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyUploadState extends StatelessWidget {
+  const _EmptyUploadState({required this.onChooseImage});
+
+  final VoidCallback onChooseImage;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onChooseImage,
+      borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppDimensions.spacingXl),
+        decoration: BoxDecoration(
+          color: AppColors.primaryGreen.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+          border: Border.all(
+            color: AppColors.primaryGreen.withValues(alpha: 0.24),
+          ),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.add_photo_alternate,
+              color: AppColors.primaryGreen,
+              size: 36,
+            ),
+            const SizedBox(height: AppDimensions.spacingMd),
+            Text(
+              'Choose a clear, well-lit leaf photo to preview it here.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mediumGray,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedImagePreview extends StatelessWidget {
+  const _SelectedImagePreview({
+    required this.selection,
+    required this.onRemoveImage,
+  });
+
+  final PublicDemoImageSelection selection;
+  final VoidCallback onRemoveImage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.memory(
+              Uint8List.fromList(selection.bytes),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppDimensions.spacingMd),
+        Row(
+          children: [
+            const Icon(Icons.check_circle, color: AppColors.primaryGreen),
+            const SizedBox(width: AppDimensions.spacingSm),
+            Expanded(
+              child: Text(selection.fileName, style: AppTypography.labelLarge),
+            ),
+            TextButton.icon(
+              onPressed: onRemoveImage,
+              icon: const Icon(Icons.close),
+              label: const Text('Remove image'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
