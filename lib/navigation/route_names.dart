@@ -1,8 +1,15 @@
 class RouteNames {
+  // Public routes
+  static const String publicDemo = '/demo';
+
   // Auth routes
   static const String onboarding = '/onboarding';
   static const String auth = '/auth';
+  static const String signIn = '/sign-in';
   static const String signUp = '/sign-up';
+  static const String forgotPassword = '/forgot-password';
+  static const String verifyOtp = '/verify-otp';
+  static const String resetPassword = '/reset-password';
 
   // Main routes
   static const String main = '/main';
@@ -24,6 +31,9 @@ class RouteNames {
 
   // Profile stack routes
   static const String profileDetails = '/profile-details';
+  static const String editProfile = '/edit-profile';
+  static const String about = '/about';
+  static const String helpSupport = '/help-support';
   static const String databaseSetup = '/database-setup';
   static const String databaseTest = '/database-test';
 

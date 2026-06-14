@@ -15,6 +15,10 @@ class WeatherProvider extends ChangeNotifier {
   DateTime? _lastUpdated;
   bool _hasLocationPermission = false;
 
+  // OPTIMIZATION: Cache duration - prevent redundant API calls
+  static const Duration _cacheDuration = Duration(minutes: 10);
+  bool _isInitialized = false;
+
   // Getters
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
@@ -42,6 +46,13 @@ class WeatherProvider extends ChangeNotifier {
   bool get canRetry =>
       _errorType != 'permission_denied_forever' && _errorType != 'config_error';
 
+  /// OPTIMIZED: Check if cached data is still valid
+  bool get _isCacheValid {
+    if (_lastUpdated == null || _currentWeather == null) return false;
+    final timeSinceUpdate = DateTime.now().difference(_lastUpdated!);
+    return timeSinceUpdate < _cacheDuration;
+  }
+
   WeatherProvider() {
     _initializeWeather();
   }
@@ -55,13 +66,22 @@ class WeatherProvider extends ChangeNotifier {
       _setError(apiTest['error'], apiTest['errorType']);
       _loadMockData();
       _setLoading(false);
+      _isInitialized = true;
       return;
     }
 
     await loadWeatherData();
+    _isInitialized = true;
   }
 
-  Future<void> loadWeatherData() async {
+  Future<void> loadWeatherData({bool forceRefresh = false}) async {
+    // OPTIMIZED: Return cached data if still valid and already initialized
+    // BUT: Skip cache if forceRefresh is true (e.g., during image capture)
+    if (!forceRefresh && _isInitialized && _isCacheValid) {
+      debugPrint('✅ Using cached weather data (${DateTime.now().difference(_lastUpdated!).inMinutes} minutes old)');
+      return;
+    }
+
     _setLoading(true);
     _clearError();
 
@@ -70,20 +90,30 @@ class WeatherProvider extends ChangeNotifier {
       final locationResult = await WeatherService.getCurrentLocation();
 
       if (locationResult['success']) {
-        _locationInfo = locationResult['data'];
-        _selectedCity = _locationInfo!['name'];
-        _hasLocationPermission = true;
+        // locationResult['data'] is the location name string
+        final locationName = locationResult['data'] as String;
+        final latitude = locationResult['latitude'] as double;
+        final longitude = locationResult['longitude'] as double;
 
-        // Get weather for current location
+        _selectedCity = locationName;
+        _hasLocationPermission = true;
+        _locationInfo = {
+          'name': locationName,
+          'latitude': latitude,
+          'longitude': longitude,
+        };
+
+        // Get weather for current location using coordinates
         final weatherResult = await WeatherService.getCurrentWeather(
-          _locationInfo!['latitude'],
-          _locationInfo!['longitude'],
+          latitude,
+          longitude,
         );
 
         if (weatherResult['success']) {
           _currentWeather = weatherResult['data'];
           _lastUpdated = DateTime.now();
           await _saveLocationToHistory(_locationInfo!);
+          debugPrint('✅ Weather data loaded and cached${forceRefresh ? ' (forced refresh for real-time data)' : ''}');
         } else {
           _setError(weatherResult['error'],
               weatherResult['errorType'] ?? 'api_error');
@@ -114,8 +144,9 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   Future<void> refreshWeatherData() async {
+    // OPTIMIZED: Force refresh by bypassing cache
     _setRefreshing(true);
-    await loadWeatherData();
+    await loadWeatherData(forceRefresh: true);
     _setRefreshing(false);
   }
 

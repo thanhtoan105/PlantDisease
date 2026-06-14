@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/config/env_config.dart';
+import 'core/config/startup_diagnostics_policy.dart';
 import 'core/providers/providers.dart';
 import 'core/utils/app_diagnostics.dart';
 
@@ -35,7 +38,6 @@ void main() async {
       ),
     );
 
-    // Connection test temporarily disabled for build
     debugPrint('🔗 Supabase initialized successfully');
   } catch (e) {
     debugPrint('❌ Failed to initialize Supabase: $e');
@@ -46,8 +48,10 @@ void main() async {
   // Print configuration status for debugging
   EnvConfig.printConfigStatus();
 
-  // Run app diagnostics to verify both Supabase schema and TensorFlow model
-  await AppDiagnostics.runDiagnostics();
+  // Native diagnostics touch camera/location APIs that are not part of the public web shell.
+  if (shouldRunStartupDiagnostics(isWeb: kIsWeb)) {
+    unawaited(AppDiagnostics.runDiagnostics());
+  }
 
   runApp(
     MultiProvider(

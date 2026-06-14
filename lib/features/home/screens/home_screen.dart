@@ -12,6 +12,8 @@ import '../../../navigation/route_names.dart';
 import '../widgets/weather_widget.dart';
 import '../widgets/crop_card.dart';
 import 'search_screen.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToAIScan;
@@ -36,55 +38,47 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppDimensions.spacingLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Plant Disease Detection',
-                style: AppTypography.headlineLarge,
-              ),
+      appBar: CustomAppBar(
+        title: 'Plant Care',
+        automaticallyImplyLeading: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimensions.spacingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search bar
+            CustomSearchBar(
+              placeholder: 'Search plants, diseases...',
+              enabled: false,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SearchScreen(),
+                  ),
+                );
+              },
+            ),
 
-              const SizedBox(height: AppDimensions.spacingLg),
+            const SizedBox(height: AppDimensions.spacingXl),
 
-              // Search bar
-              CustomSearchBar(
-                placeholder: 'Search plants, diseases...',
-                enabled: false,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SearchScreen(),
-                    ),
-                  );
-                },
-              ),
+            // AI Scan button
+            _buildAIScanButton(),
 
-              const SizedBox(height: AppDimensions.spacingXl),
+            const SizedBox(height: AppDimensions.spacingXl),
 
-              // AI Scan button
-              _buildAIScanButton(),
+            // Weather widget
+            Consumer<WeatherProvider>(
+              builder: (context, weatherProvider, child) {
+                return const WeatherWidget();
+              },
+            ),
 
-              const SizedBox(height: AppDimensions.spacingXl),
+            const SizedBox(height: AppDimensions.spacingXl),
 
-              // Function cards
-              _buildFunctionCards(),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // Weather widget
-              const WeatherWidget(),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // Crop library
-              _buildCropLibrary(),
-            ],
-          ),
+            // Crop library
+            _buildCropLibrary(),
+          ],
         ),
       ),
     );
@@ -105,9 +99,9 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius:
-                    BorderRadius.circular(AppDimensions.borderRadiusLarge),
+                BorderRadius.circular(AppDimensions.borderRadiusLarge),
               ),
               child: const Icon(
                 Icons.camera_alt,
@@ -122,15 +116,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'AI Plant Disease Scanner',
+                    'AI Leaf Disease Scanner',
                     style: AppTypography.headlineMedium.copyWith(
                       color: AppColors.white,
                     ),
                   ),
                   Text(
-                    'Tap to scan your plant for diseases',
+                    'Tap to scan your plant leaf',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.white.withOpacity(0.8),
+                      color: AppColors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -147,134 +141,90 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleFunctionCardTap(String title) {
-    switch (title) {
-      case 'Plant Details':
-        context.push(RouteNames.cropLibrary);
-        break;
-      case 'Weather':
-        // Navigate to weather details or show weather widget
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Weather details coming soon')),
-        );
-        break;
-      case 'Disease Library':
-        // Navigate to crop details with diseases tab active
-        final plantProvider = context.read<PlantProvider>();
-        if (plantProvider.crops.isNotEmpty) {
-          final firstCrop = plantProvider.crops.first;
-          context.push(
-              '${RouteNames.cropDetails}/${firstCrop['id']}?tab=diseases',
-              extra: firstCrop);
-        } else {
-          // Fallback to crop library if no crops available
-          context.push(RouteNames.cropLibrary);
-        }
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$title coming soon')),
-        );
-    }
-  }
-
-  Widget _buildFunctionCards() {
-    final functionCards = [
-      {
-        'title': 'Plant Details',
-        'icon': Icons.eco,
-        'color': AppColors.secondary,
-      },
-      // {
-      //   'title': 'Weather',
-      //   'icon': Icons.wb_sunny,
-      //   'color': AppColors.primaryGreen,
-      // },
-      {
-        'title': 'Disease Library',
-        'icon': Icons.bug_report,
-        'color': AppColors.accentOrange,
-      },
-    ];
-
-    return Row(
-      children: functionCards.map((card) {
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: CustomCard(
-              onTap: () => _handleFunctionCardTap(card['title'] as String),
-              child: Column(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: (card['color'] as Color).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(
-                          AppDimensions.borderRadiusMedium),
-                    ),
-                    child: Icon(
-                      card['icon'] as IconData,
-                      color: card['color'] as Color,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingSm),
-                  Text(
-                    card['title'] as String,
-                    style: AppTypography.labelSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildCropLibrary() {
-    return Consumer<PlantProvider>(
-      builder: (context, plantProvider, child) {
-        if (plantProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Crop Library',
-                  style: AppTypography.headlineMedium,
-                ),
-                GestureDetector(
-                  onTap: () => context.push(RouteNames.cropLibrary),
-                  child: Text(
-                    'View All',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.w500,
+            Text(
+              'Crops Collection',
+              style: AppTypography.headlineMedium,
+            ),
+            Consumer<PlantProvider>(
+              builder: (context, plantProvider, child) {
+                // Show "View All" button only if there are more than 3 crops
+                if (plantProvider.crops.length > 3) {
+                  return GestureDetector(
+                    onTap: () {
+                      // TODO: Navigate to full crops library screen
+                      CustomSnackbars.showInfo(
+                        context: context,
+                        message: 'Full crops library coming soon',
+                      );
+                    },
+                    child: Text(
+                      'View All (${plantProvider.crops.length})',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimensions.spacingLg),
+        Consumer<PlantProvider>(
+          builder: (context, plantProvider, child) {
+            if (plantProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // Limit to maximum 3 crops for home screen display
+            final displayCrops = plantProvider.crops.take(3).toList();
+
+            if (displayCrops.isEmpty) {
+              return CustomCard(
+                child: SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.eco,
+                          size: 32,
+                          color: AppColors.mediumGray,
+                        ),
+                        const SizedBox(height: AppDimensions.spacingSm),
+                        Text(
+                          'No crops available',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.mediumGray,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppDimensions.spacingLg),
-            SizedBox(
-              height: 120, // Reduced from 140 to 120 to fit optimized cards
+              );
+            }
+
+            return SizedBox(
+              height: 120,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: plantProvider.crops.length,
+                itemCount: displayCrops.length,
                 itemBuilder: (context, index) {
-                  final crop = plantProvider.crops[index];
+                  final crop = displayCrops[index];
                   return Padding(
                     padding: EdgeInsets.only(
-                      right: index < plantProvider.crops.length - 1
+                      right: index < displayCrops.length - 1
                           ? AppDimensions.spacingMd
                           : 0,
                     ),
@@ -283,17 +233,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       emoji: crop['emoji'],
                       diseaseCount: crop['diseaseCount'],
                       onTap: () {
-                        context.push('${RouteNames.cropDetails}/${crop['id']}',
-                            extra: crop);
+                        context.push(
+                            '${RouteNames.cropDetails}/${crop['id']}',
+                            extra: crop
+                        );
                       },
                     ),
                   );
                 },
               ),
-            ),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 }

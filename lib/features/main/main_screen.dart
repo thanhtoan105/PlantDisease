@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../shared/utils/custom_dialogs.dart';
 import '../home/screens/home_screen.dart';
-import '../ai_scan/screens/ai_scan_screen.dart';
+import '../ai_scan/screens/disease_scanner_screen.dart';
 import '../profile/screens/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _screens = [
       HomeScreen(onNavigateToAIScan: () => _switchToTab(1)),
-      const AiScanScreen(),
+      const DiseaseScannerScreen(),
       const ProfileScreen(),
     ];
   }
@@ -34,53 +35,71 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowColor,
-              offset: Offset(0, -2),
-              blurRadius: 8,
-              spreadRadius: 0,
-            ),
-          ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
+        final shouldExit = await CustomDialogs.showConfirmDialog(
+          context: context,
+          title: 'Exit App',
+          message: 'Do you really want to exit the app?',
+          confirmText: 'Exit',
+          cancelText: 'Cancel',
+        );
+
+        if (shouldExit == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppColors.white,
-          selectedItemColor: AppColors.accentOrange,
-          unselectedItemColor: AppColors.mediumGray,
-          elevation: 0,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.document_scanner),
-              activeIcon: Icon(Icons.document_scanner),
-              label: 'AI Scan',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowColor,
+                offset: Offset(0, -2),
+                blurRadius: 8,
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: AppColors.white,
+            selectedItemColor: AppColors.accentOrange,
+            unselectedItemColor: AppColors.mediumGray,
+            elevation: 0,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                activeIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.document_scanner),
+                activeIcon: Icon(Icons.document_scanner),
+                label: 'Scan',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Setting',
+              ),
+            ],
+          ),
         ),
       ),
     );

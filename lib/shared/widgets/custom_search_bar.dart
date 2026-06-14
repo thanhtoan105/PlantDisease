@@ -5,7 +5,7 @@ import '../../core/theme/app_dimensions.dart';
 
 class CustomSearchBar extends StatelessWidget {
   final String placeholder;
-  final String? value;
+  final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onTap;
   final bool enabled;
@@ -13,7 +13,7 @@ class CustomSearchBar extends StatelessWidget {
   const CustomSearchBar({
     super.key,
     this.placeholder = 'Search...',
-    this.value,
+    this.controller,
     this.onChanged,
     this.onTap,
     this.enabled = true,
@@ -62,7 +62,7 @@ class CustomSearchBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
       ),
       child: TextField(
-        controller: value != null ? TextEditingController(text: value) : null,
+        controller: controller,
         onChanged: onChanged,
         enabled: enabled,
         decoration: InputDecoration(

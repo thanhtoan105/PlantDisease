@@ -1,57 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../core/providers/auth_provider.dart';
 import '../features/auth/screens/onboarding_screen.dart';
 import '../features/auth/screens/auth_screen.dart';
+import '../features/auth/screens/sign_in_screen.dart';
+import '../features/auth/screens/sign_up_screen.dart';
+import '../features/auth/screens/forgot_password_screen.dart';
+import '../features/auth/screens/verify_otp_screen.dart';
+import '../features/auth/screens/reset_password_screen.dart';
 
+import '../features/public_demo/screens/public_demo_screen.dart';
 import '../features/main/main_screen.dart';
 import '../features/home/screens/home_screen.dart';
-import '../features/home/screens/crop_library_screen.dart';
 import '../features/home/screens/crop_details_screen.dart';
 import '../features/home/screens/disease_details_screen.dart';
 import '../features/ai_scan/screens/ai_scan_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
+import '../features/profile/screens/edit_profile_screen.dart';
+import '../features/profile/screens/about_screen.dart';
+import '../features/profile/screens/help_support_screen.dart';
 import 'route_names.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final currentPath = state.uri.path;
-
-      debugPrint('🧭 Router redirect check (BYPASS AUTH MODE):');
-      debugPrint('  - Current path: $currentPath');
-
-      // Always redirect from root path to main screen (skip auth/onboarding completely)
-      if (currentPath == '/') {
-        debugPrint('🏠 Redirecting directly to main (skip auth/onboarding)');
-        return RouteNames.main;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Wait for auth to initialize
+      if (!authProvider.isInitialized) {
+        debugPrint('⏳ Waiting for auth initialization...');
+        return null; // Show loading screen
       }
 
-      // Redirect any auth/onboarding routes to main screen
-      if (currentPath == RouteNames.onboarding ||
-          currentPath == RouteNames.auth) {
-        debugPrint('🏠 Redirecting auth/onboarding to main (bypassed)');
-        return RouteNames.main;
+      if (state.uri.path == '/' || state.uri.path == RouteNames.publicDemo) {
+        return null;
+      }
+      
+      // Allow access to forgot password and OTP verification screens without authentication
+      if (state.uri.path == RouteNames.forgotPassword ||
+          state.uri.path == RouteNames.verifyOtp ||
+          state.uri.path == RouteNames.resetPassword) {
+        return null;
       }
 
-      return null;
+      // Always redirect to onboarding if not completed
+      if (!authProvider.onboardingCompleted) {
+        debugPrint('📱 Redirecting to onboarding');
+        if (state.uri.path != RouteNames.onboarding) {
+          return RouteNames.onboarding;
+        }
+        return null;
+      }
+      
+      // Check if authentication is needed
+      if (!authProvider.isAuthenticated) {
+        debugPrint('🔐 Redirecting to auth');
+        if (state.uri.path != RouteNames.auth) {
+          return RouteNames.auth;
+        }
+        return null;
+      }
+      
+      debugPrint('✅ Navigation allowed');
+      return null; // Allow navigation
     },
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) {
-          // Since we're bypassing auth, redirect immediately to main
-          // This should never be reached due to redirect logic, but just in case
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.go(RouteNames.main);
-          });
-
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        },
+        builder: (context, state) => const PublicDemoScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.publicDemo,
+        builder: (context, state) => const PublicDemoScreen(),
       ),
       GoRoute(
         path: RouteNames.onboarding,
@@ -59,9 +81,32 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteNames.auth,
+        builder: (context, state) => const AuthScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.signIn,
+        builder: (context, state) => const SignInScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.signUp,
+        builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.verifyOtp,
         builder: (context, state) {
-          final initialTab = state.uri.queryParameters['tab'];
-          return AuthScreen(initialTab: initialTab);
+          final email = state.uri.queryParameters['email'] ?? '';
+          return VerifyOtpScreen(email: email);
+        },
+      ),
+      GoRoute(
+        path: RouteNames.resetPassword,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return ResetPasswordScreen(email: email);
         },
       ),
       GoRoute(
@@ -83,10 +128,6 @@ class AppRouter {
         ],
       ),
       GoRoute(
-        path: RouteNames.cropLibrary,
-        builder: (context, state) => const CropLibraryScreen(),
-      ),
-      GoRoute(
         path: '${RouteNames.cropDetails}/:cropId',
         builder: (context, state) {
           final cropId = state.pathParameters['cropId']!;
@@ -105,6 +146,18 @@ class AppRouter {
           final disease = state.extra as Map<String, dynamic>? ?? {};
           return DiseaseDetailsScreen(disease: disease);
         },
+      ),
+      GoRoute(
+        path: RouteNames.editProfile,
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.about,
+        builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/help-support',
+        builder: (context, state) => const HelpSupportScreen(),
       ),
     ],
   );

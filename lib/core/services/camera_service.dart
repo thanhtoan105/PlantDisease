@@ -1,14 +1,27 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:gal/gal.dart';
+import 'package:image_cropper/image_cropper.dart';
+import '../config/ai_model_config.dart';
 
 class CameraService {
   static CameraController? _controller;
   static List<CameraDescription>? _cameras;
   static bool _isInitialized = false;
+
+  // Configuration constants from centralized config
+  /// The model input image size (width and height in pixels)
+  static const int modelInputSize = AIModelConfig.inputImageSize;
+
+  /// Image quality for JPEG compression (0-100)
+  static const int imageQuality = AIModelConfig.imageQuality;
+
+  // 🎯 FEATURE TOGGLE: Comment this line to disable gallery saving
+  static const bool _enableGallerySaving = false;
 
   /// Initialize camera service
   static Future<bool> initialize() async {
@@ -62,7 +75,7 @@ class CameraService {
   /// Check if camera is initialized
   static bool get isInitialized => _isInitialized && _controller != null;
 
-  /// Capture image and return file path
+  /// Capture image and return file path (without cropping in service)
   static Future<String?> captureImage() async {
     if (!isInitialized) {
       debugPrint('Camera not initialized');
@@ -71,16 +84,70 @@ class CameraService {
 
     try {
       final image = await _controller!.takePicture();
-
-      // Process and save the image
-      final processedImagePath = await _processImage(image.path);
-
-      debugPrint('✅ Image captured: $processedImagePath');
-      return processedImagePath;
+      debugPrint('✅ Image captured: ${image.path}');
+      return image.path; // Return original path, let UI handle cropping
     } catch (e) {
       debugPrint('❌ Failed to capture image: $e');
       return null;
     }
+  }
+
+  /// Crop image with proper context (called from UI)
+  static Future<String?> cropImage(String imagePath) async {
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imagePath,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 100,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: const Color(0xFF2E7D32),
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: Colors.black,
+            activeControlsWidgetColor: const Color(0xFF4CAF50),
+            cropFrameColor: const Color(0xFF4CAF50),
+            cropGridColor: const Color(0xFF81C784),
+            dimmedLayerColor: Colors.black.withValues(alpha: 0.6),
+            statusBarColor: const Color(0xFF1B5E20),
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9
+            ],
+          ),
+          IOSUiSettings(
+            title: 'Crop Image',
+            aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            aspectRatioPickerButtonHidden: false,
+            resetButtonHidden: false,
+            rotateClockwiseButtonHidden: false,
+            hidesNavigationBar: false,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        debugPrint('✅ Image cropped successfully: ${croppedFile.path}');
+        return croppedFile.path;
+      } else {
+        debugPrint('❌ Image cropping cancelled by user');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to crop image: $e');
+      return null;
+    }
+  }
+
+  /// Process gallery image for AI analysis (public method)
+  static Future<String> processGalleryImage(String imagePath) async {
+    return await _processImage(imagePath);
   }
 
   /// Process captured image for AI analysis
@@ -95,11 +162,11 @@ class CameraService {
         throw Exception('Failed to decode image');
       }
 
-      // Resize image to model input size (matching React Native: 128x128)
+      // Resize image to model input size (224x224)
       final resizedImage = img.copyResize(
         originalImage,
-        width: 128,
-        height: 128,
+        width: modelInputSize,
+        height: modelInputSize,
         interpolation: img.Interpolation.linear,
       );
 
@@ -110,7 +177,12 @@ class CameraService {
 
       final processedFile = File(processedImagePath);
       await processedFile
-          .writeAsBytes(img.encodeJpg(resizedImage, quality: 85));
+          .writeAsBytes(img.encodeJpg(resizedImage, quality: imageQuality));
+
+      // Save to gallery if enabled
+      if (_enableGallerySaving) {
+        await _saveImageToGallery(processedFile);
+      }
 
       return processedImagePath;
     } catch (e) {
@@ -120,59 +192,20 @@ class CameraService {
     }
   }
 
-  /// Start camera preview
-  static Future<void> startPreview() async {
-    if (isInitialized && !_controller!.value.isStreamingImages) {
-      try {
-        await _controller!.startImageStream((image) {
-          // Handle image stream if needed for real-time processing
-          // Image data is automatically disposed by Flutter when the callback ends
-        });
-        debugPrint('✅ Camera preview started');
-      } catch (e) {
-        debugPrint('❌ Failed to start camera preview: $e');
-      }
-    }
-  }
-
-  /// Stop camera preview
-  static Future<void> stopPreview() async {
-    if (isInitialized && _controller!.value.isStreamingImages) {
-      try {
-        await _controller!.stopImageStream();
-        debugPrint('✅ Camera preview stopped');
-      } catch (e) {
-        debugPrint('❌ Failed to stop camera preview: $e');
-      }
-    }
-  }
-
-  /// Switch camera (front/back)
-  static Future<bool> switchCamera() async {
-    if (_cameras == null || _cameras!.length < 2) {
-      return false;
-    }
-
+  /// Save image to device gallery
+  static Future<void> _saveImageToGallery(File imageFile) async {
     try {
-      final currentCamera = _controller!.description;
-      final newCamera = _cameras!.firstWhere(
-        (camera) => camera.lensDirection != currentCamera.lensDirection,
-      );
+      // Request storage permission first
+      final permission = await Permission.storage.request();
+      if (!permission.isGranted) {
+        debugPrint('❌ Storage permission denied for gallery save');
+        return;
+      }
 
-      await _controller!.dispose();
-
-      _controller = CameraController(
-        newCamera,
-        ResolutionPreset.medium, // Consistent with initialization
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-
-      await _controller!.initialize();
-      return true;
+      await Gal.putImage(imageFile.path, album: 'PlantAI');
+      debugPrint('✅ Image saved to gallery: ${imageFile.path}');
     } catch (e) {
-      debugPrint('❌ Failed to switch camera: $e');
-      return false;
+      debugPrint('❌ Failed to save image to gallery: $e');
     }
   }
 

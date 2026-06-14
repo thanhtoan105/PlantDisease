@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 
 class SupabaseService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -46,36 +47,24 @@ class SupabaseService {
     }
 
     try {
-      // First get all crops
-      final cropsResponse = await _supabase
-          .from('crops')
-          .select('id, name, scientific_name, description, image_url')
-          .order('name');
+      // Use database function for efficient single query instead of N+1 queries
+      final response = await _supabase.rpc('get_all_crops_with_counts');
 
-      // Get disease counts for each crop
-      final List<Map<String, dynamic>> cropsWithCounts = [];
-
-      for (final crop in cropsResponse) {
-        // Get disease count for this crop
-        final diseaseCountResponse = await _supabase
-            .from('diseases')
-            .select('id')
-            .eq('crop_id', crop['id']);
-
-        final diseaseCount = diseaseCountResponse.length;
-
-        cropsWithCounts.add({
+      return response.map<Map<String, dynamic>>((crop) {
+        return {
           'id': crop['id'].toString(),
           'name': crop['name'],
           'scientificName': crop['scientific_name'],
-          'description': _extractDescription(crop['description']),
+          'overview': crop['overview'] ?? 'No overview available',
+          'temperature': crop['temperature'] ?? 'Not specified',
+          'sunlight': crop['sunlight'] ?? 'Not specified',
+          'watering': crop['watering'] ?? 'Not specified',
+          'growingTips': crop['growing_tips'] ?? {}, // Flat key-value pairs
           'emoji': _getCropEmoji(crop['name']),
-          'diseaseCount': diseaseCount,
+          'diseaseCount': crop['disease_count'] ?? 0,
           'image_url': crop['image_url'],
-        });
-      }
-
-      return cropsWithCounts;
+        };
+      }).toList();
     } catch (error) {
       debugPrint('Error fetching crops: $error');
       rethrow;
@@ -89,10 +78,11 @@ class SupabaseService {
     }
 
     try {
-      // Get basic crop data
+      // Get crop data with new columns
       final cropResponse = await _supabase
           .from('crops')
-          .select('id, name, scientific_name, description, image_url')
+          .select(
+              'id, name, scientific_name, overview, temperature, sunlight, watering, growing_tips, image_url')
           .eq('id', int.parse(cropId))
           .single();
 
@@ -100,30 +90,8 @@ class SupabaseService {
       final diseasesResponse = await _supabase
           .from('diseases')
           .select(
-              'id, class_name, display_name, description, treatment, image_url')
+              'id, class_name, display_name, overview, organic_treatment, chemical_treatment, prevention, image_url')
           .eq('crop_id', int.parse(cropId));
-
-      // Get overview data using the database function
-      List<dynamic>? overviewData;
-      try {
-        final overviewResponse = await _supabase
-            .rpc('get_crop_overview', params: {'crop_id': int.parse(cropId)});
-        overviewData = overviewResponse;
-      } catch (overviewError) {
-        debugPrint('Error fetching overview data: $overviewError');
-        overviewData = null;
-      }
-
-      // Get growing tips using the database function
-      List<dynamic>? tipsData;
-      try {
-        final tipsResponse = await _supabase.rpc('get_crop_growing_tips',
-            params: {'crop_id': int.parse(cropId)});
-        tipsData = tipsResponse;
-      } catch (tipsError) {
-        debugPrint('Error fetching tips data: $tipsError');
-        tipsData = null;
-      }
 
       // Transform diseases data
       final diseases = diseasesResponse.map<Map<String, dynamic>>((disease) {
@@ -131,61 +99,33 @@ class SupabaseService {
           'id': disease['id'].toString(),
           'className': disease['class_name'],
           'name': disease['display_name'],
-          'description': disease['description'] ?? 'No description available',
-          'treatment':
-              disease['treatment'] ?? 'No treatment information available',
-          'severity': _getDiseaseServerity(disease['display_name']),
-          'symptoms': _getDefaultSymptoms(disease['display_name']),
+          'overview': disease['overview'] ?? 'No overview available',
+          'organic_treatment': disease['organic_treatment'] ??
+              'No organic treatment information available',
+          'chemical_treatment': disease['chemical_treatment'] ??
+              'No chemical treatment information available',
+          'prevention':
+              disease['prevention'] ?? 'No prevention information available',
           'image_url': disease['image_url'],
         };
       }).toList();
 
-      // Build the result object
+      // Build the result object with new structure
       final result = {
         'id': cropResponse['id'].toString(),
         'name': cropResponse['name'],
         'scientificName': cropResponse['scientific_name'],
-        'description': _extractDescription(cropResponse['description']),
+        'overview': cropResponse['overview'] ?? 'No overview available',
+        'temperature': cropResponse['temperature'] ?? 'Not specified',
+        'sunlight': cropResponse['sunlight'] ?? 'Not specified',
+        'watering': cropResponse['watering'] ?? 'Not specified',
+        'growingTips': cropResponse['growing_tips'] ??
+            {}, // Key-value pairs for growing tips
         'emoji': _getCropEmoji(cropResponse['name']),
         'diseases': diseases,
         'diseaseCount': diseases.length,
         'image_url': cropResponse['image_url'],
       };
-
-      // Add overview data if available
-      if (overviewData != null &&
-          overviewData.isNotEmpty &&
-          overviewData[0]['overview'] != null) {
-        debugPrint('📊 Overview data found for crop: ${cropResponse['name']}');
-        result['overview'] = overviewData[0]['overview'];
-
-        // Extract growing conditions from overview
-        if (result['overview']['growing_conditions'] != null) {
-          debugPrint('🌱 Growing conditions found');
-          result['growingConditions'] = _transformGrowingConditions(
-              result['overview']['growing_conditions']);
-        }
-
-        // Extract seasons from overview
-        if (result['overview']['growing_season'] != null) {
-          debugPrint('📅 Growing seasons found');
-          result['seasons'] =
-              _transformGrowingSeasons(result['overview']['growing_season']);
-        }
-      } else {
-        debugPrint(
-            '❌ No overview data found for crop: ${cropResponse['name']}');
-      }
-
-      // Add growing tips if available
-      if (tipsData != null &&
-          tipsData.isNotEmpty &&
-          tipsData[0]['growing_tips'] != null) {
-        debugPrint('💡 Growing tips found for crop: ${cropResponse['name']}');
-        result['tips'] = _extractTipsFromJSON(tipsData[0]['growing_tips']);
-      } else {
-        debugPrint('❌ No growing tips found for crop: ${cropResponse['name']}');
-      }
 
       return result;
     } catch (error) {
@@ -210,7 +150,11 @@ class SupabaseService {
           'id': crop['id'].toString(),
           'name': crop['name'],
           'scientificName': crop['scientific_name'],
-          'description': _extractDescription(crop['description']),
+          'overview': crop['overview'] ?? 'No overview available',
+          'temperature': crop['temperature'] ?? 'Not specified',
+          'sunlight': crop['sunlight'] ?? 'Not specified',
+          'watering': crop['watering'] ?? 'Not specified',
+          'growingTips': crop['growing_tips'] ?? {}, // Flat key-value pairs
           'emoji': _getCropEmoji(crop['name']),
           'diseaseCount': crop['disease_count'] ?? 0,
           'image_url': crop['image_url'],
@@ -240,16 +184,254 @@ class SupabaseService {
           'cropId': disease['crop_id'].toString(),
           'className': disease['class_name'],
           'name': disease['display_name'],
-          'description': _extractDescription(disease['description']),
-          'treatment':
-              disease['treatment'] ?? 'No treatment information available',
+          'overview': _extractDescription(disease['overview']),
+          'organic_treatment': disease['organic_treatment'] ??
+              'No organic treatment information available',
+          'chemical_treatment': disease['chemical_treatment'] ??
+              'No chemical treatment information available',
+          'prevention': _extractDescription(disease['prevention']),
           'cropName': disease['crop_name'],
           'cropScientificName': disease['crop_scientific_name'],
+          'image_url': disease['image_url'], // Add image URL
           'type': 'disease',
         };
       }).toList();
     } catch (error) {
       debugPrint('Error searching diseases: $error');
+      rethrow;
+    }
+  }
+
+  /// Get current user ID
+  static String? currentUserId() {
+    return _supabase.auth.currentUser?.id;
+  }
+
+  /// Upload image to Supabase Storage and return public URL
+  static Future<String> uploadScanImage({
+    required String userId,
+    required String imagePath,
+    required String analysisDate,
+  }) async {
+    final file = File(imagePath);
+    final fileName = '${userId}_${analysisDate.replaceAll(':', '-')}.jpg';
+    final storagePath = 'scan-images/$userId/$fileName';
+    final bucket = _supabase.storage.from('scan-images');
+    final response = await bucket.upload(storagePath, file);
+    // Fix: response is a String if successful, else throws
+    // So just check if response is not empty
+    if (response.isEmpty) {
+      throw Exception('Image upload failed: No response from Supabase Storage');
+    }
+    // Get public URL
+    final publicUrl = bucket.getPublicUrl(storagePath);
+    return publicUrl;
+  }
+
+  /// Save analysis result to the database with optimized structure
+  static Future<void> saveAnalysisResult({
+    required String userId,
+    required String imagePath,
+    required List<dynamic> allPredictions, // All predictions from AI model
+    required String? locationData,
+    required String analysisDate,
+  }) async {
+    if (userId.isEmpty) {
+      throw Exception('User ID cannot be null or empty');
+    }
+    if (allPredictions.isEmpty) {
+      throw Exception('Predictions list cannot be empty');
+    }
+
+    // Upload image and get public URL
+    final imageUrl = await uploadScanImage(
+      userId: userId,
+      imagePath: imagePath,
+      analysisDate: analysisDate,
+    );
+
+    // Extract top prediction (highest confidence)
+    final topPrediction = allPredictions.first;
+    // TensorFlow returns 'label' field, not 'className'
+    final className = topPrediction['label']?.toString() ??
+        topPrediction['className']?.toString();
+    // Convert to percentage and round to 2 decimals
+    final rawTopConfidence =
+        (topPrediction['confidence'] as num).toDouble() * 100;
+    final topConfidence = double.parse(rawTopConfidence.toStringAsFixed(2));
+
+    // Get disease ID from class_name
+    int? diseaseId;
+    if (className != null && className.isNotEmpty) {
+      try {
+        final diseaseResult = await _supabase
+            .from('diseases')
+            .select('id')
+            .eq('class_name', className)
+            .maybeSingle();
+
+        if (diseaseResult != null) {
+          diseaseId = diseaseResult['id'] as int;
+        } else {
+          debugPrint(
+              '⚠️ Disease not found in database for class_name: $className');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error fetching disease ID: $e');
+      }
+    } else {
+      debugPrint('⚠️ClassName is null or empty, cannot fetch disease ID');
+    }
+
+    // Extract only the 2nd and 3rd highest predictions for relevant_diseases
+    List<Map<String, dynamic>> relevantDiseases = [];
+    if (allPredictions.length > 1) {
+      // Take 2nd and 3rd predictions (skip the first one)
+      final predictions = allPredictions.skip(1).take(2).toList();
+      for (var prediction in predictions) {
+        final rawAlt = (prediction['confidence'] as num).toDouble() * 100;
+        final roundedAlt = double.parse(rawAlt.toStringAsFixed(2));
+        relevantDiseases.add({
+          'label': prediction['label'] ??
+              prediction['className'], // TensorFlow uses 'label'
+          'confidence': roundedAlt, // Đã làm tròn 2 số thập phân
+        });
+      }
+    }
+
+    debugPrint('📊 Saving analysis:');
+    debugPrint('  - Top Disease ID: $diseaseId');
+    debugPrint('  - Top Confidence: ${topConfidence.toStringAsFixed(2)}%');
+    debugPrint('  - Relevant Diseases: ${relevantDiseases.length} items');
+
+    await _supabase.from('analysis_results').insert({
+      'user_id': userId,
+      'image_url': imageUrl,
+      'top1_disease_id': diseaseId,
+      'top1_confidence': topConfidence, // đã round
+      'relevant_diseases': relevantDiseases.isEmpty ? null : relevantDiseases,
+      'location_data': locationData ?? 'Unknown Location',
+      'analysis_date': analysisDate,
+    });
+  }
+
+  /// Fetch all scan history for the current user with disease information
+  static Future<List<Map<String, dynamic>>> getUserScanHistory({
+    required String userId,
+    int? limit,
+    int? offset,
+  }) async {
+    if (userId.isEmpty) {
+      throw Exception('User ID cannot be null or empty');
+    }
+
+    // Get analysis results with pagination support, joined with diseases table
+    var query = _supabase.from('analysis_results').select('''
+          id,
+          user_id,
+          image_url,
+          top1_disease_id,
+          top1_confidence,
+          relevant_diseases,
+          location_data,
+          analysis_date,
+          diseases:top1_disease_id (
+            id,
+            class_name,
+            display_name,
+            crop_id,
+            crops:crop_id (
+              name,
+              scientific_name
+            )
+          )
+        ''').eq('user_id', userId).order('analysis_date', ascending: false);
+
+    // Apply pagination if specified
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+    if (offset != null) {
+      query = query.range(offset, offset + (limit ?? 10) - 1);
+    }
+
+    final response = await query;
+
+    // Convert response to a properly typed list
+    final results = List<Map<String, dynamic>>.from(response);
+
+    return results;
+  }
+
+  /// Get user profile by user ID
+  static Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      // Get profile data from profiles table
+      final profileResponse = await _supabase
+          .from('profiles')
+          .select('id, full_name, dob, gender, address')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (profileResponse == null) {
+        return null;
+      }
+
+      // Get email from auth.users
+      final user = _supabase.auth.currentUser;
+      final email = user?.email ?? '';
+
+      return {
+        ...profileResponse,
+        'email': email,
+      };
+    } catch (error) {
+      debugPrint('Error fetching user profile: $error');
+      rethrow;
+    }
+  }
+
+  /// Update user profile
+  static Future<void> updateUserProfile({
+    required String userId,
+    String? fullName,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
+  }) async {
+    if (!isConfigured()) {
+      throw Exception('Supabase not configured');
+    }
+
+    try {
+      final updateData = <String, dynamic>{};
+
+      if (fullName != null) {
+        updateData['full_name'] = fullName;
+      }
+
+      if (dateOfBirth != null) {
+        updateData['dob'] = dateOfBirth.toIso8601String().split('T')[0];
+      }
+
+      if (gender != null) {
+        updateData['gender'] = gender;
+      }
+
+      if (address != null) {
+        updateData['address'] = address;
+      }
+
+      // Update the profile in the database
+      await _supabase.from('profiles').update(updateData).eq('id', userId);
+
+      debugPrint('✅ Profile updated successfully');
+    } catch (error) {
+      debugPrint('❌ Error updating user profile: $error');
       rethrow;
     }
   }
@@ -302,7 +484,6 @@ class SupabaseService {
   /// Helper method to get crop emoji
   static String _getCropEmoji(String cropName) {
     final emojiMap = {
-      'Apple Tree': '🍎',
       'Apple': '🍎',
       'Tomato': '🍅',
       'Potato': '🥔',
@@ -316,87 +497,9 @@ class SupabaseService {
       'Blueberry': '🫐',
       'Soybean': '🫘',
       'Squash': '🎃',
+      'Durian': '🍈',
     };
 
     return emojiMap[cropName] ?? '🌱';
-  }
-
-  /// Transform growing conditions from JSON to Map
-  static Map<String, dynamic> _transformGrowingConditions(dynamic conditions) {
-    if (conditions == null) return {};
-    if (conditions is Map<String, dynamic>) return conditions;
-    if (conditions is Map) {
-      return Map<String, dynamic>.from(conditions);
-    }
-    return {};
-  }
-
-  /// Transform growing seasons from JSON to Map
-  static Map<String, dynamic> _transformGrowingSeasons(dynamic seasons) {
-    if (seasons == null) return {};
-    if (seasons is Map<String, dynamic>) return seasons;
-    if (seasons is Map) {
-      return Map<String, dynamic>.from(seasons);
-    }
-    return {};
-  }
-
-  /// Extract tips from JSON data
-  static List<String> _extractTipsFromJSON(dynamic tipsData) {
-    if (tipsData == null) return [];
-
-    if (tipsData is List) {
-      return tipsData.map((tip) => tip.toString()).toList();
-    }
-
-    if (tipsData is Map) {
-      // If it's a map, try to extract tips from common keys
-      final tips = <String>[];
-      for (final value in tipsData.values) {
-        if (value is String) {
-          tips.add(value);
-        } else if (value is List) {
-          tips.addAll(value.map((tip) => tip.toString()));
-        }
-      }
-      return tips;
-    }
-
-    return [tipsData.toString()];
-  }
-
-  /// Helper method to get disease severity
-  static String _getDiseaseServerity(String diseaseName) {
-    final severityMap = {
-      'Apple Scab': 'Medium',
-      'Apple Black Rot': 'High',
-      'Cedar Apple Rust': 'Medium',
-      'Healthy': 'None',
-    };
-
-    return severityMap[diseaseName] ?? 'Medium';
-  }
-
-  /// Helper method to get default symptoms
-  static List<String> _getDefaultSymptoms(String diseaseName) {
-    final symptomsMap = {
-      'Apple Scab': [
-        'Olive-green or brown spots on leaves',
-        'Black scabby lesions on fruit',
-        'Premature leaf drop',
-      ],
-      'Apple Black Rot': [
-        'Frogeye spots on leaves',
-        'Black firm rot on fruit',
-        'Cankers on branches',
-      ],
-      'Cedar Apple Rust': [
-        'Yellow spots on leaves',
-        'Orange spore masses',
-        'Leaf distortion',
-      ],
-    };
-
-    return symptomsMap[diseaseName] ?? ['Symptoms vary by disease stage'];
   }
 }

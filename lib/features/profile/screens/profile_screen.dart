@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_card.dart';
 import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/utils/custom_dialogs.dart';
 import '../widgets/profile_option_card.dart';
-import '../../debug/debug_screen.dart';
+import '../../../navigation/route_names.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,54 +19,35 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightGray,
-      body: SafeArea(
-        child: Consumer<AuthProvider>(
-          builder: (context, authProvider, child) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppDimensions.spacingLg),
+      appBar: CustomAppBar(
+        title: 'Setting',
+        automaticallyImplyLeading: false,
+      ),
+      body: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          return Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Text(
-                    'Profile',
-                    style: AppTypography.headlineLarge,
-                  ),
-
-                  const SizedBox(height: AppDimensions.spacingLg),
-
                   // User Information
                   _buildUserInformation(context, authProvider),
 
-                  const SizedBox(height: AppDimensions.spacingXl),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
-                  // Statistics
-                  _buildStatistics(),
+                  // Combined Settings and App Info
+                  _buildCombinedOptions(context),
 
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // Account Actions
-                  _buildAccountActions(context, authProvider),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // Settings
-                  _buildSettings(),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
-
-                  // App Information
-                  _buildAppInformation(context),
-
-                  const SizedBox(height: AppDimensions.spacingXl),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
                   // Sign In/Logout Button
                   _buildAuthButton(context, authProvider),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -79,13 +63,12 @@ class ProfileScreen extends StatelessWidget {
               // Profile Avatar
               CircleAvatar(
                 radius: 32,
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: authProvider.isAuthenticated
+                    ? AppColors.primaryGreen
+                    : AppColors.mediumGray,
                 child: Text(
                   authProvider.isAuthenticated
-                      ? (authProvider.user?.email
-                              ?.substring(0, 1)
-                              .toUpperCase() ??
-                          'G')
+                      ? (authProvider.user?.email?.substring(0, 1).toUpperCase() ?? 'U')
                       : 'G',
                   style: AppTypography.headlineLarge.copyWith(
                     color: AppColors.white,
@@ -101,13 +84,15 @@ class ProfileScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      authProvider.profile?['username'] ??
-                          authProvider.user?.email?.split('@')[0] ??
-                          'Guest User',
+                      authProvider.isAuthenticated
+                          ? (authProvider.user?.email ?? 'User')
+                          : 'Guest User',
                       style: AppTypography.headlineMedium,
                     ),
                     Text(
-                      authProvider.user?.email ?? 'Not signed in',
+                      authProvider.isAuthenticated
+                          ? (authProvider.user?.email ?? '')
+                          : 'Sign in to save your scan results',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.mediumGray,
                       ),
@@ -115,7 +100,7 @@ class ProfileScreen extends StatelessWidget {
                     Text(
                       authProvider.isAuthenticated
                           ? 'Member since ${DateTime.now().year}'
-                          : 'Guest mode',
+                          : 'Limited features available',
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.mediumGray,
                       ),
@@ -133,9 +118,7 @@ class ProfileScreen extends StatelessWidget {
             CustomButton(
               text: 'Edit Profile',
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit profile coming soon')),
-                );
+                context.push(RouteNames.editProfile);
               },
               type: ButtonType.secondary,
             ),
@@ -144,112 +127,10 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatistics() {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Statistics',
-            style: AppTypography.headlineMedium,
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem('Scans', '0'),
-              ),
-              Expanded(
-                child: _buildStatItem('Diseases Found', '0'),
-              ),
-              Expanded(
-                child: _buildStatItem('Plants Saved', '0'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: AppTypography.headlineLarge.copyWith(
-            color: AppColors.primaryGreen,
-          ),
-        ),
-        Text(
-          label,
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.mediumGray,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccountActions(BuildContext context, AuthProvider authProvider) {
+  Widget _buildCombinedOptions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Account',
-          style: AppTypography.headlineMedium,
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
-        ProfileOptionCard(
-          icon: Icons.person,
-          title: 'Profile Details',
-          subtitle: 'View and edit your profile information',
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile details coming soon')),
-            );
-          },
-        ),
-        ProfileOptionCard(
-          icon: Icons.history,
-          title: 'Scan History',
-          subtitle: 'View your previous plant scans',
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Scan history coming soon')),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Settings',
-          style: AppTypography.headlineMedium,
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
-        ProfileOptionCard(
-          icon: Icons.notifications,
-          title: 'Notifications',
-          subtitle: 'Manage your notification preferences',
-          onTap: () {
-            // TODO: Navigate to notifications settings
-          },
-        ),
-        ProfileOptionCard(
-          icon: Icons.security,
-          title: 'Privacy & Security',
-          subtitle: 'Control your privacy settings',
-          onTap: () {
-            // TODO: Navigate to privacy settings
-          },
-        ),
         ProfileOptionCard(
           icon: Icons.language,
           title: 'Language',
@@ -266,25 +147,12 @@ class ProfileScreen extends StatelessWidget {
             // TODO: Navigate to theme settings
           },
         ),
-      ],
-    );
-  }
-
-  Widget _buildAppInformation(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'App Information',
-          style: AppTypography.headlineMedium,
-        ),
-        const SizedBox(height: AppDimensions.spacingLg),
         ProfileOptionCard(
           icon: Icons.info,
           title: 'About',
           subtitle: 'Learn more about this app',
           onTap: () {
-            // TODO: Navigate to about screen
+            context.push(RouteNames.about);
           },
         ),
         ProfileOptionCard(
@@ -292,7 +160,7 @@ class ProfileScreen extends StatelessWidget {
           title: 'Help & Support',
           subtitle: 'Get help and contact support',
           onTap: () {
-            // TODO: Navigate to help screen
+            context.push(RouteNames.helpSupport);
           },
         ),
         ProfileOptionCard(
@@ -303,18 +171,6 @@ class ProfileScreen extends StatelessWidget {
             // TODO: Open app store rating
           },
         ),
-        ProfileOptionCard(
-          icon: Icons.bug_report,
-          title: 'Debug Configuration',
-          subtitle: 'View environment and API configuration',
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const DebugScreen(),
-              ),
-            );
-          },
-        ),
       ],
     );
   }
@@ -322,35 +178,39 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAuthButton(BuildContext context, AuthProvider authProvider) {
     return CustomButton(
       text: authProvider.isAuthenticated ? 'Logout' : 'Sign In',
-      onPressed: () async {
+      isLoading: authProvider.isLoading,
+      onPressed: authProvider.isLoading ? null : () async {
         if (authProvider.isAuthenticated) {
           // Show logout confirmation
-          final shouldLogout = await showDialog<bool>(
+          final shouldLogout = await CustomDialogs.showConfirmDialog(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Logout'),
-              content: const Text('Are you sure you want to logout?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Logout'),
-                ),
-              ],
-            ),
+            title: 'Logout',
+            message: 'Are you sure you want to logout?',
+            confirmText: 'Logout',
+            cancelText: 'Cancel',
           );
 
-          if (shouldLogout == true) {
-            await authProvider.signOut();
+          if (shouldLogout == true && context.mounted) {
+            // Perform logout with proper error handling
+            final result = await authProvider.signOut();
+
+            if (context.mounted) {
+              if (result['success'] == true) {
+                // Success - navigate to onboarding
+                context.go(RouteNames.onboarding);
+              } else {
+                // Error - show error dialog
+                CustomDialogs.showErrorDialog(
+                  context: context,
+                  title: 'Logout Failed',
+                  error: result['error'] ?? 'Unable to logout. Please try again.',
+                );
+              }
+            }
           }
         } else {
           // Navigate to auth screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sign in functionality coming soon')),
-          );
+          context.push(RouteNames.auth);
         }
       },
       type: ButtonType.secondary,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -19,7 +20,6 @@ class DiseaseDetailsScreen extends StatefulWidget {
 
 class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
     with TickerProviderStateMixin {
-  String _activeTab = 'cause';
   late TabController _tabController;
 
   @override
@@ -92,114 +92,107 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
 
   Widget _buildHeader() {
     final disease = widget.disease;
-    final imageUrl = disease['image_url'] as String?;
+    final rawUrl = disease['image_url'] as String?;
+    final imageUrl = (rawUrl != null && rawUrl.isNotEmpty)
+        ? rawUrl
+        : 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop';
 
     return Container(
-      height: 250,
-      child: Stack(
-        children: [
-          // Disease Image
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          size: 64,
-                          color: AppColors.mediumGray,
+      height: 280,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: CachedNetworkImageProvider(imageUrl),
+          fit: BoxFit.cover,
+          onError: (exception, stackTrace) {},
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withValues(alpha: 0.3),
+              Colors.black.withValues(alpha: 0.7),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Back Button (standardized size)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(22),
                         ),
-                      );
-                    },
-                  )
-                : Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primaryGreen.withValues(alpha: 0.8),
-                          AppColors.primaryGreen.withValues(alpha: 0.6),
-                        ],
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
                     ),
-                    child: const Icon(
-                      Icons.coronavirus,
-                      size: 80,
-                      color: AppColors.white,
-                    ),
-                  ),
-          ),
-
-          // Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.7),
-                ],
-              ),
-            ),
-          ),
-
-          // Back Button
-          Positioned(
-            top: 20,
-            left: 20,
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(20),
+                    const SizedBox(width: 44), // keep symmetrical spacing
+                  ],
                 ),
-                child: const Icon(
-                  Icons.arrow_back,
-                  color: AppColors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-          ),
 
-          // Disease Info
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  disease['display_name'] ??
-                      disease['name'] ??
-                      'Unknown Disease',
-                  style: AppTypography.headlineLarge.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.spacingXs),
-                Text(
-                  'Disease Information',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.9),
+                // Disease title and subtitle
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        disease['display_name'] ??
+                            disease['name'] ??
+                            'Unknown Disease',
+                        style: AppTypography.headlineLarge.copyWith(
+                          fontSize: 24, // slightly smaller than plant title
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              offset: const Offset(0, 1),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppDimensions.spacingXs),
+                      Text(
+                        'Disease Information',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              offset: const Offset(0, 1),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -215,11 +208,11 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
         tabs: const [
           Tab(
             icon: Icon(Icons.info),
-            text: 'Cause',
+            text: 'Description',
           ),
           Tab(
             icon: Icon(Icons.medical_services),
-            text: 'Treatment Tips',
+            text: 'Treatment',
           ),
         ],
       ),
@@ -231,71 +224,117 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
-      child: CustomCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        children: [
+          // Information Card
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.info,
-                  size: 24,
-                  color: AppColors.primaryGreen,
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.info,
+                      size: 24,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: AppDimensions.spacingSm),
+                    Text(
+                      'Information',
+                      style: AppTypography.headlineSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppDimensions.spacingSm),
+                const SizedBox(height: AppDimensions.spacingMd),
                 Text(
-                  'Disease Cause',
-                  style: AppTypography.headlineSmall.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  disease['overview'] ??
+                      'Cause information not available for this disease.',
+                  style: AppTypography.bodyMedium,
                 ),
               ],
             ),
-            const SizedBox(height: AppDimensions.spacingMd),
-            Text(
-              disease['description'] ??
-                  'Cause information not available for this disease.',
-              style: AppTypography.bodyMedium,
-            ),
-
-            // Additional symptoms if available
-            if (disease['symptoms'] != null) ...[
-              const SizedBox(height: AppDimensions.spacingLg),
-              Text(
-                'Common Symptoms',
-                style: AppTypography.headlineSmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.spacingMd),
-              ...((disease['symptoms'] as List?) ?? []).map<Widget>((symptom) {
-                return Padding(
-                  padding:
-                      const EdgeInsets.only(bottom: AppDimensions.spacingXs),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('• ', style: TextStyle(fontSize: 16)),
-                      Expanded(
-                        child: Text(
-                          symptom.toString(),
-                          style: AppTypography.bodyMedium,
-                        ),
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          // Prevention Card
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.shield,
+                      size: 24,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: AppDimensions.spacingSm),
+                    Text(
+                      'Prevention',
+                      style: AppTypography.headlineSmall.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ],
-          ],
-        ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.spacingMd),
+                Text(
+                  disease['prevention'] ??
+                      'Prevention information not available for this disease.',
+                  style: AppTypography.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTreatmentContent() {
     final disease = widget.disease;
+    final organicTreatment = disease['organic_treatment'] as String?;
+    final chemicalTreatment = disease['chemical_treatment'] as String?;
 
+    // Check if we have any treatment data
+    final hasOrganicTreatment = organicTreatment != null &&
+        organicTreatment.isNotEmpty &&
+        organicTreatment != 'No organic treatment information available';
+    final hasChemicalTreatment = chemicalTreatment != null &&
+        chemicalTreatment.isNotEmpty &&
+        chemicalTreatment != 'No chemical treatment information available';
+
+    if (hasOrganicTreatment || hasChemicalTreatment) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimensions.spacingLg),
+        child: Column(
+          children: [
+            // Organic Treatment
+            if (hasOrganicTreatment)
+              _buildTreatmentCard(
+                'Organic Treatment',
+                organicTreatment,
+                Icons.eco,
+                AppColors.successGreen,
+              ),
+
+            // Chemical Treatment
+            if (hasChemicalTreatment) ...[
+              const SizedBox(height: AppDimensions.spacingMd),
+              _buildTreatmentCard(
+                'Chemical Treatment',
+                chemicalTreatment,
+                Icons.science,
+                AppColors.accentOrange,
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    // Fallback if no treatment data
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacingLg),
       child: CustomCard(
@@ -320,12 +359,45 @@ class _DiseaseDetailsScreenState extends State<DiseaseDetailsScreen>
             ),
             const SizedBox(height: AppDimensions.spacingMd),
             Text(
-              disease['treatment'] ??
-                  'Treatment information not available for this disease.',
+              'Treatment information not available for this disease.',
               style: AppTypography.bodyMedium,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTreatmentCard(String title, String content, IconData icon, Color color) {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: color,
+              ),
+              const SizedBox(width: AppDimensions.spacingSm),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.headlineSmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            content,
+            style: AppTypography.bodyMedium,
+          ),
+        ],
       ),
     );
   }

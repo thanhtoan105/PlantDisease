@@ -17,11 +17,8 @@ class WeatherWidget extends StatelessWidget {
             if (weatherProvider.error != null && weatherProvider.canRetry) {
               // Retry loading weather data
               weatherProvider.refreshWeatherData();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Weather details coming soon')),
-              );
             }
+            // Weather details warning disabled - card is now non-interactive when weather is loaded
           },
           child: Container(
             decoration: BoxDecoration(

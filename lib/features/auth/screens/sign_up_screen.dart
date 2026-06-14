@@ -6,8 +6,8 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
-import '../../../shared/widgets/loading_spinner.dart';
-import '../../../navigation/route_names.dart';
+import '../../../shared/utils/exit_confirmation_dialog.dart';
+import '../../../shared/utils/custom_snackbars.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -21,234 +21,294 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _usernameController = TextEditingController();
-
+  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _agreeToTerms = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _usernameController.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleSignUp() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final authProvider = context.read<AuthProvider>();
-
-    final result = await authProvider.signUp(
-      _emailController.text.trim(),
-      _passwordController.text,
-      userData: {
-        'username': _usernameController.text.trim(),
-      },
-    );
-
-    if (mounted) {
-      if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-        // Navigate back to sign in screen
-        context.go(RouteNames.auth);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['error']),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkNavy),
-          onPressed: () => context.go(RouteNames.auth),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
+        final shouldExit = await showExitConfirmationDialog(context);
+        if (shouldExit == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Email Field
+            _buildEmailField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Password Field
+            _buildPasswordField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Confirm Password Field
+            _buildConfirmPasswordField(),
+
+            const SizedBox(height: AppDimensions.spacingLg),
+
+            // Terms Checkbox
+            _buildTermsCheckbox(),
+
+            const SizedBox(height: AppDimensions.spacingXl),
+
+            // Sign Up Button
+            _buildSignUpButton(),
+          ],
         ),
       ),
-      body: SafeArea(
-        child: Consumer<AuthProvider>(
-          builder: (context, authProvider, child) {
-            if (authProvider.isLoading) {
-              return const Center(
-                child: LoadingSpinner(message: 'Creating account...'),
-              );
-            }
+    );
+  }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppDimensions.spacingXl),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _buildEmailField() {
+    return TextFormField(
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      textInputAction: TextInputAction.next,
+      decoration: InputDecoration(
+        labelText: 'Email',
+        hintText: 'Enter your email',
+        prefixIcon: const Icon(Icons.email_outlined),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        ),
+        filled: true,
+        fillColor: AppColors.white,
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your email';
+        }
+        if (!value.contains('@')) {
+          return 'Please enter a valid email';
+        }
+        return null;
+      },
+      onChanged: (_) => _clearErrors(),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      textInputAction: TextInputAction.next,
+      decoration: InputDecoration(
+        labelText: 'Password',
+        hintText: 'Enter your password',
+        prefixIcon: const Icon(Icons.lock_outlined),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        ),
+        filled: true,
+        fillColor: AppColors.white,
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your password';
+        }
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return null;
+      },
+      onChanged: (_) => _clearErrors(),
+    );
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return TextFormField(
+      controller: _confirmPasswordController,
+      obscureText: _obscureConfirmPassword,
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        labelText: 'Confirm Password',
+        hintText: 'Confirm your password',
+        prefixIcon: const Icon(Icons.lock_outlined),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscureConfirmPassword = !_obscureConfirmPassword;
+            });
+          },
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+        ),
+        filled: true,
+        fillColor: AppColors.white,
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please confirm your password';
+        }
+        if (value != _passwordController.text) {
+          return 'Passwords do not match';
+        }
+        return null;
+      },
+      onChanged: (_) => _clearErrors(),
+    );
+  }
+
+  Widget _buildTermsCheckbox() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Checkbox(
+          value: _agreeToTerms,
+          onChanged: (value) {
+            setState(() {
+              _agreeToTerms = value ?? false;
+            });
+          },
+          activeColor: AppColors.primaryGreen,
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _agreeToTerms = !_agreeToTerms;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: RichText(
+                text: TextSpan(
+                  style: AppTypography.bodySmall,
                   children: [
-                    const SizedBox(height: AppDimensions.spacingXl),
-
-                    // Title
-                    Text(
-                      'Create Account',
-                      style: AppTypography.headlineLarge,
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingLg),
-
-                    Text(
-                      'Join us to start detecting plant diseases',
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.mediumGray,
+                    const TextSpan(text: 'I agree to the '),
+                    TextSpan(
+                      text: 'Terms of Service',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w500,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-
-                    const SizedBox(height: AppDimensions.spacingXxxl),
-
-                    // Username field
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Username',
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a username';
-                        }
-                        if (value.length < 3) {
-                          return 'Username must be at least 3 characters';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingLg),
-
-                    // Email field
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingLg),
-
-                    // Password field
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingLg),
-
-                    // Confirm password field
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscureConfirmPassword =
-                                  !_obscureConfirmPassword;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingXxxl),
-
-                    // Sign up button
-                    CustomButton(
-                      text: 'Create Account',
-                      onPressed: _handleSignUp,
-                      type: ButtonType.primary,
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingLg),
-
-                    // Sign in link
-                    TextButton(
-                      onPressed: () => context.go(RouteNames.auth),
-                      child: Text(
-                        'Already have an account? Sign In',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.primaryGreen,
-                        ),
+                    const TextSpan(text: ' and '),
+                    TextSpan(
+                      text: 'Privacy Policy',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-            );
-          },
+            ),
+          ),
         ),
-      ),
+      ],
     );
+  }
+
+  Widget _buildSignUpButton() {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final isLoading = _isLoading || authProvider.isLoading;
+        final canSubmit = !isLoading && _agreeToTerms;
+        
+        return CustomButton(
+          text: 'Sign Up',
+          onPressed: canSubmit ? _handleSignUp : null,
+          type: ButtonType.primary,
+          isLoading: isLoading,
+        );
+      },
+    );
+  }
+
+  void _clearErrors() {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.error != null) {
+      authProvider.clearError();
+    }
+  }
+
+  Future<void> _handleSignUp() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_agreeToTerms) {
+      CustomSnackbars.showWarning(
+        context: context,
+        message: 'Please agree to the terms',
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final result = await authProvider.signUp(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (result['success']) {
+        if (mounted) {
+          CustomSnackbars.showSuccess(
+            context: context,
+            message: result['message'],
+          );
+          // Navigate to main app
+          context.go('/');
+        }
+      } else {
+        if (mounted) {
+          CustomSnackbars.showError(
+            context: context,
+            message: result['error'],
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackbars.showError(
+          context: context,
+          message: 'Sign up failed: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }
