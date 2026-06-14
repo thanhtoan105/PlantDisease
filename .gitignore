@@ -68,6 +68,7 @@ app.*.map.json
 *.tmp
 *.temp
 README_NEW.md
+output/
 
 # Harness durable layer
 .harness-backup/
