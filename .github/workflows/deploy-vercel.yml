@@ -19,6 +19,7 @@ permissions:
 env:
   FLUTTER_VERSION: "3.41.5"
   VERCEL_CLI_VERSION: "54.12.2"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   validate:

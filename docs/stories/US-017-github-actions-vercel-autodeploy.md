@@ -86,8 +86,15 @@ Current Vercel identifiers:
   all three secrets are configured.
 - Vercel CLI is pinned to `54.12.2`, matching the locally verified production
   deploy tool version.
+- Workflow opts JavaScript actions into Node.js 24 with
+  `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to avoid the GitHub Actions Node.js
+  20 deprecation path.
 - `npx --yes js-yaml .github\workflows\deploy-vercel.yml` parsed the workflow
   successfully.
 - `git diff --check` passed.
 - `scripts/bin/harness-cli.exe story verify US-016` passed after adding the
   workflow, proving the same Flutter test/analyze/build commands still pass.
+- First pushed workflow run
+  `https://github.com/thanhtoan105/PlantDisease/actions/runs/27500635220`
+  passed validation and skipped production deploy with the expected warning
+  because Vercel secrets were not configured yet.
