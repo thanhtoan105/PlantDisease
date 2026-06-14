@@ -89,6 +89,9 @@ Current Vercel identifiers:
 - Workflow opts JavaScript actions into Node.js 24 with
   `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to avoid the GitHub Actions Node.js
   20 deprecation path.
+- Workflow uses Node 24-capable GitHub actions:
+  `actions/checkout@v5`, `actions/upload-artifact@v6`, and
+  `actions/download-artifact@v7`.
 - `npx --yes js-yaml .github\workflows\deploy-vercel.yml` parsed the workflow
   successfully.
 - `git diff --check` passed.
@@ -98,3 +101,7 @@ Current Vercel identifiers:
   `https://github.com/thanhtoan105/PlantDisease/actions/runs/27500635220`
   passed validation and skipped production deploy with the expected warning
   because Vercel secrets were not configured yet.
+- Follow-up run
+  `https://github.com/thanhtoan105/PlantDisease/actions/runs/27501428475`
+  passed validation and production deployment after the workflow actions were
+  upgraded to Node 24-capable versions.
