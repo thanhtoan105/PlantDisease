@@ -1,0 +1,62 @@
+[
+  {
+    "modelLabel": "Durian___Leaf_Algal",
+    "cropId": "durian",
+    "diseaseId": "durian_leaf_algal",
+    "displayNameEn": "Durian Leaf Algal Disease",
+    "displayNameVi": "Bệnh đốm tảo trên lá sầu riêng",
+    "isHealthy": false,
+    "shortDescription": "Algal leaf spots can appear as raised orange, rusty, or gray-green patches on durian leaves, especially in humid conditions.",
+    "careNote": "Improve airflow around the canopy, remove heavily affected leaves, avoid overhead watering, and ask a local agricultural expert before applying any treatment."
+  },
+  {
+    "modelLabel": "Durian___Leaf_Blight",
+    "cropId": "durian",
+    "diseaseId": "durian_leaf_blight",
+    "displayNameEn": "Durian Leaf Blight",
+    "displayNameVi": "Bệnh cháy lá sầu riêng",
+    "isHealthy": false,
+    "shortDescription": "Leaf blight usually causes brown or scorched-looking areas that may expand from leaf edges or spots.",
+    "careNote": "Keep leaves dry when possible, prune damaged foliage, reduce plant stress, and verify the diagnosis with a specialist before choosing treatment."
+  },
+  {
+    "modelLabel": "Durian___Leaf_Colletotrichum",
+    "cropId": "durian",
+    "diseaseId": "durian_leaf_colletotrichum",
+    "displayNameEn": "Durian Colletotrichum Leaf Disease",
+    "displayNameVi": "Bệnh Colletotrichum trên lá sầu riêng",
+    "isHealthy": false,
+    "shortDescription": "Colletotrichum infections often produce dark necrotic spots or anthracnose-like lesions on leaves.",
+    "careNote": "Remove infected plant material, keep the growing area clean, improve drainage and airflow, and use this result only as an initial screening signal."
+  },
+  {
+    "modelLabel": "Durian___Leaf_Healthy",
+    "cropId": "durian",
+    "diseaseId": "durian_leaf_healthy",
+    "displayNameEn": "Healthy Durian Leaf",
+    "displayNameVi": "Lá sầu riêng khỏe mạnh",
+    "isHealthy": true,
+    "shortDescription": "The model classifies the uploaded leaf as visually healthy within the current six-class durian model.",
+    "careNote": "Continue routine monitoring, keep the tree well cared for, and retest if symptoms appear or the image quality is unclear."
+  },
+  {
+    "modelLabel": "Durian___Leaf_Phomopsis",
+    "cropId": "durian",
+    "diseaseId": "durian_leaf_phomopsis",
+    "displayNameEn": "Durian Phomopsis Leaf Disease",
+    "displayNameVi": "Bệnh Phomopsis trên lá sầu riêng",
+    "isHealthy": false,
+    "shortDescription": "Phomopsis disease can cause leaf spotting, tissue dieback, or lesions that may worsen under humid conditions.",
+    "careNote": "Prune affected material, avoid prolonged leaf wetness, maintain sanitation, and confirm with local agronomy guidance before treatment."
+  },
+  {
+    "modelLabel": "Durian___Leaf_Rhizoctonia",
+    "cropId": "durian",
+    "diseaseId": "durian_leaf_rhizoctonia",
+    "displayNameEn": "Durian Rhizoctonia Leaf Disease",
+    "displayNameVi": "Bệnh Rhizoctonia trên lá sầu riêng",
+    "isHealthy": false,
+    "shortDescription": "Rhizoctonia-related symptoms may include irregular lesions or blighted tissue, often favored by wet and crowded conditions.",
+    "careNote": "Improve spacing and airflow, avoid excess moisture, remove affected debris, and treat the result as decision support rather than a final diagnosis."
+  }
+]

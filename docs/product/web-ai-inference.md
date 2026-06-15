@@ -75,8 +75,9 @@ backend and keep Vercel as the static Flutter Web frontend.
 
 ## Label Mapping Requirement
 
-Before exposing real results publicly, create a structured mapping from model
-labels to UI/domain records. A minimum mapping row needs:
+Before exposing real results publicly, model labels must resolve through the
+structured mapping in `assets/data/label_mapping.json`. A minimum mapping row
+needs:
 
 - `modelLabel`
 - `cropId`
@@ -89,6 +90,10 @@ labels to UI/domain records. A minimum mapping row needs:
 
 The result UI must not infer disease details by formatting the raw model label
 alone.
+
+US-019 also adds `assets/data/sample_image_manifest.json` as the fixed sample
+image regression manifest. Browser inference work should use that manifest to
+compare expected labels before replacing the simulated public demo result.
 
 ## Privacy Requirement
 

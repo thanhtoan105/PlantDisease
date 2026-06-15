@@ -75,6 +75,8 @@ flutter:
   assets:
     - assets/
     - assets/images/
+    - assets/images/sample/
+    - assets/data/
     - assets/images/onboarding/
     - assets/icons/
     - assets/models/

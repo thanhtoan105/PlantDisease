@@ -1,0 +1,112 @@
+[
+  {
+    "path": "assets/images/sample/Leaf_Algal/IMG_7439_JPG_jpg.rf.d5ad373e6361c19d18f00b74fe170c2c.jpg",
+    "expectedLabel": "Durian___Leaf_Algal",
+    "sourceClassFolder": "Leaf_Algal"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Algal/IMG_7445_JPG_jpg.rf.abaa73785180e10305b293e1f24802ec.jpg",
+    "expectedLabel": "Durian___Leaf_Algal",
+    "sourceClassFolder": "Leaf_Algal"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Algal/IMG_7451_JPG_jpg.rf.ce572e9a56d0bc5925e2f984e900d69d.jpg",
+    "expectedLabel": "Durian___Leaf_Algal",
+    "sourceClassFolder": "Leaf_Algal"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Algal/IMG_7488_JPG_jpg.rf.afc995b80ed9874da917a5441593596a.jpg",
+    "expectedLabel": "Durian___Leaf_Algal",
+    "sourceClassFolder": "Leaf_Algal"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Blight/IMG_7434_JPG_jpg.rf.3af25a03ade4fec6a7a46a60b59ee492.jpg",
+    "expectedLabel": "Durian___Leaf_Blight",
+    "sourceClassFolder": "Leaf_Blight"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Blight/IMG_7456_JPG_jpg.rf.bbaee2feb1d181fe248f5e0cd725a88c.jpg",
+    "expectedLabel": "Durian___Leaf_Blight",
+    "sourceClassFolder": "Leaf_Blight"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Blight/IMG_7495_JPG_jpg.rf.37a17a1aebc8ec30f93e1b5a33404e30.jpg",
+    "expectedLabel": "Durian___Leaf_Blight",
+    "sourceClassFolder": "Leaf_Blight"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Blight/IMG_7515_JPG_jpg.rf.e861470ee08b5351e7268f8510e85859.jpg",
+    "expectedLabel": "Durian___Leaf_Blight",
+    "sourceClassFolder": "Leaf_Blight"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Colletotrichum/IMG_7563_JPG_jpg.rf.c6aa0df8ec3c17575bc7e62ec9e16a34.jpg",
+    "expectedLabel": "Durian___Leaf_Colletotrichum",
+    "sourceClassFolder": "Leaf_Colletotrichum"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Colletotrichum/IMG_7564_JPG_jpg.rf.ad4963b55d23e5c20433996a82176a43.jpg",
+    "expectedLabel": "Durian___Leaf_Colletotrichum",
+    "sourceClassFolder": "Leaf_Colletotrichum"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Colletotrichum/IMG_7567_JPG_jpg.rf.7c06ec9a3a83d59dc6c9cbba779b60fa.jpg",
+    "expectedLabel": "Durian___Leaf_Colletotrichum",
+    "sourceClassFolder": "Leaf_Colletotrichum"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Colletotrichum/IMG_7568_JPG_jpg.rf.8ca34984077e4367deb43b5f2833d74c.jpg",
+    "expectedLabel": "Durian___Leaf_Colletotrichum",
+    "sourceClassFolder": "Leaf_Colletotrichum"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Healthy/IMG_7414_JPG_jpg.rf.66520a3924b8b2215e2aaf68e712759c.jpg",
+    "expectedLabel": "Durian___Leaf_Healthy",
+    "sourceClassFolder": "Leaf_Healthy"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Healthy/IMG_7416_JPG_jpg.rf.7826e307626cfc281daec1c51ecb0e4b.jpg",
+    "expectedLabel": "Durian___Leaf_Healthy",
+    "sourceClassFolder": "Leaf_Healthy"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Healthy/IMG_7457_JPG_jpg.rf.8fc61818a02647537ba9fb84cabc3906.jpg",
+    "expectedLabel": "Durian___Leaf_Healthy",
+    "sourceClassFolder": "Leaf_Healthy"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Healthy/IMG_7463_JPG_jpg.rf.057c80a03ebfcd1516830efecad4ed5a.jpg",
+    "expectedLabel": "Durian___Leaf_Healthy",
+    "sourceClassFolder": "Leaf_Healthy"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Phomopsis/IMG_7426_JPG_jpg.rf.113b53629ad6de575f5981c480554cb6.jpg",
+    "expectedLabel": "Durian___Leaf_Phomopsis",
+    "sourceClassFolder": "Leaf_Phomopsis"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Phomopsis/IMG_7427_JPG_jpg.rf.35441809e4a280148396ba33017e70c1.jpg",
+    "expectedLabel": "Durian___Leaf_Phomopsis",
+    "sourceClassFolder": "Leaf_Phomopsis"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Phomopsis/IMG_7431_JPG_jpg.rf.d846f1e908359fa6dc0172c4b3590fd0.jpg",
+    "expectedLabel": "Durian___Leaf_Phomopsis",
+    "sourceClassFolder": "Leaf_Phomopsis"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Phomopsis/IMG_7450_JPG_jpg.rf.cbd6108216abfafb3e2b361c4fb9d14a.jpg",
+    "expectedLabel": "Durian___Leaf_Phomopsis",
+    "sourceClassFolder": "Leaf_Phomopsis"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Rhizoctonia/IMG_7642_JPG_jpg.rf.21efd6bb64a9b4a62db5ed7664d7352e.jpg",
+    "expectedLabel": "Durian___Leaf_Rhizoctonia",
+    "sourceClassFolder": "Leaf_Rhizoctonia"
+  },
+  {
+    "path": "assets/images/sample/Leaf_Rhizoctonia/IMG_7717_JPG_jpg.rf.755e8f49f3811880b3f5b884adf9b6e3.jpg",
+    "expectedLabel": "Durian___Leaf_Rhizoctonia",
+    "sourceClassFolder": "Leaf_Rhizoctonia"
+  }
+]
